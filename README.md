@@ -9,3 +9,5 @@ https://docs.google.com/document/d/1aFjYJ_MKdPjXtJHxsPpquCxD33VihGDwmP24AzYSO0Q/
 Clases: https://app.diagrams.net/#G1U2z9lki67BpNLmjgS-AQfg_hLP1Sniiz#%7B%22pageId%22%3A%22FsB0bT2FR8Ba7luLeEG5%22%7D
 
 Casos de uso: https://app.diagrams.net/#G1YW4e_ZWlW5Z6w7kvaXftI60h9eKUpvRK#%7B%22pageId%22%3A%225O-YL7p3ES3qIqL0S2sI%22%7D
+
+Documentación API: https://docs.google.com/document/d/1bl_0oJ8eveKUI9GjHCkyexxb0NF7L5K0wd8yWQ62T9w/edit?tab=t.0
