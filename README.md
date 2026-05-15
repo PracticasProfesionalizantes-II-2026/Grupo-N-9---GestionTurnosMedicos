@@ -1,4 +1,4 @@
-# Grupo-N-10---GestionTurnosMedicos
+# Grupo-N-9---GestionTurnosMedicos
 Bujonok Francisco, Palmero Ivo, Perez Facundo
 
 - ChronoSalud -
