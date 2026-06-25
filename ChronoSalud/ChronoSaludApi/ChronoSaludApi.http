@@ -1,6 +1,0 @@
-@ChronoSaludApi_HostAddress = http://localhost:5135
-
-GET {{ChronoSaludApi_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
