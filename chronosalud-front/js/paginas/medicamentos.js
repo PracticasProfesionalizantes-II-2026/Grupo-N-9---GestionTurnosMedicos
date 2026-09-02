@@ -55,9 +55,7 @@ async function cargarMedicamentos() {
           <td>
             <div class="acciones">
               <button type="button" class="boton boton--secundario boton--chico"
-                data-editar="${m.idMedicamento}"
-                data-nombre="${escapar(m.nombre)}"
-                data-descripcion="${escapar(m.descripcion ?? "")}">Editar</button>
+                data-editar="${m.idMedicamento}">Editar</button>
               ${
                 puedeEliminar
                   ? `<button type="button" class="boton boton--peligro boton--chico" data-eliminar="${m.idMedicamento}">Eliminar</button>`
@@ -113,11 +111,18 @@ async function manejarAccion(evento) {
   if (!boton) return;
 
   if (boton.dataset.editar) {
-    abrirFormulario({
-      id: boton.dataset.editar,
-      nombre: boton.dataset.nombre,
-      descripcion: boton.dataset.descripcion,
-    });
+    // Se relee el medicamento de la API para editar sobre el dato actual y no
+    // sobre lo que quedó pintado en la tabla.
+    try {
+      const m = await api.get(`/medicamentos/${boton.dataset.editar}`);
+      abrirFormulario({
+        id: m.idMedicamento,
+        nombre: m.nombre,
+        descripcion: m.descripcion ?? "",
+      });
+    } catch (error) {
+      toast(error.message, "error");
+    }
   }
 
   if (boton.dataset.eliminar) {

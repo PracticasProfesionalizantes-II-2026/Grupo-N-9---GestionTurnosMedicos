@@ -122,10 +122,11 @@
                   <th>Diagnóstico</th>
                   <th>Descripción</th>
                   <th>Turno</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="tabla-historial">
-                <tr><td colspan="4" class="tabla__vacia">Cargando…</td></tr>
+                <tr><td colspan="5" class="tabla__vacia">Cargando…</td></tr>
               </tbody>
             </table>
           </div>
@@ -211,12 +212,13 @@
     <div class="modal" id="modal-historial">
       <div class="modal__caja">
         <div class="modal__cabecera">
-          <h2>Nueva entrada de historial</h2>
+          <h2 id="titulo-historial">Nueva entrada de historial</h2>
           <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
         </div>
         <form id="form-historial">
           <div class="modal__cuerpo">
             <div id="mensaje-historial"></div>
+            <input type="hidden" name="modo" id="modo-historial" value="alta" />
             <div class="fila-campos">
               <div class="campo">
                 <label for="fecha-historial">Fecha</label>
@@ -250,12 +252,13 @@
     <div class="modal" id="modal-receta">
       <div class="modal__caja">
         <div class="modal__cabecera">
-          <h2>Emitir receta</h2>
+          <h2 id="titulo-receta">Emitir receta</h2>
           <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
         </div>
         <form id="form-receta">
           <div class="modal__cuerpo">
             <div id="mensaje-receta"></div>
+            <input type="hidden" name="idReceta" id="id-receta" />
             <div class="fila-campos">
               <div class="campo">
                 <label for="fecha-receta">Fecha</label>
@@ -279,7 +282,7 @@
           </div>
           <div class="modal__pie">
             <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
-            <button type="submit" class="boton">Emitir</button>
+            <button type="submit" class="boton" id="btn-guardar-receta">Emitir</button>
           </div>
         </form>
       </div>

@@ -1,10 +1,19 @@
 import { api } from "../api.js";
 import { ROLES } from "../config.js";
-import { requerirSesion } from "../sesion.js";
+import { requerirSesion, tieneRol } from "../sesion.js";
 import { montarLayout } from "../layout.js";
-import { $, aviso, escapar, fechaParaApi, fechaParaInput, hoyParaInput, valoresFormulario } from "../ui.js";
+import {
+  $,
+  aviso,
+  escapar,
+  fechaParaApi,
+  fechaParaInput,
+  formatearFecha,
+  valoresFormulario,
+} from "../ui.js";
 
 const sesion = requerirSesion([ROLES.ADMIN, ROLES.DOCTOR]);
+const esAdmin = tieneRol(ROLES.ADMIN);
 
 if (sesion) {
   montarLayout("reportes");
@@ -50,13 +59,13 @@ async function generar() {
     return;
   }
 
-  try {
-    const reporte = await api.get("/reportes/turnos", {
-      fecha_desde: fechaParaApi(datos.fecha_desde),
-      fecha_hasta: fechaParaApi(datos.fecha_hasta),
-      doctor_id: datos.doctor_id,
-    });
+  const periodo = {
+    fecha_desde: fechaParaApi(datos.fecha_desde),
+    fecha_hasta: fechaParaApi(datos.fecha_hasta),
+  };
 
+  try {
+    const reporte = await api.get("/reportes/turnos", { ...periodo, doctor_id: datos.doctor_id });
     pintarMetricas(reporte);
     pintarDistribucion(reporte);
   } catch (error) {
@@ -64,6 +73,55 @@ async function generar() {
     $("#metricas").innerHTML = "";
     $("#tarjeta-distribucion").hidden = true;
   }
+
+  cargarDisponibilidad(periodo, datos.doctor_id);
+  if (esAdmin) cargarActividadPacientes(periodo);
+}
+
+// Los reportes de disponibilidad y de pacientes todavía son un esqueleto en la
+// API: responden con el período recibido pero sin métricas calculadas. Se
+// muestran igual para que se vea qué devuelve cada uno.
+async function cargarDisponibilidad(periodo, doctorId) {
+  const contenedor = $("#disponibilidad");
+  contenedor.innerHTML = `<p class="texto-suave">Consultando…</p>`;
+
+  try {
+    const reporte = await api.get("/reportes/disponibilidad", { ...periodo, doctor_id: doctorId });
+    const doctor = doctorId
+      ? $("#doctor").selectedOptions[0]?.textContent ?? `#${doctorId}`
+      : "Todos los profesionales";
+
+    contenedor.innerHTML = `
+      <dl class="definiciones">
+        <div><dt>Profesional</dt><dd>${escapar(doctor)}</dd></div>
+        <div><dt>Período</dt><dd>${rango(reporte.periodo)}</dd></div>
+      </dl>
+      <p class="texto-suave">${escapar(reporte.mensaje ?? "")}</p>`;
+  } catch (error) {
+    contenedor.innerHTML = `<div class="aviso aviso--error">${escapar(error.message)}</div>`;
+  }
+}
+
+async function cargarActividadPacientes(periodo) {
+  $("#tarjeta-pacientes").hidden = false;
+  const contenedor = $("#actividad-pacientes");
+  contenedor.innerHTML = `<p class="texto-suave">Consultando…</p>`;
+
+  try {
+    const reporte = await api.get("/reportes/pacientes", periodo);
+    contenedor.innerHTML = `
+      <dl class="definiciones">
+        <div><dt>Período</dt><dd>${rango(reporte.periodo)}</dd></div>
+      </dl>
+      <p class="texto-suave">${escapar(reporte.mensaje ?? "")}</p>`;
+  } catch (error) {
+    contenedor.innerHTML = `<div class="aviso aviso--error">${escapar(error.message)}</div>`;
+  }
+}
+
+function rango(periodo) {
+  if (!periodo) return "—";
+  return `${formatearFecha(periodo.desde)} — ${formatearFecha(periodo.hasta)}`;
 }
 
 function pintarMetricas(reporte) {

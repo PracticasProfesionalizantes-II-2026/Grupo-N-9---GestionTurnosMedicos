@@ -44,7 +44,8 @@ chronosalud-front/
 ├── doctores.html         listado y ABM de profesionales (alta sólo administrador)
 ├── medicamentos.html     vademécum
 ├── notificaciones.html   bandeja del usuario
-├── reportes.html         estadísticas de turnos por período
+├── reportes.html         estadísticas de turnos, disponibilidad y pacientes
+├── cuenta.html           datos de la cuenta, contraseña y baja de usuarios
 ├── css/estilos.css
 └── js/
     ├── config.js         URL de la API, roles y constantes
@@ -67,9 +68,18 @@ chronosalud-front/
 | Medicamentos   | —                   | ABM (sin borrar) | ABM completo |
 | Reportes       | —                   | sí     | sí            |
 | Notificaciones | sí                  | sí     | sí            |
+| Mi cuenta      | sí                  | sí     | sí + baja de usuarios |
 
 Las acciones que la API restringe por rol (emitir recetas, solicitar estudios, cargar
 resultados, reprogramar turnos) se ocultan cuando el usuario no las tiene habilitadas.
+
+## Cobertura de la API
+
+El frontend consume los 43 endpoints de `ChronoSaludApi`. Tres de ellos responden hoy
+con un esqueleto en el backend y se muestran tal cual lo que devuelven, sin inventar
+datos: `GET /reportes/pacientes` y `GET /reportes/disponibilidad` (contestan el período
+recibido, sin métricas) y `GET /recetas/{id}/descargar` (todavía no genera el PDF).
+`GET /estudios/{id}/descargar` sí devuelve la URL del archivo y la pantalla la abre.
 
 ## Notas
 

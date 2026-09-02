@@ -29,6 +29,7 @@ const puedeCargarResultados = tieneRol(ROLES.ADMIN, ROLES.DOCTOR);
 let idPaciente = null;
 let medicamentos = [];
 let turnosDelPaciente = [];
+let recetasDelPaciente = [];
 
 if (sesion) {
   montarLayout(sesion.rol === ROLES.PACIENTE ? "mi-perfil" : "pacientes");
@@ -70,10 +71,12 @@ async function iniciar() {
   $("#btn-nueva-cobertura").addEventListener("click", () => abrirModalCobertura());
   $("#form-cobertura").addEventListener("submit", guardarCobertura);
   $("#tabla-coberturas").addEventListener("click", accionCobertura);
-  $("#btn-nuevo-historial").addEventListener("click", abrirModalHistorial);
+  $("#btn-nuevo-historial").addEventListener("click", () => abrirModalHistorial());
   $("#form-historial").addEventListener("submit", guardarHistorial);
-  $("#btn-nueva-receta").addEventListener("click", abrirModalReceta);
+  $("#tabla-historial").addEventListener("click", accionHistorial);
+  $("#btn-nueva-receta").addEventListener("click", () => abrirModalReceta());
   $("#form-receta").addEventListener("submit", guardarReceta);
+  $("#lista-recetas").addEventListener("click", accionReceta);
   $("#btn-agregar-med").addEventListener("click", () => agregarFilaMedicamento());
   $("#btn-nuevo-estudio").addEventListener("click", abrirModalEstudio);
   $("#form-estudio").addEventListener("submit", guardarEstudio);
@@ -275,7 +278,7 @@ async function cargarHistorial() {
     const historiales = datos.historiales ?? [];
 
     if (!historiales.length) {
-      cuerpo.innerHTML = filaMensaje(4, "Sin entradas en el historial clínico.");
+      cuerpo.innerHTML = filaMensaje(5, "Sin entradas en el historial clínico.");
       return;
     }
 
@@ -288,18 +291,45 @@ async function cargarHistorial() {
           <td>${escapar(h.diagnostico)}</td>
           <td>${escapar(h.descripcion)}</td>
           <td>${h.idTurno ? `#${h.idTurno}` : "—"}</td>
+          <td>
+            ${
+              esDoctor
+                ? `<button type="button" class="boton boton--secundario boton--chico"
+                     data-editar-historial="${escapar(fechaParaInput(h.fecha))}"
+                     data-diagnostico="${escapar(h.diagnostico)}"
+                     data-descripcion="${escapar(h.descripcion)}"
+                     data-turno="${h.idTurno ?? ""}">Editar</button>`
+                : "—"
+            }
+          </td>
         </tr>`
       )
       .join("");
   } catch (error) {
-    cuerpo.innerHTML = filaMensaje(4, error.message);
+    cuerpo.innerHTML = filaMensaje(5, error.message);
   }
 }
 
-function abrirModalHistorial() {
+// La API identifica la entrada a modificar por su fecha, no por su id: al
+// editar, la fecha queda fija para no terminar creando una entrada nueva.
+function abrirModalHistorial(datos = null) {
   $("#form-historial").reset();
   aviso("#mensaje-historial", "");
-  $("#fecha-historial").value = hoyParaInput();
+
+  $("#modo-historial").value = datos ? "edicion" : "alta";
+  $("#titulo-historial").textContent = datos ? "Editar entrada" : "Nueva entrada de historial";
+  $("#fecha-historial").readOnly = !!datos;
+
+  if (datos) {
+    $("#fecha-historial").value = datos.fecha;
+    $("#diagnostico").value = datos.diagnostico;
+    $("#descripcion-historial").value = datos.descripcion;
+    $("#turno-historial").value = datos.idTurno;
+    aviso("#mensaje-historial", "Se modifica la entrada de esta fecha.", "info");
+  } else {
+    $("#fecha-historial").value = hoyParaInput();
+  }
+
   abrirModal("modal-historial");
 }
 
@@ -308,20 +338,38 @@ async function guardarHistorial(evento) {
   aviso("#mensaje-historial", "");
 
   const datos = valoresFormulario($("#form-historial"));
+  const cuerpo = {
+    fecha: fechaParaApi(datos.fecha),
+    descripcion: datos.descripcion,
+    diagnostico: datos.diagnostico,
+    idTurno: datos.idTurno ? Number(datos.idTurno) : null,
+  };
 
   try {
-    await api.post(`/pacientes/${idPaciente}/historiales-clinicos`, {
-      fecha: fechaParaApi(datos.fecha),
-      descripcion: datos.descripcion,
-      diagnostico: datos.diagnostico,
-      idTurno: datos.idTurno ? Number(datos.idTurno) : null,
-    });
-    toast("Entrada registrada.");
+    if (datos.modo === "edicion") {
+      await api.put(`/pacientes/${idPaciente}/historiales-clinicos`, cuerpo);
+      toast("Entrada actualizada.");
+    } else {
+      await api.post(`/pacientes/${idPaciente}/historiales-clinicos`, cuerpo);
+      toast("Entrada registrada.");
+    }
     cerrarModal("modal-historial");
     await cargarHistorial();
   } catch (error) {
     aviso("#mensaje-historial", error.message);
   }
+}
+
+function accionHistorial(evento) {
+  const boton = evento.target.closest("button[data-editar-historial]");
+  if (!boton) return;
+
+  abrirModalHistorial({
+    fecha: boton.dataset.editarHistorial,
+    diagnostico: boton.dataset.diagnostico,
+    descripcion: boton.dataset.descripcion,
+    idTurno: boton.dataset.turno,
+  });
 }
 
 /* ── Recetas ─────────────────────────────────────────────── */
@@ -332,6 +380,7 @@ async function cargarRecetas() {
   try {
     const datos = await api.get(`/pacientes/${idPaciente}/recetas`);
     const recetas = datos.recetas ?? [];
+    recetasDelPaciente = recetas;
 
     if (!recetas.length) {
       contenedor.innerHTML = `<p class="texto-suave">El paciente no tiene recetas emitidas.</p>`;
@@ -362,6 +411,16 @@ async function cargarRecetas() {
               )
               .join("")}
           </ul>
+          <div class="acciones">
+            ${
+              esDoctor
+                ? `<button type="button" class="boton boton--secundario boton--chico"
+                     data-editar-receta="${r.idReceta}">Editar</button>`
+                : ""
+            }
+            <button type="button" class="boton boton--secundario boton--chico"
+              data-descargar-receta="${r.idReceta}">Descargar</button>
+          </div>
         </article>`
       )
       .join("");
@@ -384,14 +443,16 @@ async function cargarMedicamentos() {
   }
 }
 
-async function abrirModalReceta() {
+async function abrirModalReceta(receta = null) {
   const idDoctor = await idDoctorActual();
   await cargarMedicamentos();
 
   $("#form-receta").reset();
   aviso("#mensaje-receta", "");
   $("#lista-medicamentos").innerHTML = "";
-  $("#fecha-receta").value = hoyParaInput();
+  $("#id-receta").value = receta?.idReceta ?? "";
+  $("#titulo-receta").textContent = receta ? `Editar receta #${receta.idReceta}` : "Emitir receta";
+  $("#btn-guardar-receta").textContent = receta ? "Guardar cambios" : "Emitir";
 
   if (!idDoctor) {
     aviso(
@@ -400,14 +461,20 @@ async function abrirModalReceta() {
     );
   } else if (!medicamentos.length) {
     aviso("#mensaje-receta", "No hay medicamentos cargados en el sistema.", "info");
+  } else if (receta) {
+    $("#fecha-receta").value = fechaParaInput(receta.fecha);
+    $("#vigencia-receta").value = fechaParaInput(receta.vigencia);
+    $("#detalles-receta").value = receta.detalles ?? "";
+    (receta.medicamentos ?? []).forEach((m) => agregarFilaMedicamento(m));
   } else {
+    $("#fecha-receta").value = hoyParaInput();
     agregarFilaMedicamento();
   }
 
   abrirModal("modal-receta");
 }
 
-function agregarFilaMedicamento() {
+function agregarFilaMedicamento(valores = null) {
   const fila = document.createElement("div");
   fila.className = "campo";
   fila.dataset.medicamento = "";
@@ -417,28 +484,37 @@ function agregarFilaMedicamento() {
         <label>Medicamento</label>
         <select data-campo="idMedicamento">
           ${medicamentos
-            .map((m) => `<option value="${m.idMedicamento}">${escapar(m.nombre)}</option>`)
+            .map(
+              (m) =>
+                `<option value="${m.idMedicamento}" ${
+                  valores?.idMedicamento === m.idMedicamento ? "selected" : ""
+                }>${escapar(m.nombre)}</option>`
+            )
             .join("")}
         </select>
       </div>
       <div class="campo">
         <label>Dosis</label>
-        <input type="text" data-campo="dosis" placeholder="500 mg" required />
+        <input type="text" data-campo="dosis" placeholder="500 mg" required
+          value="${escapar(valores?.dosis ?? "")}" />
       </div>
       <div class="campo">
         <label>Frecuencia</label>
-        <input type="text" data-campo="frecuencia" placeholder="cada 8 horas" required />
+        <input type="text" data-campo="frecuencia" placeholder="cada 8 horas" required
+          value="${escapar(valores?.frecuencia ?? "")}" />
       </div>
       <div class="campo">
         <label>Duración</label>
-        <input type="text" data-campo="duracion" placeholder="7 días" />
+        <input type="text" data-campo="duracion" placeholder="7 días"
+          value="${escapar(valores?.duracion ?? "")}" />
       </div>
       <div class="campo">
         <label>&nbsp;</label>
         <button type="button" class="boton boton--secundario boton--chico" data-quitar-med>Quitar</button>
       </div>
     </div>
-    <input type="text" data-campo="indicaciones" placeholder="Indicaciones (opcional)" />`;
+    <input type="text" data-campo="indicaciones" placeholder="Indicaciones (opcional)"
+      value="${escapar(valores?.indicaciones ?? "")}" />`;
 
   fila.querySelector("[data-quitar-med]").addEventListener("click", () => fila.remove());
   $("#lista-medicamentos").appendChild(fila);
@@ -479,21 +555,50 @@ async function guardarReceta(evento) {
     return;
   }
 
+  const cuerpo = {
+    idPaciente,
+    idDoctor,
+    idTurno: null,
+    fecha: fechaParaApi(datos.fecha),
+    vigencia: fechaParaApi(datos.vigencia),
+    detalles: opcional(datos.detalles),
+    medicamentos: meds,
+  };
+
   try {
-    await api.post("/recetas", {
-      idPaciente,
-      idDoctor,
-      idTurno: null,
-      fecha: fechaParaApi(datos.fecha),
-      vigencia: fechaParaApi(datos.vigencia),
-      detalles: opcional(datos.detalles),
-      medicamentos: meds,
-    });
-    toast("Receta emitida.");
+    if (datos.idReceta) {
+      await api.put(`/recetas/${datos.idReceta}`, cuerpo);
+      toast("Receta actualizada.");
+    } else {
+      await api.post("/recetas", cuerpo);
+      toast("Receta emitida.");
+    }
     cerrarModal("modal-receta");
     await cargarRecetas();
   } catch (error) {
     aviso("#mensaje-receta", error.message);
+  }
+}
+
+async function accionReceta(evento) {
+  const boton = evento.target.closest("button");
+  if (!boton) return;
+
+  if (boton.dataset.editarReceta) {
+    const receta = recetasDelPaciente.find(
+      (r) => String(r.idReceta) === boton.dataset.editarReceta
+    );
+    if (receta) await abrirModalReceta(receta);
+  }
+
+  if (boton.dataset.descargarReceta) {
+    try {
+      const datos = await api.get(`/recetas/${boton.dataset.descargarReceta}/descargar`);
+      // La API todavía no genera el PDF: devuelve los datos de la receta.
+      toast(datos.mensaje ?? "Receta lista para descargar.", "info");
+    } catch (error) {
+      toast(error.message, "error");
+    }
   }
 }
 
@@ -522,13 +627,23 @@ async function cargarEstudios() {
           <td>${badge(e.estado)}</td>
           <td>${escapar(e.resultado) || "—"}</td>
           <td>
-            ${
-              puedeCargarResultados
-                ? `<button type="button" class="boton boton--secundario boton--chico" data-resultado="${e.idEstudio}">
-                     Cargar resultado
-                   </button>`
-                : "—"
-            }
+            <div class="acciones">
+              ${
+                puedeCargarResultados
+                  ? `<button type="button" class="boton boton--secundario boton--chico" data-resultado="${e.idEstudio}">
+                       Cargar resultado
+                     </button>`
+                  : ""
+              }
+              ${
+                e.archivoUrl
+                  ? `<button type="button" class="boton boton--secundario boton--chico" data-descargar-estudio="${e.idEstudio}">
+                       Descargar
+                     </button>`
+                  : ""
+              }
+              ${!puedeCargarResultados && !e.archivoUrl ? "—" : ""}
+            </div>
           </td>
         </tr>`
       )
@@ -567,15 +682,30 @@ async function guardarEstudio(evento) {
   }
 }
 
-function accionEstudio(evento) {
-  const boton = evento.target.closest("button[data-resultado]");
+async function accionEstudio(evento) {
+  const boton = evento.target.closest("button");
   if (!boton) return;
 
-  $("#form-resultado").reset();
-  aviso("#mensaje-resultado", "");
-  $("#id-estudio").value = boton.dataset.resultado;
-  $("#fecha-resultado").value = hoyParaInput();
-  abrirModal("modal-resultado");
+  if (boton.dataset.resultado) {
+    $("#form-resultado").reset();
+    aviso("#mensaje-resultado", "");
+    $("#id-estudio").value = boton.dataset.resultado;
+    $("#fecha-resultado").value = hoyParaInput();
+    abrirModal("modal-resultado");
+  }
+
+  if (boton.dataset.descargarEstudio) {
+    try {
+      const datos = await api.get(`/estudios/${boton.dataset.descargarEstudio}/descargar`);
+      if (datos.archivo_url) {
+        window.open(datos.archivo_url, "_blank", "noopener");
+      } else {
+        toast(datos.mensaje ?? "El estudio no tiene archivo asociado.", "info");
+      }
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
 }
 
 async function guardarResultado(evento) {

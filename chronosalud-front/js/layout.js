@@ -27,6 +27,7 @@ const MENU = [
     roles: [ROLES.ADMIN, ROLES.DOCTOR],
   },
   { id: "notificaciones", texto: "Notificaciones", href: "notificaciones.html", roles: null },
+  { id: "cuenta", texto: "Mi cuenta", href: "cuenta.html", roles: null },
 ];
 
 export function menuVisible(rol) {

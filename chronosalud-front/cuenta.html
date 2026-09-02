@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi cuenta · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Mi cuenta</h1>
+          <p class="texto-suave">Datos de acceso y contraseña</p>
+        </div>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">Mis datos</h2>
+        <dl class="definiciones" id="datos-cuenta">
+          <div><dt>Email</dt><dd id="dato-email">—</dd></div>
+          <div><dt>Rol</dt><dd id="dato-rol">—</dd></div>
+          <div><dt>N° de usuario</dt><dd id="dato-id">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">Editar perfil</h2>
+        <div id="mensaje-perfil"></div>
+        <form id="form-cuenta">
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="nombre">Nombre</label>
+              <input type="text" id="nombre" name="nombre" required />
+            </div>
+            <div class="campo">
+              <label for="apellido">Apellido</label>
+              <input type="text" id="apellido" name="apellido" required />
+            </div>
+            <div class="campo">
+              <label for="telefono">Teléfono</label>
+              <input type="text" id="telefono" name="telefono" />
+            </div>
+          </div>
+          <div class="campo">
+            <label for="contrasena">Nueva contraseña</label>
+            <input
+              type="password"
+              id="contrasena"
+              name="contrasena"
+              minlength="8"
+              autocomplete="new-password"
+              placeholder="Dejar vacío para no cambiarla"
+            />
+          </div>
+          <div class="acciones">
+            <button type="submit" class="boton">Guardar cambios</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Sólo administradores: la API restringe la baja a ese rol. -->
+      <section class="tarjeta" id="tarjeta-baja" hidden>
+        <h2 class="tarjeta__titulo">
+          Baja de usuarios
+          <span class="texto-suave">Sólo administradores</span>
+        </h2>
+        <div id="mensaje-baja"></div>
+        <form id="form-buscar-usuario">
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="id-usuario">N° de usuario</label>
+              <input type="number" id="id-usuario" name="id" min="1" required />
+            </div>
+            <div class="campo">
+              <label>&nbsp;</label>
+              <button type="submit" class="boton boton--secundario">Buscar</button>
+            </div>
+          </div>
+        </form>
+        <div id="resultado-busqueda"></div>
+      </section>
+    </main>
+
+    <script type="module" src="js/paginas/cuenta.js"></script>
+  </body>
+</html>
