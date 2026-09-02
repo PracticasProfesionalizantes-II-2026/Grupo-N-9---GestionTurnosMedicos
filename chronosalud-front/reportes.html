@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reportes · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Reportes</h1>
+          <p>Estadísticas de turnos por período</p>
+        </div>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <form id="form-reporte">
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="desde">Desde</label>
+              <input type="date" id="desde" name="fecha_desde" required />
+            </div>
+            <div class="campo">
+              <label for="hasta">Hasta</label>
+              <input type="date" id="hasta" name="fecha_hasta" required />
+            </div>
+            <div class="campo">
+              <label for="doctor">Doctor</label>
+              <select id="doctor" name="doctor_id">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label>&nbsp;</label>
+              <button type="submit" class="boton">Generar</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="grilla" id="metricas"></section>
+
+      <section class="tarjeta" id="tarjeta-distribucion" hidden>
+        <h2 class="tarjeta__titulo">Distribución por estado</h2>
+        <div id="distribucion"></div>
+      </section>
+    </main>
+
+    <script type="module" src="js/paginas/reportes.js"></script>
+  </body>
+</html>

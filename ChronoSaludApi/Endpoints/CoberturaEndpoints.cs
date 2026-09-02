@@ -22,6 +22,14 @@ public static class CoberturaEndpoints
             .WithTags("Coberturas")
             .RequireAuthorization();
 
+        // GET /pacientes/{id}/coberturas
+        grupo.MapGet("/", async (int id, ICoberturaLogica logica) =>
+        {
+            var coberturas = await logica.ObtenerDePaciente(id);
+            return Results.Ok(new { coberturas });
+        })
+        .WithSummary("Listar coberturas de un paciente");
+
         // POST /pacientes/{id}/coberturas
         grupo.MapPost("/", async (int id, AsociarCoberturaDto dto, ICoberturaLogica logica) =>
         {

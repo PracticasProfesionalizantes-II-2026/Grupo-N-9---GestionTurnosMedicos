@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turnos · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Turnos</h1>
+          <p id="bajada">Agenda de turnos</p>
+        </div>
+        <button type="button" class="boton" id="btn-nuevo">Nuevo turno</button>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <form id="form-filtros">
+          <div class="fila-campos">
+            <div class="campo" id="campo-filtro-doctor">
+              <label for="filtro-doctor">Doctor</label>
+              <select id="filtro-doctor" name="doctor_id">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="filtro-estado">Estado</label>
+              <select id="filtro-estado" name="estado">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="completado">Completado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="filtro-desde">Desde</label>
+              <input type="date" id="filtro-desde" name="fecha_desde" />
+            </div>
+            <div class="campo">
+              <label for="filtro-hasta">Hasta</label>
+              <input type="date" id="filtro-hasta" name="fecha_hasta" />
+            </div>
+            <div class="campo">
+              <label>&nbsp;</label>
+              <div class="acciones">
+                <button type="submit" class="boton">Filtrar</button>
+                <button type="button" class="boton boton--secundario" id="btn-limpiar">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Resultados
+          <span class="texto-suave" id="resumen"></span>
+        </h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fecha</th>
+                <th>Paciente</th>
+                <th>Doctor</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-turnos">
+              <tr>
+                <td colspan="6" class="tabla__vacia">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal alta / edición -->
+    <div class="modal" id="modal-turno">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2 id="titulo-modal">Nuevo turno</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-turno">
+          <div class="modal__cuerpo">
+            <div id="mensaje-modal"></div>
+            <input type="hidden" name="id_turno" id="id-turno" />
+
+            <div class="campo" id="campo-paciente">
+              <label for="paciente">Paciente</label>
+              <select id="paciente" name="id_paciente"></select>
+            </div>
+            <div class="campo" id="campo-doctor">
+              <label for="doctor">Doctor</label>
+              <select id="doctor" name="id_doctor"></select>
+            </div>
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="fecha">Fecha</label>
+                <input type="date" id="fecha" name="fecha_inicio" required />
+              </div>
+              <div class="campo">
+                <label for="hora-inicio">Hora inicio</label>
+                <input type="time" id="hora-inicio" name="hora_inicio" required />
+              </div>
+              <div class="campo">
+                <label for="hora-fin">Hora fin</label>
+                <input type="time" id="hora-fin" name="hora_fin" required />
+              </div>
+            </div>
+            <div class="campo" id="campo-estado" hidden>
+              <label for="estado">Estado</label>
+              <select id="estado" name="estado">
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="completado">Completado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="observaciones">Observaciones</label>
+              <textarea id="observaciones" name="observaciones"></textarea>
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton" id="btn-guardar">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal detalle -->
+    <div class="modal" id="modal-detalle">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2>Detalle del turno</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <div class="modal__cuerpo" id="cuerpo-detalle"></div>
+        <div class="modal__pie">
+          <button type="button" class="boton boton--secundario" data-cerrar>Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/paginas/turnos.js"></script>
+  </body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inicio · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1 id="saludo">Hola</h1>
+          <p id="bajada">Resumen de actividad</p>
+        </div>
+        <div class="acciones" id="accesos-rapidos"></div>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="grilla" id="metricas"></section>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Próximos turnos
+          <a href="turnos.html" class="boton boton--secundario boton--chico">Ver todos</a>
+        </h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Paciente</th>
+                <th>Doctor</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-proximos">
+              <tr>
+                <td colspan="4" class="tabla__vacia">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/paginas/dashboard.js"></script>
+  </body>
+</html>

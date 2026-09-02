@@ -26,8 +26,13 @@ public class PacienteLogica : IPacienteLogica
     }
 
     public async Task<PacienteDto?> ObtenerPorId(int id)
+        => Mapear(await _repo.ObtenerPorId(id));
+
+    public async Task<PacienteDto?> ObtenerPorIdUsuario(int idUsuario)
+        => Mapear(await _repo.ObtenerPorIdUsuario(idUsuario));
+
+    private static PacienteDto? Mapear(Entidades.Paciente? p)
     {
-        var p = await _repo.ObtenerPorId(id);
         if (p == null) return null;
 
         return new PacienteDto(

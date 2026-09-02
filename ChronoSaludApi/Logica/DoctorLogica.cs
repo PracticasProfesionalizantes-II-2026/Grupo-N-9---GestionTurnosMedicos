@@ -28,8 +28,13 @@ public class DoctorLogica : IDoctorLogica
     }
 
     public async Task<DoctorDto?> ObtenerPorId(int id)
+        => Mapear(await _repo.ObtenerPorId(id));
+
+    public async Task<DoctorDto?> ObtenerPorIdUsuario(int idUsuario)
+        => Mapear(await _repo.ObtenerPorIdUsuario(idUsuario));
+
+    private static DoctorDto? Mapear(Doctor? d)
     {
-        var d = await _repo.ObtenerPorId(id);
         if (d == null) return null;
 
         return new DoctorDto(

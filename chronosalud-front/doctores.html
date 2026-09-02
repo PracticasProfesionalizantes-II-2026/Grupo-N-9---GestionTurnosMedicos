@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doctores · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Doctores</h1>
+          <p>Profesionales del centro médico</p>
+        </div>
+        <button type="button" class="boton" id="btn-nuevo" hidden>Nuevo doctor</button>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <form id="form-filtros">
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="filtro-especialidad">Especialidad</label>
+              <input
+                type="search"
+                id="filtro-especialidad"
+                name="especialidad"
+                placeholder="Cardiología, clínica…"
+              />
+            </div>
+            <div class="campo">
+              <label>&nbsp;</label>
+              <div class="acciones">
+                <button type="submit" class="boton">Buscar</button>
+                <button type="button" class="boton boton--secundario" id="btn-limpiar">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Resultados <span class="texto-suave" id="resumen"></span>
+        </h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Especialidad</th>
+                <th>Matrícula</th>
+                <th id="col-acciones" hidden>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-doctores">
+              <tr><td colspan="5" class="tabla__vacia">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal" id="modal-doctor">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2 id="titulo-modal">Nuevo doctor</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-doctor">
+          <div class="modal__cuerpo">
+            <div id="mensaje-modal"></div>
+            <input type="hidden" name="id_doctor" id="id-doctor" />
+            <div class="campo" id="campo-usuario">
+              <label for="id-usuario">ID de usuario</label>
+              <input type="number" id="id-usuario" name="idUsuario" min="1" required />
+              <span class="texto-suave" style="font-size: 13px">
+                El usuario debe existir y haberse registrado con el rol "doctor".
+              </span>
+            </div>
+            <div class="campo">
+              <label for="especialidad">Especialidad</label>
+              <input type="text" id="especialidad" name="especialidad" required />
+            </div>
+            <div class="campo" id="campo-matricula">
+              <label for="matricula">Matrícula</label>
+              <input type="text" id="matricula" name="matricula" required />
+            </div>
+            <div class="campo">
+              <label for="consultorio">Consultorio</label>
+              <input type="text" id="consultorio" name="consultorio" />
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="js/paginas/doctores.js"></script>
+  </body>
+</html>

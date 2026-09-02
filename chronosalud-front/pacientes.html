@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pacientes · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Pacientes</h1>
+          <p>Listado de pacientes registrados</p>
+        </div>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <form id="form-filtros">
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="filtro-nombre">Nombre o apellido</label>
+              <input type="search" id="filtro-nombre" name="nombre" placeholder="Buscar…" />
+            </div>
+            <div class="campo">
+              <label for="filtro-cobertura">Cobertura</label>
+              <select id="filtro-cobertura" name="cobertura_id">
+                <option value="">Todas</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label>&nbsp;</label>
+              <div class="acciones">
+                <button type="submit" class="boton">Buscar</button>
+                <button type="button" class="boton boton--secundario" id="btn-limpiar">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Resultados <span class="texto-suave" id="resumen"></span>
+        </h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Apellido</th>
+                <th>Nombre</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-pacientes">
+              <tr>
+                <td colspan="4" class="tabla__vacia">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/paginas/pacientes.js"></script>
+  </body>
+</html>

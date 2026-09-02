@@ -11,11 +11,13 @@ namespace ChronoSaludApi.Logica;
 public class UsuarioLogica : IUsuarioLogica
 {
     private readonly IUsuarioRepository _repo;
+    private readonly IPacienteRepository _pacienteRepo;
     private readonly IConfiguration _config;
 
-    public UsuarioLogica(IUsuarioRepository repo, IConfiguration config)
+    public UsuarioLogica(IUsuarioRepository repo, IPacienteRepository pacienteRepo, IConfiguration config)
     {
         _repo = repo;
+        _pacienteRepo = pacienteRepo;
         _config = config;
     }
 
@@ -41,6 +43,9 @@ public class UsuarioLogica : IUsuarioLogica
         };
 
         await _repo.Agregar(usuario);
+
+        if (usuario.Rol == "paciente")
+            await _pacienteRepo.Agregar(new Paciente { IdUsuario = usuario.Id });
 
         var token = GenerarToken(usuario);
 

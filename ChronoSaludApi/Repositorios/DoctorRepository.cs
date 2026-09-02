@@ -23,6 +23,9 @@ public class DoctorRepository : IDoctorRepository
     public async Task<Doctor?> ObtenerPorId(int id)
         => await _db.Doctores.Include(d => d.Usuario).FirstOrDefaultAsync(d => d.Id == id);
 
+    public async Task<Doctor?> ObtenerPorIdUsuario(int idUsuario)
+        => await _db.Doctores.Include(d => d.Usuario).FirstOrDefaultAsync(d => d.IdUsuario == idUsuario);
+
     public async Task<bool> ExisteMatricula(string matricula)
         => await _db.Doctores.AnyAsync(d => d.Matricula == matricula);
 

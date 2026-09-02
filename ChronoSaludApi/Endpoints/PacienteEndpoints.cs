@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -22,6 +23,20 @@ public static class PacienteEndpoints
         })
         .WithSummary("Listar pacientes")
         .RequireAuthorization(p => p.RequireRole("doctor", "administrador"));
+
+        // GET /pacientes/me
+        grupo.MapGet("/me", async (HttpContext ctx, IPacienteLogica logica) =>
+        {
+            var claim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var paciente = await logica.ObtenerPorIdUsuario(idUsuario);
+            return paciente == null
+                ? Results.NotFound(new { error = "El usuario autenticado no tiene perfil de paciente." })
+                : Results.Ok(paciente);
+        })
+        .WithSummary("Obtener el perfil de paciente del usuario autenticado");
 
         // GET /pacientes/{id}
         grupo.MapGet("/{id:int}", async (int id, IPacienteLogica logica) =>

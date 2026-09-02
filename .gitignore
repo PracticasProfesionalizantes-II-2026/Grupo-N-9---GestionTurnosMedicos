@@ -1,0 +1,26 @@
+# ---- Compilados de .NET ----
+# Estas carpetas se regeneran solas con "dotnet build". No van al repo:
+# si se versionan, cada push pisa los .dll del otro y genera conflictos.
+bin/
+obj/
+
+# ---- Archivos de usuario / IDE ----
+.vs/
+*.user
+*.suo
+.idea/
+
+# ---- Base de datos local ----
+*.mdf
+*.ldf
+
+# ---- Configuración local con datos propios de cada máquina ----
+# Cada integrante tiene su propia cadena de conexión.
+# Se sube appsettings.Development.json como plantilla, pero si alguien
+# necesita una variante privada, la deja como appsettings.Local.json.
+appsettings.Local.json
+
+# ---- Sistema operativo ----
+Thumbs.db
+desktop.ini
+.DS_Store

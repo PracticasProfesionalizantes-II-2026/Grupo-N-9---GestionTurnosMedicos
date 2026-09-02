@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ficha de paciente · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1 id="nombre-paciente">Ficha de paciente</h1>
+          <p id="bajada" class="texto-suave">Cargando…</p>
+        </div>
+        <a href="pacientes.html" class="boton boton--secundario" id="btn-volver">Volver al listado</a>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <nav class="pestanias" id="pestanias">
+        <button type="button" class="pestania pestania--activa" data-panel="perfil">Perfil</button>
+        <button type="button" class="pestania" data-panel="coberturas">Coberturas</button>
+        <button type="button" class="pestania" data-panel="historial">Historial clínico</button>
+        <button type="button" class="pestania" data-panel="recetas">Recetas</button>
+        <button type="button" class="pestania" data-panel="estudios">Estudios</button>
+      </nav>
+
+      <!-- Perfil -->
+      <section class="panel panel--activo" id="panel-perfil">
+        <div class="tarjeta">
+          <h2 class="tarjeta__titulo">Datos clínicos</h2>
+          <div id="mensaje-perfil"></div>
+          <form id="form-perfil">
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="fecha-nacimiento">Fecha de nacimiento</label>
+                <input type="date" id="fecha-nacimiento" name="fechaNacimiento" />
+              </div>
+              <div class="campo">
+                <label for="sexo">Sexo</label>
+                <select id="sexo" name="sexo">
+                  <option value="">Sin especificar</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="grupo-sanguineo">Grupo sanguíneo</label>
+                <select id="grupo-sanguineo" name="grupoSanguineo">
+                  <option value="">Sin especificar</option>
+                  <option>A+</option>
+                  <option>A-</option>
+                  <option>B+</option>
+                  <option>B-</option>
+                  <option>AB+</option>
+                  <option>AB-</option>
+                  <option>0+</option>
+                  <option>0-</option>
+                </select>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="alergias">Alergias</label>
+              <textarea id="alergias" name="alergias"></textarea>
+            </div>
+            <div class="campo">
+              <label for="condiciones">Condiciones preexistentes</label>
+              <textarea id="condiciones" name="condiciones"></textarea>
+            </div>
+            <div class="acciones">
+              <button type="submit" class="boton">Guardar cambios</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Coberturas -->
+      <section class="panel" id="panel-coberturas">
+        <div class="tarjeta">
+          <h2 class="tarjeta__titulo">
+            Coberturas asociadas
+            <button type="button" class="boton boton--chico" id="btn-nueva-cobertura">
+              Asociar cobertura
+            </button>
+          </h2>
+          <div class="tabla-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cobertura</th>
+                  <th>Plan</th>
+                  <th>N° de afiliado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-coberturas">
+                <tr><td colspan="4" class="tabla__vacia">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Historial clínico -->
+      <section class="panel" id="panel-historial">
+        <div class="tarjeta">
+          <h2 class="tarjeta__titulo">
+            Historial clínico
+            <button type="button" class="boton boton--chico" id="btn-nuevo-historial" hidden>
+              Nueva entrada
+            </button>
+          </h2>
+          <div class="tabla-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Diagnóstico</th>
+                  <th>Descripción</th>
+                  <th>Turno</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-historial">
+                <tr><td colspan="4" class="tabla__vacia">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recetas -->
+      <section class="panel" id="panel-recetas">
+        <div class="tarjeta">
+          <h2 class="tarjeta__titulo">
+            Recetas
+            <button type="button" class="boton boton--chico" id="btn-nueva-receta" hidden>
+              Emitir receta
+            </button>
+          </h2>
+          <div id="lista-recetas"><p class="texto-suave">Cargando…</p></div>
+        </div>
+      </section>
+
+      <!-- Estudios -->
+      <section class="panel" id="panel-estudios">
+        <div class="tarjeta">
+          <h2 class="tarjeta__titulo">
+            Estudios
+            <button type="button" class="boton boton--chico" id="btn-nuevo-estudio" hidden>
+              Solicitar estudio
+            </button>
+          </h2>
+          <div class="tabla-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tipo</th>
+                  <th>Solicitado</th>
+                  <th>Estado</th>
+                  <th>Resultado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-estudios">
+                <tr><td colspan="6" class="tabla__vacia">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal cobertura -->
+    <div class="modal" id="modal-cobertura">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2 id="titulo-cobertura">Asociar cobertura</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-cobertura">
+          <div class="modal__cuerpo">
+            <div id="mensaje-cobertura"></div>
+            <input type="hidden" name="modo" id="modo-cobertura" value="alta" />
+            <div class="campo">
+              <label for="cobertura">Cobertura</label>
+              <select id="cobertura" name="idCobertura" required></select>
+            </div>
+            <div class="campo">
+              <label for="id-afiliado">N° de afiliado</label>
+              <input type="text" id="id-afiliado" name="idAfiliado" required />
+            </div>
+            <div class="campo">
+              <label for="plan">Plan</label>
+              <input type="text" id="plan" name="plan" />
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal historial -->
+    <div class="modal" id="modal-historial">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2>Nueva entrada de historial</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-historial">
+          <div class="modal__cuerpo">
+            <div id="mensaje-historial"></div>
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="fecha-historial">Fecha</label>
+                <input type="date" id="fecha-historial" name="fecha" required />
+              </div>
+              <div class="campo">
+                <label for="turno-historial">Turno asociado (opcional)</label>
+                <select id="turno-historial" name="idTurno">
+                  <option value="">Ninguno</option>
+                </select>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="diagnostico">Diagnóstico</label>
+              <input type="text" id="diagnostico" name="diagnostico" required />
+            </div>
+            <div class="campo">
+              <label for="descripcion-historial">Descripción</label>
+              <textarea id="descripcion-historial" name="descripcion" required></textarea>
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal receta -->
+    <div class="modal" id="modal-receta">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2>Emitir receta</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-receta">
+          <div class="modal__cuerpo">
+            <div id="mensaje-receta"></div>
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="fecha-receta">Fecha</label>
+                <input type="date" id="fecha-receta" name="fecha" required />
+              </div>
+              <div class="campo">
+                <label for="vigencia-receta">Vigencia hasta</label>
+                <input type="date" id="vigencia-receta" name="vigencia" required />
+              </div>
+            </div>
+            <div class="campo">
+              <label for="detalles-receta">Detalles</label>
+              <textarea id="detalles-receta" name="detalles"></textarea>
+            </div>
+
+            <h3 style="font-size: 15px; margin: 18px 0 10px">Medicamentos</h3>
+            <div id="lista-medicamentos"></div>
+            <button type="button" class="boton boton--secundario boton--chico" id="btn-agregar-med">
+              + Agregar medicamento
+            </button>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Emitir</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal estudio -->
+    <div class="modal" id="modal-estudio">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2>Solicitar estudio</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-estudio">
+          <div class="modal__cuerpo">
+            <div id="mensaje-estudio"></div>
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="tipo-estudio">Tipo</label>
+                <select id="tipo-estudio" name="tipo" required>
+                  <option value="sangre">Sangre</option>
+                  <option value="imagen">Imagen</option>
+                  <option value="biopsia">Biopsia</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="fecha-estudio">Fecha de solicitud</label>
+                <input type="date" id="fecha-estudio" name="fechaSolicitud" required />
+              </div>
+            </div>
+            <div class="campo">
+              <label for="turno-estudio">Turno asociado (opcional)</label>
+              <select id="turno-estudio" name="idTurno">
+                <option value="">Ninguno</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="descripcion-estudio">Descripción</label>
+              <textarea id="descripcion-estudio" name="descripcion" required></textarea>
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Solicitar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal resultado de estudio -->
+    <div class="modal" id="modal-resultado">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2>Cargar resultado</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-resultado">
+          <div class="modal__cuerpo">
+            <div id="mensaje-resultado"></div>
+            <input type="hidden" name="idEstudio" id="id-estudio" />
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="estado-resultado">Estado</label>
+                <select id="estado-resultado" name="estado" required>
+                  <option value="validado">Validado</option>
+                  <option value="entregado">Entregado</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="fecha-resultado">Fecha del resultado</label>
+                <input type="date" id="fecha-resultado" name="fechaResultado" required />
+              </div>
+            </div>
+            <div class="campo">
+              <label for="resultado">Resultado</label>
+              <textarea id="resultado" name="resultado" required></textarea>
+            </div>
+            <div class="campo">
+              <label for="archivo-url">URL del archivo (opcional)</label>
+              <input type="url" id="archivo-url" name="archivoUrl" placeholder="https://…" />
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="js/paginas/paciente.js"></script>
+  </body>
+</html>

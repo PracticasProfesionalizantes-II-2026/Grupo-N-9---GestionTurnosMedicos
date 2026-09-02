@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medicamentos · ChronoSalud</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <div id="encabezado"></div>
+
+    <main class="contenido">
+      <div class="titulo-pagina">
+        <div>
+          <h1>Medicamentos</h1>
+          <p>Vademécum disponible para las recetas</p>
+        </div>
+        <button type="button" class="boton" id="btn-nuevo">Nuevo medicamento</button>
+      </div>
+
+      <div id="mensaje"></div>
+
+      <section class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Listado <span class="texto-suave" id="resumen"></span>
+        </h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-medicamentos">
+              <tr><td colspan="4" class="tabla__vacia">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal" id="modal-medicamento">
+      <div class="modal__caja">
+        <div class="modal__cabecera">
+          <h2 id="titulo-modal">Nuevo medicamento</h2>
+          <button type="button" class="modal__cerrar" data-cerrar>&times;</button>
+        </div>
+        <form id="form-medicamento">
+          <div class="modal__cuerpo">
+            <div id="mensaje-modal"></div>
+            <input type="hidden" name="id_medicamento" id="id-medicamento" />
+            <div class="campo">
+              <label for="nombre">Nombre</label>
+              <input type="text" id="nombre" name="nombre" required />
+            </div>
+            <div class="campo">
+              <label for="descripcion">Descripción</label>
+              <textarea id="descripcion" name="descripcion"></textarea>
+            </div>
+          </div>
+          <div class="modal__pie">
+            <button type="button" class="boton boton--secundario" data-cerrar>Cancelar</button>
+            <button type="submit" class="boton">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="js/paginas/medicamentos.js"></script>
+  </body>
+</html>

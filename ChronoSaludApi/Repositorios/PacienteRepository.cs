@@ -29,6 +29,15 @@ public class PacienteRepository : IPacienteRepository
     public async Task<Paciente?> ObtenerPorId(int id)
         => await _db.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.Id == id);
 
+    public async Task<Paciente?> ObtenerPorIdUsuario(int idUsuario)
+        => await _db.Pacientes.Include(p => p.Usuario).FirstOrDefaultAsync(p => p.IdUsuario == idUsuario);
+
+    public async Task Agregar(Paciente paciente)
+    {
+        _db.Pacientes.Add(paciente);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task Actualizar(Paciente paciente)
     {
         _db.Pacientes.Update(paciente);

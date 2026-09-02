@@ -6,6 +6,7 @@ public interface IDoctorRepository
 {
     Task<IEnumerable<Doctor>> ObtenerTodos(string? especialidad, int? coberturaId);
     Task<Doctor?> ObtenerPorId(int id);
+    Task<Doctor?> ObtenerPorIdUsuario(int idUsuario);
     Task<bool> ExisteMatricula(string matricula);
     Task Agregar(Doctor doctor);
     Task Actualizar(Doctor doctor);
