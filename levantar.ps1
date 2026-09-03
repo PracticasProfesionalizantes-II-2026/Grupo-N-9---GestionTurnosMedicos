@@ -5,10 +5,11 @@
 # Abre dos ventanas nuevas (una para la API y otra para el frontend) y el
 # navegador en http://localhost:5500. Para frenar todo, cerrá esas dos ventanas.
 #
-# Si usás SQL Server completo en vez de LocalDB:  .\levantar.ps1 -SqlServer
+# Usa la instancia SQL Server de la maquina (localhost), que es la que se ve en
+# SQL Server Management Studio. Si en su lugar preferis LocalDB, agregale -LocalDb.
 
 param(
-  [switch]$SqlServer,
+  [switch]$LocalDb,
   [int]$PuertoApi = 5001,
   [int]$PuertoFront = 5500
 )
@@ -31,19 +32,7 @@ if ($vieja) {
 }
 
 # ── 2. Base de datos ───────────────────────────────────────────────────────
-if ($SqlServer) {
-  $servicio = Get-Service -Name "MSSQLSERVER" -ErrorAction SilentlyContinue
-  if (-not $servicio) {
-    Write-Host "  No se encontro el servicio MSSQLSERVER en esta maquina." -ForegroundColor Red
-    exit 1
-  }
-  if ($servicio.Status -ne "Running") {
-    Write-Host "  Iniciando SQL Server..."
-    Start-Service -Name "MSSQLSERVER"
-  }
-  $conexion = "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
-  Write-Host "  Base de datos: SQL Server (localhost)" -ForegroundColor Green
-} else {
+if ($LocalDb) {
   # LocalDB se apaga solo tras un rato sin uso: se levanta en cada arranque.
   $estado = (sqllocaldb info MSSQLLocalDB | Select-String "State:") -replace ".*State:\s*", ""
   if ($estado -ne "Running") {
@@ -52,6 +41,20 @@ if ($SqlServer) {
   }
   $conexion = "Server=(localdb)\MSSQLLocalDB;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
   Write-Host "  Base de datos: LocalDB" -ForegroundColor Green
+} else {
+  # Instancia por defecto de la maquina: la misma que se ve en SSMS al
+  # conectarse a "localhost". Arranca en modo manual, asi que se inicia aca.
+  $servicio = Get-Service -Name "MSSQLSERVER" -ErrorAction SilentlyContinue
+  if (-not $servicio) {
+    Write-Host "  No se encontro el servicio MSSQLSERVER. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+    exit 1
+  }
+  if ($servicio.Status -ne "Running") {
+    Write-Host "  Iniciando SQL Server..."
+    Start-Service -Name "MSSQLSERVER"
+  }
+  $conexion = "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
+  Write-Host "  Base de datos: SQL Server local (se ve en SSMS como 'localhost')" -ForegroundColor Green
 }
 
 # ── 3. API en una ventana aparte ───────────────────────────────────────────

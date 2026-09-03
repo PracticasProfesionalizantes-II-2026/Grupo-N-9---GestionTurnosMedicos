@@ -18,8 +18,11 @@ powershell -ExecutionPolicy Bypass -File levantar.ps1
 ```
 
 [`levantar.ps1`](levantar.ps1) inicia la base, la API y el frontend, y abre el navegador.
-Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran. Si usás
-SQL Server completo en lugar de LocalDB, agregale `-SqlServer`.
+Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran.
+
+Usa la instancia **SQL Server** de la máquina: la misma que aparece en SQL Server
+Management Studio al conectarse a `localhost`, así que los cambios que haga la
+aplicación se ven ahí. Si preferís **LocalDB**, agregale `-LocalDb`.
 
 La primera vez hay que crear la base: ver el paso 1 de abajo.
 
@@ -69,6 +72,19 @@ Y abrir `http://localhost:5500`. No sirve abrir el HTML con doble clic: los mód
 se bloquean con `file://`.
 
 Más detalle en el [README del frontend](chronosalud-front/README.md).
+
+## Ver la base desde SQL Server Management Studio
+
+Abrir SSMS y conectarse con:
+
+- **Server name:** `localhost`
+- **Authentication:** Windows Authentication
+
+La base está en *Databases → ChronoSaludDB*. Es la que usa la aplicación por defecto, así
+que lo que se cargue desde el frontend aparece ahí al refrescar (`F5` sobre la tabla).
+
+Si en algún momento levantaron el proyecto con `-LocalDb`, esos datos están en otra
+instancia y para verlos hay que conectarse a `(localdb)\MSSQLLocalDB`.
 
 ## Problemas frecuentes
 
