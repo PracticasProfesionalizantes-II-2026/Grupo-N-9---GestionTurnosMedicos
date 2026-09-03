@@ -7,9 +7,16 @@
 #
 # Usa la instancia SQL Server de la maquina (localhost), que es la que se ve en
 # SQL Server Management Studio. Si en su lugar preferis LocalDB, agregale -LocalDb.
+#
+# SQL Server arranca en modo manual, asi que si esta detenido el script pide
+# permiso para iniciarlo. Para no tener que aceptar ese cartel nunca mas y que
+# arranque junto con Windows, correlo una vez asi:
+#
+#   .\levantar.ps1 -ArranqueAutomatico
 
 param(
   [switch]$LocalDb,
+  [switch]$ArranqueAutomatico,
   [int]$PuertoApi = 5001,
   [int]$PuertoFront = 5500
 )
@@ -49,9 +56,39 @@ if ($LocalDb) {
     Write-Host "  No se encontro el servicio MSSQLSERVER. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
     exit 1
   }
+
   if ($servicio.Status -ne "Running") {
-    Write-Host "  Iniciando SQL Server..."
-    Start-Service -Name "MSSQLSERVER"
+    # Iniciar un servicio de Windows necesita permisos de administrador, y una
+    # terminal comun (la de VS Code, por ejemplo) no los tiene: se abre una
+    # ventana elevada solo para esto y Windows pide confirmacion.
+    Write-Host "  SQL Server esta detenido. Windows va a pedir permiso para iniciarlo..." -ForegroundColor Yellow
+
+    $comando = "Start-Service MSSQLSERVER"
+    if ($ArranqueAutomatico) {
+      $comando = "Set-Service MSSQLSERVER -StartupType Automatic; Start-Service MSSQLSERVER"
+    }
+
+    try {
+      Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile", "-Command", $comando -ErrorAction Stop
+    } catch {
+      Write-Host ""
+      Write-Host "  No se inicio SQL Server (se cancelo el permiso)." -ForegroundColor Red
+      Write-Host "  Opciones:"
+      Write-Host "    - Volver a correr el script y aceptar el cartel de Windows."
+      Write-Host "    - Usar LocalDB, que no necesita permisos:  .\levantar.ps1 -LocalDb"
+      exit 1
+    }
+
+    # Al servicio le toma unos segundos quedar disponible.
+    foreach ($intento in 1..20) {
+      Start-Sleep -Seconds 1
+      if ((Get-Service MSSQLSERVER).Status -eq "Running") { break }
+    }
+
+    if ((Get-Service MSSQLSERVER).Status -ne "Running") {
+      Write-Host "  SQL Server no llego a iniciarse. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+      exit 1
+    }
   }
   $conexion = "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
   Write-Host "  Base de datos: SQL Server local (se ve en SSMS como 'localhost')" -ForegroundColor Green

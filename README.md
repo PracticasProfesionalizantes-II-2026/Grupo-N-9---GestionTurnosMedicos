@@ -20,9 +20,20 @@ powershell -ExecutionPolicy Bypass -File levantar.ps1
 [`levantar.ps1`](levantar.ps1) inicia la base, la API y el frontend, y abre el navegador.
 Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran.
 
+El comando va en cualquier terminal de PowerShell: sirve la de VS Code (`Ctrl + Ñ`),
+parada en la carpeta del proyecto.
+
 Usa la instancia **SQL Server** de la máquina: la misma que aparece en SQL Server
 Management Studio al conectarse a `localhost`, así que los cambios que haga la
 aplicación se ven ahí. Si preferís **LocalDB**, agregale `-LocalDb`.
+
+Ese servicio arranca en modo manual, así que cuando está detenido el script pide permiso
+de administrador para iniciarlo y Windows muestra un cartel. Para que arranque solo junto
+con Windows y no volver a ver ese cartel, alcanza con correrlo una vez así:
+
+```
+powershell -ExecutionPolicy Bypass -File levantar.ps1 -ArranqueAutomatico
+```
 
 La primera vez hay que crear la base: ver el paso 1 de abajo.
 
