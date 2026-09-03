@@ -11,7 +11,19 @@ Sistema de gestión de turnos médicos. El repo tiene dos partes:
 | [`ChronoSaludApi/`](ChronoSaludApi/)       | API REST en .NET 10 (minimal APIs, Entity Framework, JWT) |
 | [`chronosalud-front/`](chronosalud-front/) | Frontend web en HTML/CSS/JS puro, sin build                |
 
-## Puesta en marcha
+## Levantar todo de una vez
+
+```
+powershell -ExecutionPolicy Bypass -File levantar.ps1
+```
+
+[`levantar.ps1`](levantar.ps1) inicia la base, la API y el frontend, y abre el navegador.
+Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran. Si usás
+SQL Server completo en lugar de LocalDB, agregale `-SqlServer`.
+
+La primera vez hay que crear la base: ver el paso 1 de abajo.
+
+## Puesta en marcha paso a paso
 
 Requisitos: **.NET 10 SDK** y **SQL Server** (sirve LocalDB, que viene con Visual Studio).
 
