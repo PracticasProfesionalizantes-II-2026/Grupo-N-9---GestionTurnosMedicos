@@ -24,3 +24,8 @@ appsettings.Local.json
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ---- Tailwind CSS (frontend MVC) ----
+# El CLI standalone es un .exe de ~112 MB: no va al repo.
+# Se baja solo la primera vez que se corre ChronoSaludWeb/tools/css.ps1
+ChronoSaludWeb/tools/tailwindcss.exe

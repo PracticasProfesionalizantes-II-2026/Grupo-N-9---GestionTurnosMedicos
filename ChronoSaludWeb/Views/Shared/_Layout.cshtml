@@ -1,3 +1,4 @@
+@inject AuthService Auth
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -15,9 +16,26 @@
     <header class="border-b border-border bg-surface">
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
             <a class="text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">ChronoSalud</a>
-            <nav class="flex items-center gap-6 text-sm font-medium text-muted">
+            <nav class="flex items-center gap-5 text-sm font-medium text-muted">
                 <a class="hover:text-primary" asp-controller="Home" asp-action="Index">Inicio</a>
                 <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+                @if (Auth.SesionActual is { } sesion)
+                {
+                    <span class="hidden sm:inline">
+                        @sesion.Nombre <span class="text-primary-line">|</span>
+                        <span class="capitalize text-primary">@sesion.Rol</span>
+                    </span>
+                    <form asp-controller="Cuenta" asp-action="Logout" method="post">
+                        <button type="submit" class="rounded-badge px-2 py-1 hover:bg-accent-soft hover:text-accent">
+                            Cerrar sesión
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a class="rounded-input bg-primary px-3 py-1.5 font-semibold text-white hover:bg-primary-hover"
+                       asp-controller="Cuenta" asp-action="Login">Iniciar sesión</a>
+                }
             </nav>
         </div>
     </header>

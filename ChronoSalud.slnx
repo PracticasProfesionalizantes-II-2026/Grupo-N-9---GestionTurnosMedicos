@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ChronoSaludApi/ChronoSaludApi.csproj" />
+  <Project Path="ChronoSaludWeb/ChronoSaludWeb.csproj" />
+</Solution>

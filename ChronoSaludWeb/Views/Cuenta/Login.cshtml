@@ -1,0 +1,53 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar sesión";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+}
+
+<div class="mx-auto max-w-md">
+    <h1 class="text-center text-2xl font-bold tracking-tight text-ink">Iniciar sesión</h1>
+    <p class="mt-2 text-center text-sm text-muted">Ingresá con tu cuenta de ChronoSalud.</p>
+
+    <div class="mt-8 rounded-card border border-border bg-surface p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div class="mb-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                @foreach (var error in erroresGenerales)
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form asp-action="Login" method="post" novalidate>
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
+                <input asp-for="Email" autocomplete="email" autofocus placeholder="tu@@email.com"
+                       class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+                <span asp-validation-for="Email" class="mt-1 block text-xs text-status-cancelado"></span>
+            </div>
+
+            <div class="mt-5">
+                <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
+                <input asp-for="Contrasena" autocomplete="current-password" placeholder="••••••••"
+                       class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+                <span asp-validation-for="Contrasena" class="mt-1 block text-xs text-status-cancelado"></span>
+            </div>
+
+            <button type="submit"
+                    class="mt-7 w-full rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                Entrar
+            </button>
+        </form>
+    </div>
+
+    <p class="mt-6 text-center text-xs text-muted">
+        La API tiene que estar levantada en <span class="font-medium text-ink">http://localhost:5001</span>.
+    </p>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

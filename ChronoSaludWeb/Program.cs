@@ -1,7 +1,36 @@
+using ChronoSaludWeb.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Los services necesitan el HttpContext para leer y escribir la sesión.
+builder.Services.AddHttpContextAccessor();
+
+// Sesión del servidor: acá vive el JWT, así nunca llega al navegador.
+// El almacenamiento en memoria alcanza para el TP; con varias instancias
+// habría que reemplazarlo por un cache distribuido de verdad.
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(opciones =>
+{
+    opciones.Cookie.Name = "ChronoSalud.Sesion";
+    opciones.Cookie.HttpOnly = true;
+    opciones.Cookie.IsEssential = true;
+    // El token de la API dura 8 horas: no tiene sentido que la sesión dure más.
+    opciones.IdleTimeout = TimeSpan.FromHours(8);
+});
+
+// Cliente tipado contra la API. La URL sale de appsettings.json.
+var urlApi = builder.Configuration["Api:BaseUrl"]
+    ?? throw new InvalidOperationException("Falta la clave \"Api:BaseUrl\" en appsettings.json.");
+
+builder.Services.AddHttpClient<ApiClient>(cliente =>
+{
+    cliente.BaseAddress = new Uri(urlApi.TrimEnd('/') + "/");
+    cliente.Timeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 
@@ -16,6 +45,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();
