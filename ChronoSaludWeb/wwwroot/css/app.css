@@ -1,0 +1,33 @@
+/* Fuente de Tailwind. Se compila a app.build.css con tools/tailwindcss.exe
+   (ver README de estilos / el comando en tools/compilar-css.ps1).
+   Este archivo se edita a mano; app.build.css es generado, no se toca. */
+
+@import "tailwindcss" source(none);
+
+/* Archivos donde Tailwind busca las clases usadas. Si se agrega otra carpeta
+   con markup (por ejemplo Areas/), hay que sumarla acá. */
+@source "../../Views";
+@source "../js";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --color-primary: #0E7C86;
+  --color-primary-hover: #0A5F67;
+  --color-primary-soft: #D7EDF0;
+  --color-primary-line: #A8D5DB;
+  --color-accent: #B08268;
+  --color-accent-soft: #F2E7E1;
+  --color-canvas: #F4EFE9;
+  --color-surface: #FBF7F2;
+  --color-border: #E3DAD1;
+  --color-ink: #1C2321;
+  --color-muted: #6B7671;
+  --color-status-pendiente: #B45309;
+  --color-status-confirmado: #15803D;
+  --color-status-completado: #0284C7;
+  --color-status-cancelado: #B91C1C;
+  --radius-badge: 6px;
+  --radius-input: 10px;
+  --radius-card: 14px;
+  --radius-modal: 18px;
+}

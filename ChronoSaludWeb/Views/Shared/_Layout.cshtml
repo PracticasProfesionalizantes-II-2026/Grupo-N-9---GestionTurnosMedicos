@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ChronoSalud</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@@400;500;600;700&display=swap" />
+
+    <link rel="stylesheet" href="~/css/app.build.css" asp-append-version="true" />
+</head>
+<body class="min-h-screen bg-canvas font-sans text-ink antialiased">
+    <header class="border-b border-border bg-surface">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+            <a class="text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">ChronoSalud</a>
+            <nav class="flex items-center gap-6 text-sm font-medium text-muted">
+                <a class="hover:text-primary" asp-controller="Home" asp-action="Index">Inicio</a>
+                <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-6 py-10">
+        @RenderBody()
+    </main>
+
+    <footer class="border-t border-border">
+        <div class="mx-auto max-w-6xl px-6 py-6 text-sm text-muted">
+            &copy; 2026 ChronoSalud
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
