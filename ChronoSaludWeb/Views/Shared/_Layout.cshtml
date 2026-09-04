@@ -61,6 +61,17 @@
     </header>
 
     <main class="mx-auto max-w-6xl px-6 py-10">
+        @if (TempData["Exito"] is string mensajeExito)
+        {
+            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-confirmado/40 bg-status-confirmado/10 px-4 py-3 text-sm text-status-confirmado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>@mensajeExito</span>
+            </div>
+        }
         @if (TempData["Error"] is string mensajeError)
         {
             <div class="mb-8 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">

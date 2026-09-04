@@ -1,0 +1,64 @@
+@model PanelTurnosViewModel
+
+<section class="overflow-hidden rounded-card border border-border bg-surface">
+    <header class="border-b border-border px-6 py-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">@Model.Titulo</h2>
+    </header>
+
+    @if (Model.Turnos.Count == 0)
+    {
+        <div class="px-6 py-10 text-center">
+            <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 2v4" />
+                <path d="M16 2v4" />
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <path d="M3 10h18" />
+            </svg>
+            <p class="mx-auto mt-4 max-w-xs text-sm text-muted">@Model.TextoVacio</p>
+        </div>
+    }
+    else
+    {
+        <ul>
+            @foreach (var turno in Model.Turnos)
+            {
+                var principal = Model.Vista == VistaPanel.Paciente
+                    ? turno.DoctorMostrado
+                    : turno.PacienteMostrado;
+
+                var secundario = Model.Vista switch
+                {
+                    VistaPanel.Paciente      => turno.FechaCorta,
+                    VistaPanel.Administrador => turno.DoctorMostrado,
+                    _                        => null
+                };
+
+                <li class="relative flex items-center gap-4 border-b border-border px-6 py-4 last:border-0 hover:bg-canvas">
+                    <span class="w-12 shrink-0 text-sm font-medium tabular-nums text-ink">@(turno.Hora ?? "—")</span>
+
+                    <span class="min-w-0 flex-1">
+                        <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                            @principal
+                            <span class="sr-only">— ver detalle del turno</span>
+                        </a>
+                        @if (secundario is not null)
+                        {
+                            <span class="block truncate text-sm text-muted">
+                                @secundario
+                                @if (Model.Vista == VistaPanel.Administrador && turno.EspecialidadMostrada is not null)
+                                {
+                                    <span aria-hidden="true"> · </span>
+                                    <span class="capitalize">@turno.EspecialidadMostrada</span>
+                                }
+                            </span>
+                        }
+                    </span>
+
+                    <partial name="_BadgeEstado" model="turno.Estado" />
+                </li>
+            }
+        </ul>
+    }
+</section>

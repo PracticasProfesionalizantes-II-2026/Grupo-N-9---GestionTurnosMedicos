@@ -1,0 +1,45 @@
+@model string
+@{
+    var titulo = ViewData["Titulo"] as string ?? "No tenés permiso para esta acción";
+    var motivo = ViewData["Motivo"] as string;
+    var rol = string.IsNullOrWhiteSpace(Model) ? null : Model;
+    ViewData["Title"] = "Permiso insuficiente";
+}
+
+<a asp-action="Index"
+   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al listado
+</a>
+
+<div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
+    <svg class="mx-auto h-8 w-8 text-accent" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect width="18" height="11" x="3" y="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+    <h1 class="mt-4 text-base font-semibold text-ink">@titulo</h1>
+    @if (motivo is not null)
+    {
+        <p class="mx-auto mt-2 max-w-md text-sm text-muted">
+            @motivo
+            @if (rol is not null)
+            {
+                <span>
+                    Tu sesión está abierta como <span class="font-medium capitalize text-ink">@rol</span>.
+                </span>
+            }
+        </p>
+    }
+    <p class="mx-auto mt-2 max-w-md text-sm text-muted">
+        Podés seguir consultando el listado y el detalle de los turnos.
+    </p>
+    <a asp-action="Index"
+       class="mt-6 inline-block rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover">
+        Ir al listado de turnos
+    </a>
+</div>

@@ -1,0 +1,101 @@
+@model TurnoCrearViewModel
+@{
+    ViewData["Title"] = "Nuevo turno";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<a asp-action="Index"
+   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al listado
+</a>
+
+<div class="mt-6 max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Nuevo turno</h1>
+    <p class="mt-1 text-sm text-muted">Cargá los datos del turno. El estado inicial siempre es pendiente.</p>
+
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <span>
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <span class="block">@error.ErrorMessage</span>
+                    }
+                </span>
+            </div>
+        }
+
+        <form asp-action="Crear" method="post" novalidate>
+            <div class="grid gap-5 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                    <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                        <option value="">Elegí un paciente</option>
+                    </select>
+                    <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="IdDoctor" class="block text-sm font-medium text-ink"></label>
+                    <select asp-for="IdDoctor" asp-items="Model.Doctores" class="@claseCampo">
+                        <option value="">Elegí un doctor</option>
+                    </select>
+                    <span asp-validation-for="IdDoctor" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="FechaInicio" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="FechaInicio" type="date" class="@claseCampo" />
+                    <span asp-validation-for="FechaInicio" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="HoraInicio" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="HoraInicio" type="time" class="@claseCampo tabular-nums" />
+                    <span asp-validation-for="HoraInicio" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="HoraFin" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="HoraFin" type="time" class="@claseCampo tabular-nums" />
+                    <span asp-validation-for="HoraFin" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
+                    <textarea asp-for="Observaciones" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                    <span asp-validation-for="Observaciones" class="@claseError"></span>
+                </div>
+            </div>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit"
+                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    Crear turno
+                </button>
+                <a asp-action="Index"
+                   class="rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

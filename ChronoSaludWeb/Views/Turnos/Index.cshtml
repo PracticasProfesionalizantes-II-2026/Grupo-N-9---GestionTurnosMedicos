@@ -1,19 +1,7 @@
 @model TurnosIndexViewModel
+@inject AuthService Auth
 @{
     ViewData["Title"] = "Turnos";
-}
-
-@functions {
-    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve la clase
-    // completa para que las encuentre al compilar el CSS.
-    static string ClaseBadge(string estado) => estado?.ToLowerInvariant() switch
-    {
-        "confirmado" => "bg-status-confirmado/10 text-status-confirmado",
-        "pendiente"  => "bg-status-pendiente/10 text-status-pendiente",
-        "completado" => "bg-status-completado/10 text-status-completado",
-        "cancelado"  => "bg-status-cancelado/10 text-status-cancelado",
-        _            => "bg-canvas text-muted",
-    };
 }
 
 <div class="flex flex-wrap items-end justify-between gap-4">
@@ -21,14 +9,75 @@
         <h1 class="text-2xl font-bold tracking-tight text-ink">Turnos</h1>
         <p class="mt-1 text-sm capitalize text-muted">@Model.FechaDeHoy</p>
     </div>
-    @if (!Model.HuboError)
+    <div class="flex items-center gap-5">
+        @if (!Model.HuboError)
+        {
+            <p class="text-sm text-muted">
+                <span class="font-semibold tabular-nums text-ink">@Model.Total</span>
+                @(Model.Total == 1 ? "turno" : "turnos") en total
+            </p>
+        }
+        @* Solo doctor y administrador pueden elegir el paciente de la lista. *@
+        @if (Auth.PuedeCargarTurnos)
+        {
+            <a asp-action="Crear"
+               class="inline-flex items-center gap-1.5 rounded-input bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                </svg>
+                Nuevo turno
+            </a>
+        }
+    </div>
+</div>
+
+@* Filtros por GET: los valores viajan en la query string, así el listado
+   filtrado se puede compartir o recargar. *@
+<form method="get" asp-action="Index"
+      class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+    <div class="min-w-40">
+        <label for="estado" class="block text-sm font-medium text-ink">Estado</label>
+        <select id="estado" name="estado" asp-items="Model.Filtros.Opciones()"
+                class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm capitalize text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
+            <option value="">Todos</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="desde" class="block text-sm font-medium text-ink">Desde</label>
+        <input id="desde" name="desde" type="date" value="@(Model.Filtros.Desde?.ToString("yyyy-MM-dd"))"
+               class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+    </div>
+
+    <div>
+        <label for="hasta" class="block text-sm font-medium text-ink">Hasta</label>
+        <input id="hasta" name="hasta" type="date" value="@(Model.Filtros.Hasta?.ToString("yyyy-MM-dd"))"
+               class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button type="submit"
+                class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+            Filtrar
+        </button>
+        @if (Model.Filtros.HayAlguno)
+        {
+            <a asp-action="Index"
+               class="rounded-input border border-border px-4 py-2 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                Limpiar
+            </a>
+        }
+    </div>
+
+    @if (Model.Filtros.RangoInvertido)
     {
-        <p class="text-sm text-muted">
-            <span class="font-semibold tabular-nums text-ink">@Model.Total</span>
-            @(Model.Total == 1 ? "turno" : "turnos") en total
+        <p class="w-full text-xs text-status-pendiente">
+            La fecha "desde" es posterior a la "hasta", por eso no aparece ningún turno.
         </p>
     }
-</div>
+</form>
 
 @if (Model.HuboError)
 {
@@ -49,7 +98,7 @@
 }
 else
 {
-    <div class="mt-6 grid gap-4 sm:grid-cols-3">
+    <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div class="rounded-card border border-border bg-surface p-5">
             <div class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-confirmado" viewBox="0 0 24 24" fill="none"
@@ -76,6 +125,18 @@ else
 
         <div class="rounded-card border border-border bg-surface p-5">
             <div class="flex items-center gap-2 text-sm text-muted">
+                <svg class="h-4 w-4 text-status-completado" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                    <path d="m9 11 3 3L22 4" />
+                </svg>
+                Completados
+            </div>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-ink">@Model.Completados</p>
+        </div>
+
+        <div class="rounded-card border border-border bg-surface p-5">
+            <div class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-cancelado" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
@@ -98,10 +159,24 @@ else
                 <rect width="18" height="18" x="3" y="4" rx="2" />
                 <path d="M3 10h18" />
             </svg>
-            <h2 class="mt-4 text-base font-semibold text-ink">No hay turnos cargados</h2>
-            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-                Cuando se registren turnos en el sistema van a aparecer en esta lista.
-            </p>
+            @if (Model.SinResultados)
+            {
+                <h2 class="mt-4 text-base font-semibold text-ink">Ningún turno coincide con los filtros</h2>
+                <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                    Probá con otro estado o ampliá el rango de fechas.
+                </p>
+                <a asp-action="Index"
+                   class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+                    Limpiar filtros
+                </a>
+            }
+            else
+            {
+                <h2 class="mt-4 text-base font-semibold text-ink">No hay turnos cargados</h2>
+                <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                    Cuando se registren turnos en el sistema van a aparecer en esta lista.
+                </p>
+            }
         </div>
     }
     else
@@ -115,6 +190,12 @@ else
                             <th scope="col" class="px-5 py-3 font-semibold">Paciente</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Fecha</th>
                             <th scope="col" class="px-5 py-3 text-right font-semibold">Estado</th>
+                            @if (Auth.PuedeCancelarTurnos)
+                            {
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">
+                                    <span class="sr-only">Acciones</span>
+                                </th>
+                            }
                         </tr>
                     </thead>
                     <tbody>
@@ -124,15 +205,29 @@ else
                                 <td class="whitespace-nowrap px-5 py-4 text-sm font-medium tabular-nums text-ink">
                                     @(turno.Hora ?? "—")
                                 </td>
-                                <td class="px-5 py-4">
+                                @* La celda es el contenedor posicionado y el enlace la cubre entera
+                                   con after:absolute inset-0. Así se navega con click o con teclado
+                                   (el foco cae sobre el nombre) sin poner un onclick en el <tr>. *@
+                                <td class="relative px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <span aria-hidden="true"
                                               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
                                             @turno.Iniciales
                                         </span>
                                         <span>
-                                            <span class="block font-medium text-ink">@turno.PacienteMostrado</span>
-                                            <span class="block text-sm text-muted">@turno.DoctorMostrado</span>
+                                            <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                                               class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                                @turno.PacienteMostrado
+                                                <span class="sr-only">— ver detalle del turno</span>
+                                            </a>
+                                            <span class="block text-sm text-muted">
+                                                @turno.DoctorMostrado
+                                                @if (turno.EspecialidadMostrada is not null)
+                                                {
+                                                    <span aria-hidden="true"> · </span>
+                                                    <span class="capitalize">@turno.EspecialidadMostrada</span>
+                                                }
+                                            </span>
                                         </span>
                                     </div>
                                 </td>
@@ -140,10 +235,23 @@ else
                                     @turno.FechaCorta
                                 </td>
                                 <td class="px-5 py-4 text-right">
-                                    <span class="inline-block rounded-badge px-2 py-1 text-xs font-semibold capitalize @ClaseBadge(turno.Estado)">
-                                        @turno.Estado
-                                    </span>
+                                    <partial name="_BadgeEstado" model="turno.Estado" />
                                 </td>
+                                @if (Auth.PuedeCancelarTurnos)
+                                {
+                                    @* El enlace estirado está acotado a la celda del paciente, pero
+                                       el z-10 deja esto a salvo si algún día se mueve al <tr>. *@
+                                    <td class="whitespace-nowrap px-5 py-4 text-right">
+                                        @if (!turno.EstaCancelado)
+                                        {
+                                            <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
+                                               class="relative z-10 rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-cancelado/10 hover:text-status-cancelado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
+                                                Cancelar
+                                                <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                            </a>
+                                        }
+                                    </td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -160,7 +268,7 @@ else
                 }
                 @if (Model.FaltaHora)
                 {
-                    <p>La API no informa el horario en el listado (GET /turnos), por eso la columna aparece vacía.</p>
+                    <p>Algunos turnos no tienen horario cargado y por eso la columna aparece con un guion.</p>
                 }
             </div>
         }

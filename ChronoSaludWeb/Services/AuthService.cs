@@ -25,6 +25,21 @@ public class AuthService
     public bool HaySesion => SesionActual is not null;
 
     /// <summary>
+    /// GET /pacientes lo permite solo a doctor y administrador, así que son los
+    /// únicos que pueden cargar un turno eligiendo el paciente de una lista.
+    /// </summary>
+    public bool PuedeCargarTurnos => SesionActual?.Rol is "doctor" or "administrador";
+
+    /// <summary>
+    /// Ojo: DELETE /turnos/{id} no pide ningún rol, solo estar autenticado, así
+    /// que esto es una restricción nuestra de interfaz y no la aplica la API.
+    /// Se eligieron los roles del personal, los mismos que ya maneja el PUT
+    /// (administrador y secretario) más doctor.
+    /// </summary>
+    public bool PuedeCancelarTurnos =>
+        SesionActual?.Rol is "doctor" or "administrador" or "secretario";
+
+    /// <summary>
     /// Autentica contra la API y deja la sesión abierta.
     /// Tira <see cref="ApiException"/> si las credenciales no sirven o la API no responde.
     /// </summary>

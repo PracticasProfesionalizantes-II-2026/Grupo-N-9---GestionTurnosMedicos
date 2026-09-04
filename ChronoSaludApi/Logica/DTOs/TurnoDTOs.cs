@@ -14,8 +14,10 @@ public record TurnoDto(
 public record TurnoListaDto(
     int IdTurno,
     DateTime FechaInicio,
+    string HoraInicio,
     string Estado,
     string Doctor,
+    string Especialidad,
     string Paciente
 );
 

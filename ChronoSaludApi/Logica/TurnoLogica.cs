@@ -22,8 +22,10 @@ public class TurnoLogica : ITurnoLogica
             .Select(t => new TurnoListaDto(
                 t.Id,
                 t.FechaInicio,
+                t.HoraInicio.ToString(@"hh\:mm"),
                 t.Estado,
                 $"{t.Doctor?.Usuario?.Nombre} {t.Doctor?.Usuario?.Apellido}",
+                t.Doctor?.Especialidad ?? string.Empty,
                 $"{t.Paciente?.Usuario?.Nombre} {t.Paciente?.Usuario?.Apellido}"
             ));
         return (total, resultado);

@@ -1,0 +1,16 @@
+@model string
+
+@functions {
+    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve la clase
+    // completa para que las encuentre al compilar el CSS.
+    static string ClaseBadge(string estado) => estado?.ToLowerInvariant() switch
+    {
+        "confirmado" => "bg-status-confirmado/10 text-status-confirmado",
+        "pendiente"  => "bg-status-pendiente/10 text-status-pendiente",
+        "completado" => "bg-status-completado/10 text-status-completado",
+        "cancelado"  => "bg-status-cancelado/10 text-status-cancelado",
+        _            => "bg-canvas text-muted",
+    };
+}
+
+<span class="inline-block rounded-badge px-2 py-1 text-xs font-semibold capitalize @ClaseBadge(Model)">@Model</span>

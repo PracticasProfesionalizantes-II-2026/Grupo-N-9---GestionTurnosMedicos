@@ -38,6 +38,8 @@ builder.Services.AddHttpClient<ApiClient>(cliente =>
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TurnoService>();
+builder.Services.AddScoped<PacienteService>();
+builder.Services.AddScoped<DoctorService>();
 
 var app = builder.Build();
 
