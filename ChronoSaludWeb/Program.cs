@@ -1,8 +1,14 @@
+using ChronoSaludWeb.Filters;
 using ChronoSaludWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(opciones =>
+{
+    // Traduce los errores de la API a redirects: 401 al login,
+    // el resto a TempData para que el layout muestre el mensaje.
+    opciones.Filters.Add<ApiExceptionFilter>();
+});
 
 // Los services necesitan el HttpContext para leer y escribir la sesión.
 builder.Services.AddHttpContextAccessor();
@@ -31,6 +37,7 @@ builder.Services.AddHttpClient<ApiClient>(cliente =>
 });
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<TurnoService>();
 
 var app = builder.Build();
 

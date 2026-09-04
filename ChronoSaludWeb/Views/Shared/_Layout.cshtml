@@ -1,4 +1,20 @@
 @inject AuthService Auth
+@functions {
+    // Marca la sección activa. Si no se pasa acción, alcanza con el controlador
+    // (así "Turnos" sigue activo cuando se agreguen Crear o Detalle).
+    string ClaseNav(string controlador, string? accion = null)
+    {
+        var rutaControlador = ViewContext.RouteData.Values["controller"]?.ToString();
+        var rutaAccion = ViewContext.RouteData.Values["action"]?.ToString();
+
+        var activo = string.Equals(rutaControlador, controlador, StringComparison.OrdinalIgnoreCase)
+                     && (accion is null || string.Equals(rutaAccion, accion, StringComparison.OrdinalIgnoreCase));
+
+        return activo
+            ? "border-b-2 border-primary pb-1 text-primary"
+            : "border-b-2 border-transparent pb-1 hover:text-primary";
+    }
+}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,8 +33,12 @@
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
             <a class="text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">ChronoSalud</a>
             <nav class="flex items-center gap-5 text-sm font-medium text-muted">
-                <a class="hover:text-primary" asp-controller="Home" asp-action="Index">Inicio</a>
-                <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+                <a class="@ClaseNav("Home", "Index")" asp-controller="Home" asp-action="Index">Inicio</a>
+                @if (Auth.HaySesion)
+                {
+                    <a class="@ClaseNav("Turnos")" asp-controller="Turnos" asp-action="Index">Turnos</a>
+                }
+                <a class="@ClaseNav("Home", "Privacy")" asp-controller="Home" asp-action="Privacy">Privacidad</a>
                 @if (Auth.SesionActual is { } sesion)
                 {
                     <span class="hidden sm:inline">
@@ -41,6 +61,18 @@
     </header>
 
     <main class="mx-auto max-w-6xl px-6 py-10">
+        @if (TempData["Error"] is string mensajeError)
+        {
+            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <span>@mensajeError</span>
+            </div>
+        }
         @RenderBody()
     </main>
 
