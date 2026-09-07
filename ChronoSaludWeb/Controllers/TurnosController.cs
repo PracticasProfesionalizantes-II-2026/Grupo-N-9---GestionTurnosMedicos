@@ -5,7 +5,7 @@ using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Controllers;
 
-public class TurnosController : Controller
+public class TurnosController : ControladorBase
 {
     // La API pagina de a 20 por defecto. Pedimos más para que el resumen de
     // arriba cuente sobre algo representativo mientras no haya paginado propio.
@@ -40,18 +40,38 @@ public class TurnosController : Controller
             estado = null;
         }
 
+        var rol = _auth.SesionActual?.Rol;
         var filtros = new TurnosFiltroViewModel { Estado = estado, Desde = desde, Hasta = hasta };
 
         try
         {
+            var ambito = await ResolverAmbitoAsync();
+
+            // No se pudo determinar de quién son los turnos: no se muestra
+            // ninguno. Nunca se cae a "mostrar todo".
+            if (ambito.Bloqueado)
+            {
+                return View(new TurnosIndexViewModel
+                {
+                    Rol = rol,
+                    Filtros = filtros,
+                    Aviso = ambito.Bloqueo
+                });
+            }
+
+            // paciente_id y doctor_id salen del ámbito, no de la query string:
+            // el usuario no puede ampliarse el alcance desde la URL.
             var pagina = await _turnos.ObtenerAsync(
-                estado: filtros.Estado,
-                desde:  filtros.Desde,
-                hasta:  filtros.Hasta,
-                limite: Limite);
+                pacienteId: ambito.PacienteId,
+                doctorId:   ambito.DoctorId,
+                estado:     filtros.Estado,
+                desde:      filtros.Desde,
+                hasta:      filtros.Hasta,
+                limite:     Limite);
 
             return View(new TurnosIndexViewModel
             {
+                Rol     = rol,
                 Total   = pagina.Total,
                 Turnos  = pagina.Turnos.Select(TurnoFilaViewModel.Desde).ToList(),
                 Filtros = filtros
@@ -61,7 +81,7 @@ public class TurnosController : Controller
         {
             // El 401 no se atrapa a propósito: lo maneja ApiExceptionFilter
             // mandando al login. El resto se muestra dentro de la página.
-            return View(new TurnosIndexViewModel { Error = error.Message, Filtros = filtros });
+            return View(new TurnosIndexViewModel { Rol = rol, Error = error.Message, Filtros = filtros });
         }
     }
 
@@ -72,13 +92,13 @@ public class TurnosController : Controller
 
         try
         {
-            var modelo = await ArmarDetalleAsync(id);
+            var modelo = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
 
-            // La API contestó 404: no es un error, es un turno que no existe.
+            // No existe, o existe pero no es del usuario: en los dos casos se
+            // responde lo mismo, para no confirmar que el turno existe.
             if (modelo is null)
             {
-                Response.StatusCode = StatusCodes.Status404NotFound;
-                return View("NoEncontrado", id);
+                return NoEncontrado(id, "Turno no encontrado", "turno");
             }
 
             return View(modelo);
@@ -102,12 +122,11 @@ public class TurnosController : Controller
 
         try
         {
-            var modelo = await ArmarDetalleAsync(id);
+            var modelo = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
 
             if (modelo is null)
             {
-                Response.StatusCode = StatusCodes.Status404NotFound;
-                return View("NoEncontrado", id);
+                return NoEncontrado(id, "Turno no encontrado", "turno");
             }
 
             // Ya está cancelado: no tiene sentido volver a preguntar.
@@ -141,6 +160,16 @@ public class TurnosController : Controller
 
         try
         {
+            // Se revalida el ámbito antes de borrar: si no, alcanzaba con
+            // postear el id de un turno ajeno.
+            var ambito = await ResolverAmbitoAsync();
+            var turno = await _turnos.ObtenerPorIdAsync(id);
+
+            if (turno is null || !ambito.Incluye(turno.IdPaciente, turno.IdDoctor))
+            {
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+            }
+
             await _turnos.CancelarAsync(id);
             TempData["Exito"] = $"Turno #{id} cancelado correctamente.";
         }
@@ -154,12 +183,16 @@ public class TurnosController : Controller
 
     /// <summary>
     /// Trae el turno y le pega los nombres del paciente y del doctor, que
-    /// TurnoDto no manda. Null si la API contestó 404.
+    /// TurnoDto no manda. Null si no existe o si no entra en el ámbito.
     /// </summary>
-    private async Task<TurnoDetalleViewModel?> ArmarDetalleAsync(int id)
+    private async Task<TurnoDetalleViewModel?> ArmarDetalleAsync(int id, AmbitoTurnos ambito)
     {
         var turno = await _turnos.ObtenerPorIdAsync(id);
         if (turno is null) return null;
+
+        // El turno existe pero no es del usuario: se trata igual que si no
+        // existiera, y de paso nos ahorramos buscar los nombres.
+        if (!ambito.Incluye(turno.IdPaciente, turno.IdDoctor)) return null;
 
         // Van uno después del otro y no en paralelo porque el ApiClient lee
         // el token de HttpContext.Session, que no es seguro en concurrencia.
@@ -274,14 +307,75 @@ public class TurnosController : Controller
         }
     }
 
-    private IActionResult SinPermiso(string titulo, string motivo)
+    /// <summary>
+    /// Qué turnos puede ver el usuario logueado. Los ids salen siempre de la
+    /// sesión y del perfil que informa la API, nunca de la query string, así
+    /// nadie puede ampliarse el alcance desde la URL.
+    /// </summary>
+    private sealed record AmbitoTurnos(int? PacienteId, int? DoctorId, string? Bloqueo)
     {
-        Response.StatusCode = StatusCodes.Status403Forbidden;
-        ViewData["Titulo"] = titulo;
-        ViewData["Motivo"] = motivo;
-        return View("SinPermiso", _auth.SesionActual?.Rol);
+        /// <summary>No se pudo resolver el alcance: no se muestra ningún turno.</summary>
+        public bool Bloqueado => Bloqueo is not null;
+
+        /// <summary>Solo el administrador ve la agenda completa.</summary>
+        public bool VeTodo => !Bloqueado && PacienteId is null && DoctorId is null;
+
+        public bool Incluye(int idPaciente, int idDoctor) =>
+            VeTodo || PacienteId == idPaciente || DoctorId == idDoctor;
     }
 
-    private IActionResult AlLogin(string? destino) =>
-        RedirectToAction("Login", "Cuenta", new { returnUrl = destino });
+    private async Task<AmbitoTurnos> ResolverAmbitoAsync()
+    {
+        switch (_auth.SesionActual?.Rol)
+        {
+            case "administrador":
+                return new AmbitoTurnos(null, null, null);
+
+            case "paciente":
+            {
+                var idPaciente = await IdPerfilAsync(esDoctor: false);
+                return idPaciente is null
+                    ? new AmbitoTurnos(null, null,
+                        "Tu usuario no tiene un perfil de paciente asociado, así que no podemos " +
+                        "saber qué turnos son tuyos. Pedile a la administración que lo cree.")
+                    : new AmbitoTurnos(idPaciente, null, null);
+            }
+
+            case "doctor":
+            {
+                var idDoctor = await IdPerfilAsync(esDoctor: true);
+                return idDoctor is null
+                    ? new AmbitoTurnos(null, null,
+                        "Tu usuario tiene rol doctor pero no tiene un perfil de doctor cargado " +
+                        "(matrícula, especialidad), así que no podemos saber qué turnos son tuyos.")
+                    : new AmbitoTurnos(null, idDoctor, null);
+            }
+
+            default:
+                // Rol inesperado: se deniega. Es preferible una pantalla vacía
+                // antes que mostrarle la agenda de todos por descarte.
+                return new AmbitoTurnos(null, null,
+                    $"No hay un alcance definido para el rol \"{_auth.SesionActual?.Rol}\", " +
+                    "así que no se muestran turnos.");
+        }
+    }
+
+    /// <summary>
+    /// IdPaciente o IdDoctor del usuario, que no son el IdUsuario. Se cachea en
+    /// la sesión para no pedirlo en cada pantalla, pero solo cuando existe: si
+    /// todavía no tiene perfil se vuelve a preguntar, así aparece apenas se lo
+    /// crean sin necesidad de volver a loguearse.
+    /// </summary>
+    private async Task<int?> IdPerfilAsync(bool esDoctor)
+    {
+        var cacheado = HttpContext.Session.ObtenerIdPerfil();
+        if (cacheado is not null) return cacheado;
+
+        var id = esDoctor
+            ? (await _doctores.ObtenerMiPerfilAsync())?.IdDoctor
+            : (await _pacientes.ObtenerMiPerfilAsync())?.IdPaciente;
+
+        if (id is not null) HttpContext.Session.GuardarIdPerfil(id.Value);
+        return id;
+    }
 }

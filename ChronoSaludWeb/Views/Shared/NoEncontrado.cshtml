@@ -1,6 +1,8 @@
 @model int
 @{
-    ViewData["Title"] = "Turno no encontrado";
+    var titulo = ViewData["Titulo"] as string ?? "No encontrado";
+    var entidad = ViewData["Entidad"] as string ?? "registro";
+    ViewData["Title"] = titulo;
 }
 
 <a asp-action="Index"
@@ -23,13 +25,13 @@
         <path d="m14 14-4 4" />
         <path d="m10 14 4 4" />
     </svg>
-    <h1 class="mt-4 text-base font-semibold text-ink">Turno no encontrado</h1>
+    <h1 class="mt-4 text-base font-semibold text-ink">@titulo</h1>
     <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-        No existe ningún turno con el número <span class="font-medium tabular-nums text-ink">@Model</span>.
+        No existe ningún @entidad con el número <span class="font-medium tabular-nums text-ink">@Model</span>.
         Puede que lo hayan eliminado o que el enlace esté mal.
     </p>
     <a asp-action="Index"
        class="mt-6 inline-block rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover">
-        Ir al listado de turnos
+        Ir al listado
     </a>
 </div>

@@ -216,7 +216,8 @@ public class HomeController : Controller
                 {
                     Titulo = "Pacientes",
                     Icono = "personas",
-                    Motivo = "El listado de pacientes todavía no está implementado en el front."
+                    Controlador = "Pacientes",
+                    Accion = "Index"
                 },
                 new AccesoRapidoViewModel
                 {

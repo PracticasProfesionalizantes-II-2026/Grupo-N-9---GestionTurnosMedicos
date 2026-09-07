@@ -37,6 +37,11 @@
                 @if (Auth.HaySesion)
                 {
                     <a class="@ClaseNav("Turnos")" asp-controller="Turnos" asp-action="Index">Turnos</a>
+                    @if (Auth.PuedeVerPacientes)
+                    {
+                        <a class="@ClaseNav("Pacientes")" asp-controller="Pacientes" asp-action="Index">Pacientes</a>
+                    }
+                    <a class="@ClaseNav("Doctores")" asp-controller="Doctores" asp-action="Index">Doctores</a>
                 }
                 <a class="@ClaseNav("Home", "Privacy")" asp-controller="Home" asp-action="Privacy">Privacidad</a>
                 @if (Auth.SesionActual is { } sesion)

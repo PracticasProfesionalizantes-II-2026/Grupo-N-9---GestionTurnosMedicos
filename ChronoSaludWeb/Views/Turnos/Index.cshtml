@@ -1,13 +1,17 @@
 @model TurnosIndexViewModel
 @inject AuthService Auth
 @{
-    ViewData["Title"] = "Turnos";
+    ViewData["Title"] = Model.Titulo;
 }
 
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">Turnos</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.Titulo</h1>
         <p class="mt-1 text-sm capitalize text-muted">@Model.FechaDeHoy</p>
+        @if (Model.Subtitulo is not null)
+        {
+            <p class="mt-1 text-xs text-muted">@Model.Subtitulo</p>
+        }
     </div>
     <div class="flex items-center gap-5">
         @if (!Model.HuboError)
@@ -79,7 +83,20 @@
     }
 </form>
 
-@if (Model.HuboError)
+@if (Model.Aviso is not null)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-pendiente" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No podemos mostrarte turnos</h2>
+        <p class="mx-auto mt-1 max-w-md text-sm text-muted">@Model.Aviso</p>
+    </div>
+}
+else if (Model.HuboError)
 {
     <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
         <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
@@ -172,10 +189,8 @@ else
             }
             else
             {
-                <h2 class="mt-4 text-base font-semibold text-ink">No hay turnos cargados</h2>
-                <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-                    Cuando se registren turnos en el sistema van a aparecer en esta lista.
-                </p>
+                <h2 class="mt-4 text-base font-semibold text-ink">No hay turnos para mostrar</h2>
+                <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.TextoVacio</p>
             }
         </div>
     }

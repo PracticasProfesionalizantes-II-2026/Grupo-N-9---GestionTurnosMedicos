@@ -1,0 +1,123 @@
+@model PacienteDetalleViewModel
+@{
+    ViewData["Title"] = Model.HuboError ? "Paciente" : Model.NombreCompleto;
+}
+
+<a asp-action="Index"
+   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver a pacientes
+</a>
+
+@if (Model.HuboError)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No se pudo cargar el paciente</h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
+        <a asp-action="Detalle" asp-route-id="@Model.IdPaciente"
+           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+            Reintentar
+        </a>
+    </div>
+}
+else
+{
+    <div class="mt-6 flex items-center gap-4">
+        <span aria-hidden="true"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-soft text-base font-semibold text-primary">
+            @Model.Iniciales
+        </span>
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
+            <p class="mt-0.5 text-sm text-muted">Paciente #@Model.IdPaciente</p>
+        </div>
+    </div>
+
+    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos personales</h2>
+            <dl class="mt-4 space-y-4">
+                <div>
+                    <dt class="text-sm text-muted">Fecha de nacimiento</dt>
+                    <dd class="mt-0.5 text-ink">
+                        @if (Model.FechaNacimientoLarga is not null)
+                        {
+                            <span>@Model.FechaNacimientoLarga</span>
+                            @if (Model.Edad is not null)
+                            {
+                                <span class="text-muted"> · @Model.Edad años</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Sin datos</span>
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Sexo</dt>
+                    <dd class="mt-0.5 capitalize text-ink">
+                        @(string.IsNullOrWhiteSpace(Model.Sexo) ? "Sin datos" : Model.Sexo)
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos clínicos</h2>
+            <dl class="mt-4 space-y-4">
+                <div>
+                    <dt class="text-sm text-muted">Grupo sanguíneo</dt>
+                    <dd class="mt-1">
+                        @if (!string.IsNullOrWhiteSpace(Model.GrupoSanguineo))
+                        {
+                            <span class="inline-block rounded-badge bg-accent-soft px-2 py-1 text-sm font-semibold tabular-nums text-accent">
+                                @Model.GrupoSanguineo
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-sm text-muted">Sin datos</span>
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Alergias</dt>
+                    <dd class="mt-0.5 whitespace-pre-line text-ink">
+                        @if (!string.IsNullOrWhiteSpace(Model.Alergias))
+                        {
+                            <span class="font-medium text-status-pendiente">@Model.Alergias</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Sin alergias registradas</span>
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Condiciones</dt>
+                    <dd class="mt-0.5 whitespace-pre-line text-ink">
+                        @if (!string.IsNullOrWhiteSpace(Model.Condiciones))
+                        {
+                            <span>@Model.Condiciones</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Sin condiciones registradas</span>
+                        }
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+}

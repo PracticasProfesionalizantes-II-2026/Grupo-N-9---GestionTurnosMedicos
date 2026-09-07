@@ -31,6 +31,13 @@ public class AuthService
     public bool PuedeCargarTurnos => SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
+    /// GET /pacientes está reservado a doctor y administrador. El detalle usa el
+    /// mismo criterio: trae datos clínicos (alergias, condiciones) que no
+    /// corresponde mostrarle a cualquier usuario autenticado.
+    /// </summary>
+    public bool PuedeVerPacientes => SesionActual?.Rol is "doctor" or "administrador";
+
+    /// <summary>
     /// Ojo: DELETE /turnos/{id} no pide ningún rol, solo estar autenticado, así
     /// que esto es una restricción nuestra de interfaz y no la aplica la API.
     /// Se eligieron los roles del personal, los mismos que ya maneja el PUT

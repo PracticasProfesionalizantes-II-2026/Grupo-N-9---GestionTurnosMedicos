@@ -45,14 +45,27 @@ public class DoctorService
     }
 
     /// <summary>
-    /// GET /doctores. El límite alto es para llenar el select de una sola vez.
+    /// GET /doctores con el filtro por especialidad, que la API resuelve como
+    /// "contiene". Solo devuelve doctores activos.
+    /// </summary>
+    public async Task<DoctoresPagina> BuscarAsync(string? especialidad = null, int limite = 100)
+    {
+        var parametros = new Dictionary<string, object?>
+        {
+            ["especialidad"] = especialidad,
+            ["pagina"] = 1,
+            ["limite"] = limite
+        };
+
+        var pagina = await _api.GetAsync<DoctoresPagina>("/doctores", parametros);
+        return pagina ?? new DoctoresPagina(0, Array.Empty<DoctorLista>());
+    }
+
+    /// <summary>
+    /// Todos los doctores, para llenar un select de una sola vez.
     /// </summary>
     public async Task<IReadOnlyList<DoctorLista>> ObtenerTodosAsync(int limite = 200)
-    {
-        var parametros = new Dictionary<string, object?> { ["pagina"] = 1, ["limite"] = limite };
-        var pagina = await _api.GetAsync<DoctoresPagina>("/doctores", parametros);
-        return pagina?.Doctores ?? Array.Empty<DoctorLista>();
-    }
+        => (await BuscarAsync(limite: limite)).Doctores;
 
     /// <summary>
     /// GET /doctores/me: el perfil de doctor del usuario logueado.

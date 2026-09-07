@@ -46,16 +46,29 @@ public class PacienteService
     }
 
     /// <summary>
-    /// GET /pacientes. Solo lo permite a doctor y administrador: con otro rol
-    /// la API responde 403 con el cuerpo vacío.
-    /// El límite alto es para llenar el select de una sola vez.
+    /// GET /pacientes con el filtro por nombre, que la API resuelve como
+    /// "contiene" sobre nombre o apellido.
+    /// Solo lo permite a doctor y administrador: con otro rol responde 403
+    /// con el cuerpo vacío.
+    /// </summary>
+    public async Task<PacientesPagina> BuscarAsync(string? nombre = null, int limite = 100)
+    {
+        var parametros = new Dictionary<string, object?>
+        {
+            ["nombre"] = nombre,
+            ["pagina"] = 1,
+            ["limite"] = limite
+        };
+
+        var pagina = await _api.GetAsync<PacientesPagina>("/pacientes", parametros);
+        return pagina ?? new PacientesPagina(0, 1, Array.Empty<PacienteLista>());
+    }
+
+    /// <summary>
+    /// Todos los pacientes, para llenar un select de una sola vez.
     /// </summary>
     public async Task<IReadOnlyList<PacienteLista>> ObtenerTodosAsync(int limite = 200)
-    {
-        var parametros = new Dictionary<string, object?> { ["pagina"] = 1, ["limite"] = limite };
-        var pagina = await _api.GetAsync<PacientesPagina>("/pacientes", parametros);
-        return pagina?.Pacientes ?? Array.Empty<PacienteLista>();
-    }
+        => (await BuscarAsync(limite: limite)).Pacientes;
 
     /// <summary>
     /// GET /pacientes/me: el perfil de paciente del usuario logueado.

@@ -93,6 +93,33 @@ public class TurnosIndexViewModel
 
     public TurnosFiltroViewModel Filtros { get; init; } = new();
 
+    /// <summary>Rol del usuario: define el título y el alcance de lo que se ve.</summary>
+    public string? Rol { get; init; }
+
+    /// <summary>Aviso no fatal, por ejemplo un usuario sin perfil asociado.</summary>
+    public string? Aviso { get; init; }
+
+    public string Titulo => Rol switch
+    {
+        "paciente" => "Mis turnos",
+        "doctor"   => "Mi agenda",
+        _          => "Turnos"
+    };
+
+    public string? Subtitulo => Rol switch
+    {
+        "paciente" => "Solo se muestran los turnos en los que figurás como paciente.",
+        "doctor"   => "Solo se muestran los turnos que tenés asignados.",
+        _          => null
+    };
+
+    public string TextoVacio => Rol switch
+    {
+        "paciente" => "Todavía no tenés ningún turno.",
+        "doctor"   => "Todavía no tenés turnos asignados.",
+        _          => "Cuando se registren turnos en el sistema van a aparecer en esta lista."
+    };
+
     public int Confirmados => Contar("confirmado");
     public int Pendientes  => Contar("pendiente");
     public int Completados => Contar("completado");
