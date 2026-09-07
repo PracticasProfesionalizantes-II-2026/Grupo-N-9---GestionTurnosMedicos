@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -28,12 +29,16 @@ public static class HistorialClinicoEndpoints
         .WithSummary("Obtener historial clínico del paciente");
 
         // POST /pacientes/{id}/historiales-clinicos
-        grupo.MapPost("/", async (int id, HistorialClinicoCreateDto dto, IHistorialClinicoLogica logica) =>
+        grupo.MapPost("/", async (int id, HistorialClinicoCreateDto dto, HttpContext ctx, IHistorialClinicoLogica logica) =>
         {
             if (string.IsNullOrEmpty(dto.Descripcion) || string.IsNullOrEmpty(dto.Diagnostico))
                 return Results.BadRequest(new { error = "Descripcion y diagnostico son requeridos." });
 
-            var (ok, error) = await logica.Crear(id, dto);
+            var claim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var (ok, error) = await logica.Crear(id, idUsuario, dto);
             if (!ok)
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
@@ -45,13 +50,15 @@ public static class HistorialClinicoEndpoints
         .WithSummary("Registrar nueva entrada en historial")
         .RequireAuthorization(p => p.RequireRole("doctor"));
 
-        // PUT /pacientes/{id}/historiales-clinicos
-        grupo.MapPut("/", async (int id, HistorialClinicoCreateDto dto, IHistorialClinicoLogica logica) =>
+        // PUT /pacientes/{id}/historiales-clinicos/{idHistorial}
+        grupo.MapPut("/{idHistorial:int}", async (int id, int idHistorial, HistorialClinicoCreateDto dto, IHistorialClinicoLogica logica) =>
         {
             if (string.IsNullOrEmpty(dto.Descripcion) || string.IsNullOrEmpty(dto.Diagnostico))
                 return Results.BadRequest(new { error = "Descripcion y diagnostico son requeridos." });
 
-            var (ok, error) = await logica.Actualizar(id, dto);
+            // Solo modifica la entrada indicada. Si no existe es 404: un PUT
+            // nunca crea una entrada nueva en la historia clinica.
+            var (ok, error) = await logica.Actualizar(id, idHistorial, dto);
             if (!ok)
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
@@ -59,7 +66,7 @@ public static class HistorialClinicoEndpoints
 
             return Results.Ok(new { mensaje = "Historial modificado correctamente." });
         })
-        .WithSummary("Modificar historial clínico")
+        .WithSummary("Modificar una entrada del historial clínico")
         .RequireAuthorization(p => p.RequireRole("doctor"));
     }
 }

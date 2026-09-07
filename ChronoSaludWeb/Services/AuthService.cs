@@ -38,6 +38,22 @@ public class AuthService
     public bool PuedeVerPacientes => SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
+    /// POST /recetas y PUT /recetas/{id} los reserva la API al rol doctor.
+    /// </summary>
+    public bool PuedeEmitirRecetas => SesionActual?.Rol is "doctor";
+
+    /// <summary>
+    /// POST y PUT de historiales clínicos los reserva la API al rol doctor.
+    /// </summary>
+    public bool PuedeEscribirHistorial => SesionActual?.Rol is "doctor";
+
+    /// <summary>
+    /// Doctor y administrador pueden mirar las recetas de cualquier paciente;
+    /// el paciente solo las suyas.
+    /// </summary>
+    public bool PuedeElegirPaciente => SesionActual?.Rol is "doctor" or "administrador";
+
+    /// <summary>
     /// Ojo: DELETE /turnos/{id} no pide ningún rol, solo estar autenticado, así
     /// que esto es una restricción nuestra de interfaz y no la aplica la API.
     /// Se eligieron los roles del personal, los mismos que ya maneja el PUT

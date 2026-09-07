@@ -6,6 +6,9 @@ public class HistorialClinico
 
     public int IdPaciente { get; set; }
 
+    /// <summary>Doctor que escribio la entrada. Se toma del token, no del cliente.</summary>
+    public int IdDoctor { get; set; }
+
     public DateTime Fecha { get; set; }
 
     public string Descripcion { get; set; } = string.Empty;
@@ -16,6 +19,8 @@ public class HistorialClinico
 
     // Navegación
     public Paciente? Paciente { get; set; }
+
+    public Doctor? Doctor { get; set; }
 
     public Turno? Turno { get; set; }
 }

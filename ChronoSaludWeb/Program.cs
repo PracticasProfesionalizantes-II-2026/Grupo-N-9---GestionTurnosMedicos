@@ -40,6 +40,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TurnoService>();
 builder.Services.AddScoped<PacienteService>();
 builder.Services.AddScoped<DoctorService>();
+builder.Services.AddScoped<RecetaService>();
+builder.Services.AddScoped<MedicamentoService>();
+builder.Services.AddScoped<HistorialService>();
+builder.Services.AddScoped<PerfilService>();
 
 var app = builder.Build();
 

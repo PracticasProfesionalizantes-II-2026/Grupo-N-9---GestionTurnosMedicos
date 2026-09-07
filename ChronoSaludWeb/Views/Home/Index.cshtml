@@ -1,6 +1,7 @@
 @model DashboardViewModel
 @{
-    ViewData["Title"] = Model.HaySesion ? "Inicio" : "ChronoSalud";
+    // Sin sesión no se pone título: el layout deja solo "ChronoSalud".
+    ViewData["Title"] = Model.HaySesion ? "Inicio" : null;
 }
 
 @functions {

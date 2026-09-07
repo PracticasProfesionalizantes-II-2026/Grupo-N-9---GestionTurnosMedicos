@@ -1,6 +1,46 @@
-﻿@{
-    ViewData["Title"] = "Privacy Policy";
+@{
+    ViewData["Title"] = "Privacidad";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Privacidad</h1>
+    <p class="mt-1 text-sm text-muted">Qué datos maneja ChronoSalud y cómo.</p>
+
+    <div class="mt-6 space-y-4">
+        <section class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Qué datos se guardan</h2>
+            <p class="mt-3 text-ink">
+                El sistema almacena datos personales (nombre, email, teléfono), datos clínicos
+                (grupo sanguíneo, alergias, condiciones), turnos, recetas e historia clínica.
+                Todo vive en la base de datos de la institución; este sitio solo los muestra.
+            </p>
+        </section>
+
+        <section class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Quién ve qué</h2>
+            <ul class="mt-3 space-y-2 text-ink">
+                <li><span class="font-medium">Paciente:</span> solo sus propios turnos, recetas e historia clínica.</li>
+                <li><span class="font-medium">Doctor:</span> los turnos que tiene asignados, y las fichas clínicas de los pacientes.</li>
+                <li><span class="font-medium">Administrador:</span> la agenda completa y el padrón de pacientes.</li>
+            </ul>
+        </section>
+
+        <section class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Sesión</h2>
+            <p class="mt-3 text-ink">
+                Al iniciar sesión, el token de autenticación se guarda en el servidor, no en el
+                navegador. El navegador solo recibe una cookie de sesión, marcada
+                <span class="font-medium">HttpOnly</span>, que no puede leerse desde JavaScript.
+                La sesión dura 8 horas o hasta que cierres sesión.
+            </p>
+        </section>
+
+        <section class="rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Alcance</h2>
+            <p class="mt-3 text-ink">
+                ChronoSalud es un trabajo práctico académico. No está en producción, no procesa
+                datos de personas reales y no debe usarse para almacenar información clínica real.
+            </p>
+        </section>
+    </div>
+</div>

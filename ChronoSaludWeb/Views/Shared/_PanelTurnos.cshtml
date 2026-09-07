@@ -21,6 +21,7 @@
     else
     {
         <ul>
+            @{ var fila = 0; }
             @foreach (var turno in Model.Turnos)
             {
                 var principal = Model.Vista == VistaPanel.Paciente
@@ -34,7 +35,8 @@
                     _                        => null
                 };
 
-                <li class="relative flex items-center gap-4 border-b border-border px-6 py-4 last:border-0 hover:bg-canvas">
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-6 py-4 last:border-0 hover:bg-canvas"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span class="w-12 shrink-0 text-sm font-medium tabular-nums text-ink">@(turno.Hora ?? "—")</span>
 
                     <span class="min-w-0 flex-1">

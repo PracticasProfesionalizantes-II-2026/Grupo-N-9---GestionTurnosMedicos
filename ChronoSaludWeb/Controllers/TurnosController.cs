@@ -15,17 +15,20 @@ public class TurnosController : ControladorBase
     private readonly PacienteService _pacientes;
     private readonly DoctorService _doctores;
     private readonly AuthService _auth;
+    private readonly PerfilService _perfil;
 
     public TurnosController(
         TurnoService turnos,
         PacienteService pacientes,
         DoctorService doctores,
-        AuthService auth)
+        AuthService auth,
+        PerfilService perfil)
     {
         _turnos = turnos;
         _pacientes = pacientes;
         _doctores = doctores;
         _auth = auth;
+        _perfil = perfil;
     }
 
     public async Task<IActionResult> Index(string? estado, DateTime? desde, DateTime? hasta)
@@ -333,7 +336,7 @@ public class TurnosController : ControladorBase
 
             case "paciente":
             {
-                var idPaciente = await IdPerfilAsync(esDoctor: false);
+                var idPaciente = await _perfil.IdPerfilAsync(esDoctor: false);
                 return idPaciente is null
                     ? new AmbitoTurnos(null, null,
                         "Tu usuario no tiene un perfil de paciente asociado, así que no podemos " +
@@ -343,7 +346,7 @@ public class TurnosController : ControladorBase
 
             case "doctor":
             {
-                var idDoctor = await IdPerfilAsync(esDoctor: true);
+                var idDoctor = await _perfil.IdPerfilAsync(esDoctor: true);
                 return idDoctor is null
                     ? new AmbitoTurnos(null, null,
                         "Tu usuario tiene rol doctor pero no tiene un perfil de doctor cargado " +
@@ -360,22 +363,4 @@ public class TurnosController : ControladorBase
         }
     }
 
-    /// <summary>
-    /// IdPaciente o IdDoctor del usuario, que no son el IdUsuario. Se cachea en
-    /// la sesión para no pedirlo en cada pantalla, pero solo cuando existe: si
-    /// todavía no tiene perfil se vuelve a preguntar, así aparece apenas se lo
-    /// crean sin necesidad de volver a loguearse.
-    /// </summary>
-    private async Task<int?> IdPerfilAsync(bool esDoctor)
-    {
-        var cacheado = HttpContext.Session.ObtenerIdPerfil();
-        if (cacheado is not null) return cacheado;
-
-        var id = esDoctor
-            ? (await _doctores.ObtenerMiPerfilAsync())?.IdDoctor
-            : (await _pacientes.ObtenerMiPerfilAsync())?.IdPaciente;
-
-        if (id is not null) HttpContext.Session.GuardarIdPerfil(id.Value);
-        return id;
-    }
 }

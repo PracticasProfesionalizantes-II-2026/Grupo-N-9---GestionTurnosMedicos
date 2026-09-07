@@ -1,0 +1,200 @@
+@model HistorialIndexViewModel
+@{
+    ViewData["Title"] = "Historia clínica";
+}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Historia clínica</h1>
+        @if (Model.NombrePaciente is not null)
+        {
+            <p class="mt-1 text-sm text-muted">Paciente: <span class="font-medium text-ink">@Model.NombrePaciente</span></p>
+        }
+        else
+        {
+            <p class="mt-1 text-sm text-muted">Registro de consultas y diagnósticos.</p>
+        }
+    </div>
+    <div class="flex flex-wrap items-center justify-end gap-x-5 gap-y-3">
+        @if (Model.IdPaciente is not null && !Model.HuboError)
+        {
+            <p class="text-sm text-muted">
+                <span class="font-semibold tabular-nums text-ink">@Model.Entradas.Count</span>
+                @(Model.Entradas.Count == 1 ? "entrada" : "entradas")
+            </p>
+        }
+        @if (Model.PuedeEscribir)
+        {
+            <a asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
+               class="inline-flex items-center gap-1.5 rounded-input bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                </svg>
+                Nueva entrada
+            </a>
+        }
+    </div>
+</div>
+
+@if (Model.Aviso is null && !Model.HuboError)
+{
+    <form method="get" asp-action="Index"
+          class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+        @if (Model.PuedeElegirPaciente)
+        {
+            <div class="w-full sm:w-auto sm:min-w-56">
+                <label for="paciente" class="block text-sm font-medium text-ink">Paciente</label>
+                <select id="paciente" name="paciente" asp-items="Model.Pacientes"
+                        class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    <option value="">Elegí un paciente</option>
+                </select>
+            </div>
+        }
+
+        <div>
+            <label for="desde" class="block text-sm font-medium text-ink">Desde</label>
+            <input id="desde" name="desde" type="date" value="@(Model.Filtros.Desde?.ToString("yyyy-MM-dd"))"
+                   class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+        </div>
+
+        <div>
+            <label for="hasta" class="block text-sm font-medium text-ink">Hasta</label>
+            <input id="hasta" name="hasta" type="date" value="@(Model.Filtros.Hasta?.ToString("yyyy-MM-dd"))"
+                   class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="submit"
+                    class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                Filtrar
+            </button>
+            @if (Model.Filtros.HayAlguno)
+            {
+                <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                   class="rounded-input border border-border px-4 py-2 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                    Limpiar
+                </a>
+            }
+        </div>
+
+        @if (Model.Filtros.RangoInvertido)
+        {
+            <p class="w-full text-xs text-status-pendiente">
+                La fecha "desde" es posterior a la "hasta", por eso no aparece ninguna entrada.
+            </p>
+        }
+    </form>
+}
+
+@if (Model.Aviso is not null)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-pendiente" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No podemos mostrarte la historia clínica</h2>
+        <p class="mx-auto mt-1 max-w-md text-sm text-muted">@Model.Aviso</p>
+    </div>
+}
+else if (Model.HuboError)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No se pudo cargar la historia clínica</h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
+        <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+            Reintentar
+        </a>
+    </div>
+}
+else if (Model.SinPacienteElegido)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">Elegí un paciente</h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+            La API guarda la historia clínica por paciente, así que primero hay que elegir de quién.
+        </p>
+    </div>
+}
+else if (Model.Entradas.Count == 0)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <path d="M9 14h6" />
+            <path d="M9 18h4" />
+        </svg>
+        @if (Model.SinResultados)
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">Ninguna entrada en ese rango de fechas</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">Probá ampliando el rango.</p>
+            <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+               class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+                Limpiar filtros
+            </a>
+        }
+        else
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">La historia clínica está vacía</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Todavía no hay consultas registradas para este paciente.
+            </p>
+        }
+    </div>
+}
+else
+{
+    @* Cada entrada se muestra completa: la API no tiene endpoint de detalle y
+       el listado ya trae todo lo que hay para mostrar. *@
+    <ol class="mt-6 space-y-4">
+        @{ var fila = 0; }
+        @foreach (var entrada in Model.Entradas)
+        {
+            <li class="fila-animada rounded-card border border-border bg-surface p-6"
+                style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 class="font-semibold text-ink">@entrada.DiagnosticoMostrado</h2>
+                    <p class="text-sm capitalize tabular-nums text-muted">@entrada.FechaLarga</p>
+                </div>
+
+                @if (entrada.TieneDescripcion)
+                {
+                    <p class="mt-3 whitespace-pre-line text-ink">@entrada.Descripcion</p>
+                }
+                else
+                {
+                    <p class="mt-3 text-sm text-muted">Sin descripción cargada.</p>
+                }
+
+                <p class="mt-4 border-t border-border pt-3 text-xs text-muted">
+                    Entrada #@entrada.IdHistorial
+                    @if (entrada.IdTurno is not null)
+                    {
+                        <span aria-hidden="true"> · </span>
+                        <span>vinculada al turno #@entrada.IdTurno</span>
+                    }
+                </p>
+            </li>
+        }
+    </ol>
+}

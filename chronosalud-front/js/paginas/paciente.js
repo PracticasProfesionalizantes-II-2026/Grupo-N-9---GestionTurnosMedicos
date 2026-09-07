@@ -295,7 +295,8 @@ async function cargarHistorial() {
             ${
               esDoctor
                 ? `<button type="button" class="boton boton--secundario boton--chico"
-                     data-editar-historial="${escapar(fechaParaInput(h.fecha))}"
+                     data-editar-historial="${h.idHistorial}"
+                     data-fecha="${escapar(fechaParaInput(h.fecha))}"
                      data-diagnostico="${escapar(h.diagnostico)}"
                      data-descripcion="${escapar(h.descripcion)}"
                      data-turno="${h.idTurno ?? ""}">Editar</button>`
@@ -310,22 +311,21 @@ async function cargarHistorial() {
   }
 }
 
-// La API identifica la entrada a modificar por su fecha, no por su id: al
-// editar, la fecha queda fija para no terminar creando una entrada nueva.
+// Se edita la entrada que el usuario eligio de la lista, identificada por su id.
+// La fecha es un campo mas: la API la actualiza junto con el resto.
 function abrirModalHistorial(datos = null) {
   $("#form-historial").reset();
   aviso("#mensaje-historial", "");
 
   $("#modo-historial").value = datos ? "edicion" : "alta";
+  $("#id-historial").value = datos ? datos.idHistorial : "";
   $("#titulo-historial").textContent = datos ? "Editar entrada" : "Nueva entrada de historial";
-  $("#fecha-historial").readOnly = !!datos;
 
   if (datos) {
     $("#fecha-historial").value = datos.fecha;
     $("#diagnostico").value = datos.diagnostico;
     $("#descripcion-historial").value = datos.descripcion;
     $("#turno-historial").value = datos.idTurno;
-    aviso("#mensaje-historial", "Se modifica la entrada de esta fecha.", "info");
   } else {
     $("#fecha-historial").value = hoyParaInput();
   }
@@ -347,7 +347,10 @@ async function guardarHistorial(evento) {
 
   try {
     if (datos.modo === "edicion") {
-      await api.put(`/pacientes/${idPaciente}/historiales-clinicos`, cuerpo);
+      await api.put(
+        `/pacientes/${idPaciente}/historiales-clinicos/${datos.idHistorial}`,
+        cuerpo
+      );
       toast("Entrada actualizada.");
     } else {
       await api.post(`/pacientes/${idPaciente}/historiales-clinicos`, cuerpo);
@@ -365,7 +368,8 @@ function accionHistorial(evento) {
   if (!boton) return;
 
   abrirModalHistorial({
-    fecha: boton.dataset.editarHistorial,
+    idHistorial: boton.dataset.editarHistorial,
+    fecha: boton.dataset.fecha,
     diagnostico: boton.dataset.diagnostico,
     descripcion: boton.dataset.descripcion,
     idTurno: boton.dataset.turno,

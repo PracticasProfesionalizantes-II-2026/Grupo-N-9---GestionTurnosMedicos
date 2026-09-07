@@ -100,7 +100,8 @@ public class HomeController : Controller
                 {
                     Titulo = "Recetas",
                     Icono = "pastilla",
-                    Motivo = "La sección de recetas todavía no está implementada."
+                    Controlador = "Recetas",
+                    Accion = "Index"
                 },
                 new AccesoRapidoViewModel
                 {
@@ -158,13 +159,15 @@ public class HomeController : Controller
                 {
                     Titulo = "Historia clínica",
                     Icono = "historia",
-                    Motivo = "La sección de historia clínica todavía no está implementada."
+                    Controlador = "Historial",
+                    Accion = "Index"
                 },
                 new AccesoRapidoViewModel
                 {
                     Titulo = "Recetas",
                     Icono = "pastilla",
-                    Motivo = "La sección de recetas todavía no está implementada."
+                    Controlador = "Recetas",
+                    Accion = "Index"
                 },
                 new AccesoRapidoViewModel
                 {

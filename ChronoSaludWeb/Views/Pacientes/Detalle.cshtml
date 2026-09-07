@@ -43,6 +43,29 @@ else
         </div>
     </div>
 
+    <div class="mt-6 flex flex-wrap gap-3">
+        <a asp-controller="Historial" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+           class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M9 14h6" />
+                <path d="M9 18h4" />
+            </svg>
+            Historia clínica
+        </a>
+        <a asp-controller="Recetas" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+           class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+                <path d="m8.5 8.5 7 7" />
+            </svg>
+            Recetas
+        </a>
+    </div>
+
     <div class="mt-6 grid gap-4 lg:grid-cols-2">
         <div class="rounded-card border border-border bg-surface p-6">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos personales</h2>

@@ -20,7 +20,12 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ChronoSalud</title>
+    @{
+        var titulo = ViewData["Title"] as string;
+    }
+    <title>@(string.IsNullOrWhiteSpace(titulo) ? "ChronoSalud" : $"{titulo} · ChronoSalud")</title>
+
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,9 +35,9 @@
 </head>
 <body class="min-h-screen bg-canvas font-sans text-ink antialiased">
     <header class="border-b border-border bg-surface">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
             <a class="text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">ChronoSalud</a>
-            <nav class="flex items-center gap-5 text-sm font-medium text-muted">
+            <nav class="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-sm font-medium text-muted">
                 <a class="@ClaseNav("Home", "Index")" asp-controller="Home" asp-action="Index">Inicio</a>
                 @if (Auth.HaySesion)
                 {
@@ -42,8 +47,9 @@
                         <a class="@ClaseNav("Pacientes")" asp-controller="Pacientes" asp-action="Index">Pacientes</a>
                     }
                     <a class="@ClaseNav("Doctores")" asp-controller="Doctores" asp-action="Index">Doctores</a>
+                    <a class="@ClaseNav("Recetas")" asp-controller="Recetas" asp-action="Index">Recetas</a>
+                    <a class="@ClaseNav("Historial")" asp-controller="Historial" asp-action="Index">Historia clínica</a>
                 }
-                <a class="@ClaseNav("Home", "Privacy")" asp-controller="Home" asp-action="Privacy">Privacidad</a>
                 @if (Auth.SesionActual is { } sesion)
                 {
                     <span class="hidden sm:inline">
@@ -93,8 +99,9 @@
     </main>
 
     <footer class="border-t border-border">
-        <div class="mx-auto max-w-6xl px-6 py-6 text-sm text-muted">
-            &copy; 2026 ChronoSalud
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-sm text-muted">
+            <span>&copy; 2026 ChronoSalud</span>
+            <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>
         </div>
     </footer>
 

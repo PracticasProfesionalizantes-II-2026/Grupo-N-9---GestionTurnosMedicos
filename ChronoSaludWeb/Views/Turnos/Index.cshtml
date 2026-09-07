@@ -13,7 +13,7 @@
             <p class="mt-1 text-xs text-muted">@Model.Subtitulo</p>
         }
     </div>
-    <div class="flex items-center gap-5">
+    <div class="flex flex-wrap items-center justify-end gap-x-5 gap-y-3">
         @if (!Model.HuboError)
         {
             <p class="text-sm text-muted">
@@ -41,7 +41,7 @@
    filtrado se puede compartir o recargar. *@
 <form method="get" asp-action="Index"
       class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
-    <div class="min-w-40">
+    <div class="w-full sm:w-auto sm:min-w-40">
         <label for="estado" class="block text-sm font-medium text-ink">Estado</label>
         <select id="estado" name="estado" asp-items="Model.Filtros.Opciones()"
                 class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm capitalize text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
@@ -214,9 +214,11 @@ else
                         </tr>
                     </thead>
                     <tbody>
+                        @{ var fila = 0; }
                         @foreach (var turno in Model.Turnos)
                         {
-                            <tr class="border-b border-border last:border-0 hover:bg-canvas">
+                            <tr class="fila-animada border-b border-border last:border-0 hover:bg-canvas"
+                                style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                                 <td class="whitespace-nowrap px-5 py-4 text-sm font-medium tabular-nums text-ink">
                                     @(turno.Hora ?? "—")
                                 </td>

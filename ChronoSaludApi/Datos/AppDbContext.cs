@@ -77,6 +77,13 @@ public class AppDbContext : DbContext
             .HasForeignKey(h => h.IdPaciente)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // HistorialClinico -> Doctor (autor de la entrada)
+        modelBuilder.Entity<HistorialClinico>()
+            .HasOne(h => h.Doctor)
+            .WithMany()
+            .HasForeignKey(h => h.IdDoctor)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // HistorialClinico -> Turno (opcional)
         modelBuilder.Entity<HistorialClinico>()
             .HasOne(h => h.Turno)

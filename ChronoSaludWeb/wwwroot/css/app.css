@@ -31,3 +31,37 @@
   --radius-card: 14px;
   --radius-modal: 18px;
 }
+
+/* Entrada escalonada de las filas de los listados. El retraso de cada fila lo
+   calcula la vista con animation-delay en línea. */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fila-animada {
+  animation: slide-up 260ms ease-out both;
+}
+
+/* Quien pidió menos movimiento no ve ninguno: las filas aparecen ya puestas.
+   El bloque general cubre también las transiciones de hover del resto del sitio. */
+@media (prefers-reduced-motion: reduce) {
+  .fila-animada {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -21,7 +21,7 @@
    endpoint de especialidades. *@
 <form method="get" asp-action="Index"
       class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
-    <div class="min-w-56">
+    <div class="w-full sm:w-auto sm:min-w-56">
         <label for="especialidad" class="block text-sm font-medium text-ink">Especialidad</label>
         <select id="especialidad" name="especialidad" asp-items="Model.Especialidades"
                 class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm capitalize text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
@@ -92,9 +92,11 @@ else
 {
     <div class="mt-6 overflow-hidden rounded-card border border-border bg-surface">
         <ul>
+            @{ var fila = 0; }
             @foreach (var doctor in Model.Doctores)
             {
-                <li class="relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-canvas">
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-canvas"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span aria-hidden="true"
                           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
                         @doctor.Iniciales
