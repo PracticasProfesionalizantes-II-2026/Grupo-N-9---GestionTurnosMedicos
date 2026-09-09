@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/ChronoSaludApi/**)",
+      "Bash(dotnet ef *)",
+      "PowerShell(dotnet ef *)"
+    ]
+  }
+}
