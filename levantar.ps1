@@ -3,7 +3,7 @@
 #   Uso:  .\levantar.ps1
 #
 # Abre dos ventanas nuevas (una para la API y otra para el frontend) y el
-# navegador en http://localhost:5500. Para frenar todo, cerrá esas dos ventanas.
+# navegador en http://localhost:5044. Para frenar todo, cerrá esas dos ventanas.
 #
 # Usa la instancia SQL Server de la maquina (localhost), que es la que se ve en
 # SQL Server Management Studio. Si en su lugar preferis LocalDB, agregale -LocalDb.
@@ -18,7 +18,7 @@ param(
   [switch]$LocalDb,
   [switch]$ArranqueAutomatico,
   [int]$PuertoApi = 5001,
-  [int]$PuertoFront = 5500
+  [int]$PuertoFront = 5044
 )
 
 $raiz = $PSScriptRoot
@@ -49,13 +49,23 @@ if ($LocalDb) {
   $conexion = "Server=(localdb)\MSSQLLocalDB;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
   Write-Host "  Base de datos: LocalDB" -ForegroundColor Green
 } else {
-  # Instancia por defecto de la maquina: la misma que se ve en SSMS al
-  # conectarse a "localhost". Arranca en modo manual, asi que se inicia aca.
-  $servicio = Get-Service -Name "MSSQLSERVER" -ErrorAction SilentlyContinue
+  # Instancia local de SQL Server. Segun la maquina puede ser la instancia por
+  # defecto (servicio MSSQLSERVER, en SSMS "localhost") o SQL Server Express
+  # (servicio MSSQL$SQLEXPRESS, en SSMS "localhost\SQLEXPRESS").
+  $servicio  = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+  $instancia = 'localhost'
+
   if (-not $servicio) {
-    Write-Host "  No se encontro el servicio MSSQLSERVER. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+    $servicio  = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction SilentlyContinue
+    $instancia = 'localhost\SQLEXPRESS'
+  }
+
+  if (-not $servicio) {
+    Write-Host "  No se encontro ninguna instancia local de SQL Server." -ForegroundColor Red
     exit 1
   }
+
+  $nombreServicio = $servicio.Name
 
   if ($servicio.Status -ne "Running") {
     # Iniciar un servicio de Windows necesita permisos de administrador, y una
@@ -63,9 +73,9 @@ if ($LocalDb) {
     # ventana elevada solo para esto y Windows pide confirmacion.
     Write-Host "  SQL Server esta detenido. Windows va a pedir permiso para iniciarlo..." -ForegroundColor Yellow
 
-    $comando = "Start-Service MSSQLSERVER"
+    $comando = "Start-Service '$nombreServicio'"
     if ($ArranqueAutomatico) {
-      $comando = "Set-Service MSSQLSERVER -StartupType Automatic; Start-Service MSSQLSERVER"
+      $comando = "Set-Service '$nombreServicio' -StartupType Automatic; Start-Service '$nombreServicio'"
     }
 
     try {
@@ -73,25 +83,23 @@ if ($LocalDb) {
     } catch {
       Write-Host ""
       Write-Host "  No se inicio SQL Server (se cancelo el permiso)." -ForegroundColor Red
-      Write-Host "  Opciones:"
-      Write-Host "    - Volver a correr el script y aceptar el cartel de Windows."
-      Write-Host "    - Usar LocalDB, que no necesita permisos:  .\levantar.ps1 -LocalDb"
+      Write-Host "  Volve a correr el script y aceptа el cartel de Windows."
       exit 1
     }
 
-    # Al servicio le toma unos segundos quedar disponible.
     foreach ($intento in 1..20) {
       Start-Sleep -Seconds 1
-      if ((Get-Service MSSQLSERVER).Status -eq "Running") { break }
+      if ((Get-Service $nombreServicio).Status -eq "Running") { break }
     }
 
-    if ((Get-Service MSSQLSERVER).Status -ne "Running") {
-      Write-Host "  SQL Server no llego a iniciarse. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+    if ((Get-Service $nombreServicio).Status -ne "Running") {
+      Write-Host "  SQL Server no llego a iniciarse." -ForegroundColor Red
       exit 1
     }
   }
-  $conexion = "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
-  Write-Host "  Base de datos: SQL Server local (se ve en SSMS como 'localhost')" -ForegroundColor Green
+
+  $conexion = "Server=$instancia;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
+  Write-Host "  Base de datos: $instancia" -ForegroundColor Green
 }
 
 # ── 3. API en una ventana aparte ───────────────────────────────────────────
@@ -108,9 +116,16 @@ dotnet run --project ChronoSaludApi --no-launch-profile --urls 'http://localhost
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $comandoApi
 Write-Host "  API          -> http://localhost:$PuertoApi" -ForegroundColor Green
 
-# ── 4. Frontend en otra ventana ────────────────────────────────────────────
-$servidor = Join-Path $raiz "chronosalud-front\servir.ps1"
-Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", $servidor, "-Puerto", $PuertoFront
+# ── 4. Frontend MVC en otra ventana ────────────────────────────────────────
+$comandoWeb = @"
+`$host.UI.RawUI.WindowTitle = 'ChronoSalud - Web'
+`$env:ASPNETCORE_ENVIRONMENT = 'Development'
+Set-Location '$raiz'
+Write-Host 'Frontend de ChronoSalud - http://localhost:$PuertoFront' -ForegroundColor Green
+Write-Host ''
+dotnet run --project ChronoSaludWeb --no-launch-profile --urls 'http://localhost:$PuertoFront'
+"@
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $comandoWeb
 Write-Host "  Frontend     -> http://localhost:$PuertoFront" -ForegroundColor Green
 
 # ── 5. Esperar a que la API responda y abrir el navegador ──────────────────
