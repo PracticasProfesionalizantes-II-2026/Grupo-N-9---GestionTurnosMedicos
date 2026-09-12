@@ -4,6 +4,37 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <TailwindVersion>v4.3.3</TailwindVersion>
+    <TailwindExe>$(MSBuildProjectDirectory)\tools\tailwindcss.exe</TailwindExe>
   </PropertyGroup>
+
+  <!--
+    Compilacion de los estilos. Reemplaza al viejo tools/css.ps1: el CLI de
+    Tailwind es un .exe suelto (no hace falta Node ni npm) y MSBuild sabe
+    descargarlo y ejecutarlo sin PowerShell de por medio.
+
+      dotnet build ChronoSaludWeb -t:CompilarCss    compila una vez, minificado
+      dotnet build ChronoSaludWeb -t:CssWatch       recompila al guardar
+
+    No se engancha a Build a proposito: la primera corrida baja ~112 MB y no
+    tiene sentido dispararsela a quien no toca estilos. app.build.css esta
+    versionado, asi que alcanza con compilar cuando cambia el CSS.
+  -->
+  <Target Name="DescargarTailwind" Condition="!Exists('$(TailwindExe)')">
+    <Message Importance="high" Text="Descargando el CLI de Tailwind $(TailwindVersion)..." />
+    <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/tailwindcss-windows-x64.exe"
+                  DestinationFolder="$(MSBuildProjectDirectory)\tools"
+                  DestinationFileName="tailwindcss.exe" />
+  </Target>
+
+  <Target Name="CompilarCss" DependsOnTargets="DescargarTailwind">
+    <Exec Command="&quot;$(TailwindExe)&quot; -i wwwroot/css/app.css -o wwwroot/css/app.build.css --minify"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="CssWatch" DependsOnTargets="DescargarTailwind">
+    <Exec Command="&quot;$(TailwindExe)&quot; -i wwwroot/css/app.css -o wwwroot/css/app.build.css --watch"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
 
 </Project>
