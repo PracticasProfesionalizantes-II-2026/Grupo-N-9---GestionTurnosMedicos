@@ -1,5 +1,6 @@
-/* Fuente de Tailwind. Se compila a app.build.css con tools/tailwindcss.exe
-   (ver README de estilos / el comando en tools/compilar-css.ps1).
+/* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
+   dotnet build ChronoSaludWeb -t:CompilarCss *//* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
+   dotnet build ChronoSaludWeb -t:CompilarCss *
    Este archivo se edita a mano; app.build.css es generado, no se toca. */
 
 @import "tailwindcss" source(none);
