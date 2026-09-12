@@ -49,13 +49,23 @@ if ($LocalDb) {
   $conexion = "Server=(localdb)\MSSQLLocalDB;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
   Write-Host "  Base de datos: LocalDB" -ForegroundColor Green
 } else {
-  # Instancia por defecto de la maquina: la misma que se ve en SSMS al
-  # conectarse a "localhost". Arranca en modo manual, asi que se inicia aca.
-  $servicio = Get-Service -Name "MSSQLSERVER" -ErrorAction SilentlyContinue
+  # Instancia local de SQL Server. Segun la maquina puede ser la instancia por
+  # defecto (servicio MSSQLSERVER, en SSMS "localhost") o SQL Server Express
+  # (servicio MSSQL$SQLEXPRESS, en SSMS "localhost\SQLEXPRESS").
+  $servicio  = Get-Service -Name 'MSSQLSERVER' -ErrorAction SilentlyContinue
+  $instancia = 'localhost'
+
   if (-not $servicio) {
-    Write-Host "  No se encontro el servicio MSSQLSERVER. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+    $servicio  = Get-Service -Name 'MSSQL$SQLEXPRESS' -ErrorAction SilentlyContinue
+    $instancia = 'localhost\SQLEXPRESS'
+  }
+
+  if (-not $servicio) {
+    Write-Host "  No se encontro ninguna instancia local de SQL Server." -ForegroundColor Red
     exit 1
   }
+
+  $nombreServicio = $servicio.Name
 
   if ($servicio.Status -ne "Running") {
     # Iniciar un servicio de Windows necesita permisos de administrador, y una
@@ -63,9 +73,9 @@ if ($LocalDb) {
     # ventana elevada solo para esto y Windows pide confirmacion.
     Write-Host "  SQL Server esta detenido. Windows va a pedir permiso para iniciarlo..." -ForegroundColor Yellow
 
-    $comando = "Start-Service MSSQLSERVER"
+    $comando = "Start-Service '$nombreServicio'"
     if ($ArranqueAutomatico) {
-      $comando = "Set-Service MSSQLSERVER -StartupType Automatic; Start-Service MSSQLSERVER"
+      $comando = "Set-Service '$nombreServicio' -StartupType Automatic; Start-Service '$nombreServicio'"
     }
 
     try {
@@ -73,25 +83,23 @@ if ($LocalDb) {
     } catch {
       Write-Host ""
       Write-Host "  No se inicio SQL Server (se cancelo el permiso)." -ForegroundColor Red
-      Write-Host "  Opciones:"
-      Write-Host "    - Volver a correr el script y aceptar el cartel de Windows."
-      Write-Host "    - Usar LocalDB, que no necesita permisos:  .\levantar.ps1 -LocalDb"
+      Write-Host "  Volve a correr el script y aceptа el cartel de Windows."
       exit 1
     }
 
-    # Al servicio le toma unos segundos quedar disponible.
     foreach ($intento in 1..20) {
       Start-Sleep -Seconds 1
-      if ((Get-Service MSSQLSERVER).Status -eq "Running") { break }
+      if ((Get-Service $nombreServicio).Status -eq "Running") { break }
     }
 
-    if ((Get-Service MSSQLSERVER).Status -ne "Running") {
-      Write-Host "  SQL Server no llego a iniciarse. Proba con: .\levantar.ps1 -LocalDb" -ForegroundColor Red
+    if ((Get-Service $nombreServicio).Status -ne "Running") {
+      Write-Host "  SQL Server no llego a iniciarse." -ForegroundColor Red
       exit 1
     }
   }
-  $conexion = "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
-  Write-Host "  Base de datos: SQL Server local (se ve en SSMS como 'localhost')" -ForegroundColor Green
+
+  $conexion = "Server=$instancia;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
+  Write-Host "  Base de datos: $instancia" -ForegroundColor Green
 }
 
 # ── 3. API en una ventana aparte ───────────────────────────────────────────
