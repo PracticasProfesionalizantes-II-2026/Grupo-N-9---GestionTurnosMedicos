@@ -9,7 +9,7 @@ Sistema de gestión de turnos médicos. El repo tiene dos partes:
 | Carpeta                                    | Qué es                                                    |
 | ------------------------------------------ | --------------------------------------------------------- |
 | [`ChronoSaludApi/`](ChronoSaludApi/)       | API REST en .NET 10 (minimal APIs, Entity Framework, JWT) |
-| [`chronosalud-front/`](chronosalud-front/) | Frontend web en HTML/CSS/JS puro, sin build                |
+| [`ChronoSaludWeb/`](ChronoSaludWeb/) | Frontend web en HTML/CSS/JS puro, sin build                |
 
 ## Levantar todo de una vez
 
@@ -76,13 +76,6 @@ Queda en `http://localhost:5001`. La documentación interactiva de los endpoints
 En **otra** terminal:
 
 ```
-powershell -ExecutionPolicy Bypass -File chronosalud-front\servir.ps1
-```
-
-Y abrir `http://localhost:5500`. No sirve abrir el HTML con doble clic: los módulos JS
-se bloquean con `file://`.
-
-Más detalle en el [README del frontend](chronosalud-front/README.md).
 
 ## Ver la base desde SQL Server Management Studio
 

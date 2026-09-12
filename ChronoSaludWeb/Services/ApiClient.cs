@@ -19,8 +19,6 @@ public class ApiException : Exception
 
 /// <summary>
 /// Cliente HTTP tipado contra la API de ChronoSalud. Es el equivalente en C#
-/// de chronosalud-front/js/api.js: adjunta el Bearer si hay sesión, traduce los
-/// errores { "error": "..." } y corta la sesión cuando la API responde 401.
 /// </summary>
 public class ApiClient
 {

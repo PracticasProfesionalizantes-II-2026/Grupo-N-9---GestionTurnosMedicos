@@ -3,7 +3,7 @@
 #   Uso:  .\levantar.ps1
 #
 # Abre dos ventanas nuevas (una para la API y otra para el frontend) y el
-# navegador en http://localhost:5500. Para frenar todo, cerrá esas dos ventanas.
+# navegador en http://localhost:5044. Para frenar todo, cerrá esas dos ventanas.
 #
 # Usa la instancia SQL Server de la maquina (localhost), que es la que se ve en
 # SQL Server Management Studio. Si en su lugar preferis LocalDB, agregale -LocalDb.
@@ -18,7 +18,7 @@ param(
   [switch]$LocalDb,
   [switch]$ArranqueAutomatico,
   [int]$PuertoApi = 5001,
-  [int]$PuertoFront = 5500
+  [int]$PuertoFront = 5044
 )
 
 $raiz = $PSScriptRoot
@@ -108,9 +108,16 @@ dotnet run --project ChronoSaludApi --no-launch-profile --urls 'http://localhost
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $comandoApi
 Write-Host "  API          -> http://localhost:$PuertoApi" -ForegroundColor Green
 
-# ── 4. Frontend en otra ventana ────────────────────────────────────────────
-$servidor = Join-Path $raiz "chronosalud-front\servir.ps1"
-Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", $servidor, "-Puerto", $PuertoFront
+# ── 4. Frontend MVC en otra ventana ────────────────────────────────────────
+$comandoWeb = @"
+`$host.UI.RawUI.WindowTitle = 'ChronoSalud - Web'
+`$env:ASPNETCORE_ENVIRONMENT = 'Development'
+Set-Location '$raiz'
+Write-Host 'Frontend de ChronoSalud - http://localhost:$PuertoFront' -ForegroundColor Green
+Write-Host ''
+dotnet run --project ChronoSaludWeb --no-launch-profile --urls 'http://localhost:$PuertoFront'
+"@
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $comandoWeb
 Write-Host "  Frontend     -> http://localhost:$PuertoFront" -ForegroundColor Green
 
 # ── 5. Esperar a que la API responda y abrir el navegador ──────────────────
