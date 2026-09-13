@@ -14,11 +14,12 @@ public static class PacienteEndpoints
         grupo.MapGet("/", async (
             IPacienteLogica logica,
             string? nombre,
+            string? dni,
             int? cobertura_id,
             int pagina = 1,
             int limite = 20) =>
         {
-            var (total, pacientes) = await logica.ObtenerTodos(nombre, cobertura_id, pagina, limite);
+            var (total, pacientes) = await logica.ObtenerTodos(nombre, dni, cobertura_id, pagina, limite);
             return Results.Ok(new { total, pagina, pacientes });
         })
         .WithSummary("Listar pacientes")
@@ -65,8 +66,9 @@ public static class PacienteEndpoints
 
             var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
 
-            var (ok, error, prohibido) = await logica.Actualizar(id, dto, idUsuario, callerEsStaff);
+            var (ok, error, prohibido, conflictoDni) = await logica.Actualizar(id, dto, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();
+            if (conflictoDni) return Results.Conflict(new { error });
             if (!ok)
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
