@@ -31,6 +31,9 @@ public class UsuarioLogica : IUsuarioLogica
         if (!rolesValidos.Contains(dto.Rol))
             return (null, "Rol inválido. Valores válidos: paciente, doctor, administrador.");
 
+        if (dto.Rol == "administrador" && await _repo.ExisteAlgunAdministrador())
+            return (null, "Ya existe un administrador en el sistema; no es posible autoasignarse ese rol desde el registro público.");
+
         var usuario = new Usuario
         {
             Nombre     = dto.Nombre,

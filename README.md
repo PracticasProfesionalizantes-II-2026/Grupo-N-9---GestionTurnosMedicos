@@ -64,6 +64,10 @@ dotnet ef database update --project ChronoSaludApi
 
 Si no tenés la herramienta: `dotnet tool install --global dotnet-ef`.
 
+La base arranca vacía. Hoy no hay ninguna pantalla de registro en el frontend: creá el primer usuario administrador llamando a `POST /usuarios/registro` directo contra la API (por ejemplo desde `/scalar` o con `curl`), con `Rol: "administrador"` — esto sólo funciona la primera vez, mientras no exista otro administrador o secretario en la base.
+
+Si en algún momento se dan de baja todos los usuarios administradores, no hay forma de crear uno nuevo desde la aplicación (el registro público sólo permite el rol administrador una única vez, la primera). Para recuperar el acceso hay que reactivar o crear un administrador directamente en la base de datos.
+
 ### 2. Levantar la API
 
 ```

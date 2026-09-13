@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -45,8 +46,17 @@ public static class UsuarioEndpoints
         .AllowAnonymous();
 
         // GET /usuarios/{id}
-        grupo.MapGet("/{id:int}", async (int id, IUsuarioLogica logica) =>
+        grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, IUsuarioLogica logica) =>
         {
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var esPropio = idUsuario == id;
+            var esStaff  = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            if (!esPropio && !esStaff)
+                return Results.Forbid();
+
             var usuario = await logica.ObtenerPorId(id);
             return usuario == null
                 ? Results.NotFound(new { error = "Usuario no encontrado." })
@@ -56,8 +66,17 @@ public static class UsuarioEndpoints
         .RequireAuthorization();
 
         // PUT /usuarios/{id}
-        grupo.MapPut("/{id:int}", async (int id, UsuarioUpdateDto dto, IUsuarioLogica logica) =>
+        grupo.MapPut("/{id:int}", async (int id, UsuarioUpdateDto dto, HttpContext ctx, IUsuarioLogica logica) =>
         {
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var esPropio = idUsuario == id;
+            var esStaff  = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            if (!esPropio && !esStaff)
+                return Results.Forbid();
+
             var (ok, error) = await logica.Actualizar(id, dto);
             if (!ok)
                 return error!.Contains("no encontrado")

@@ -58,17 +58,26 @@ public static class TurnoEndpoints
         .WithSummary("Obtener detalle de turno");
 
         // POST /turnos
-        grupo.MapPost("/", async (TurnoCreateDto dto, ITurnoLogica logica) =>
+        grupo.MapPost("/", async (TurnoCreateDto dto, HttpContext ctx, ITurnoLogica logica) =>
         {
             if (dto.IdPaciente == 0 || dto.IdDoctor == 0 ||
                 string.IsNullOrEmpty(dto.HoraInicio) || string.IsNullOrEmpty(dto.HoraFin))
                 return Results.BadRequest(new { error = "Datos inválidos o incompletos." });
 
-            var (id, error) = await logica.Crear(dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+
+            var (id, error, sinPerfilPaciente) = await logica.Crear(dto, idUsuario, callerEsPaciente);
             if (error != null)
+            {
+                if (sinPerfilPaciente) return Results.NotFound(new { error });
                 return error.Contains("Conflicto")
                     ? Results.Conflict(new { error })
                     : Results.BadRequest(new { error });
+            }
 
             return Results.Created($"/turnos/{id}", new
             {
@@ -106,6 +115,7 @@ public static class TurnoEndpoints
 
             return Results.NoContent();
         })
-        .WithSummary("Cancelar turno");
+        .WithSummary("Cancelar turno")
+        .RequireAuthorization(p => p.RequireRole("administrador", "secretario", "doctor"));
     }
 }
