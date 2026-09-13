@@ -8,17 +8,29 @@ public class RecetaLogica : IRecetaLogica
 {
     private readonly IRecetaRepository    _repo;
     private readonly IMedicamentoRepository _medRepo;
+    private readonly IPacienteRepository _pacienteRepo;
 
-    public RecetaLogica(IRecetaRepository repo, IMedicamentoRepository medRepo)
+    public RecetaLogica(IRecetaRepository repo, IMedicamentoRepository medRepo, IPacienteRepository pacienteRepo)
     {
         _repo    = repo;
         _medRepo = medRepo;
+        _pacienteRepo = pacienteRepo;
     }
 
-    public async Task<IEnumerable<RecetaDto>> ObtenerDePaciente(int pacienteId)
+    public async Task<(IEnumerable<RecetaDto> recetas, string? error, bool prohibido)> ObtenerDePaciente(
+        int pacienteId, int idUsuarioCaller, bool callerEsStaff)
     {
+        if (!callerEsStaff)
+        {
+            var propio = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (Enumerable.Empty<RecetaDto>(), "Tu usuario no tiene un perfil de paciente asociado.", false);
+            if (propio.Id != pacienteId)
+                return (Enumerable.Empty<RecetaDto>(), null, true);
+        }
+
         var recetas = await _repo.ObtenerDePaciente(pacienteId);
-        return recetas.Select(MapearDto);
+        return (recetas.Select(MapearDto), null, false);
     }
 
     public async Task<RecetaDto?> ObtenerPorId(int id)

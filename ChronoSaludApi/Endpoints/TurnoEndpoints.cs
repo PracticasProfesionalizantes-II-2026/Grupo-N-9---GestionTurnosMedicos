@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -11,6 +12,7 @@ public static class TurnoEndpoints
 
         // GET /turnos
         grupo.MapGet("/", async (
+            HttpContext ctx,
             ITurnoLogica logica,
             int? paciente_id,
             int? doctor_id,
@@ -20,19 +22,37 @@ public static class TurnoEndpoints
             int pagina = 1,
             int limite = 20) =>
         {
-            var (total, turnos) = await logica.ObtenerTodos(
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+            var callerEsDoctor   = ctx.User.IsInRole("doctor");
+
+            var (total, turnos, error) = await logica.ObtenerTodos(
                 paciente_id, doctor_id, estado,
-                fecha_desde, fecha_hasta, pagina, limite);
+                fecha_desde, fecha_hasta, pagina, limite,
+                idUsuario, callerEsPaciente, callerEsDoctor);
+
+            if (error != null) return Results.NotFound(new { error });
             return Results.Ok(new { total, turnos });
         })
         .WithSummary("Listar turnos con filtros");
 
         // GET /turnos/{id}
-        grupo.MapGet("/{id:int}", async (int id, ITurnoLogica logica) =>
+        grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, ITurnoLogica logica) =>
         {
-            var turno = await logica.ObtenerPorId(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+            var callerEsDoctor   = ctx.User.IsInRole("doctor");
+            var callerEsStaff    = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (turno, error) = await logica.ObtenerPorId(id, idUsuario, callerEsPaciente, callerEsDoctor, callerEsStaff);
             return turno == null
-                ? Results.NotFound(new { error = "Turno no encontrado." })
+                ? Results.NotFound(new { error })
                 : Results.Ok(turno);
         })
         .WithSummary("Obtener detalle de turno");

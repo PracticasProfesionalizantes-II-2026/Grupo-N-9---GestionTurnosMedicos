@@ -25,8 +25,23 @@ public class PacienteLogica : IPacienteLogica
         return (total, resultado);
     }
 
-    public async Task<PacienteDto?> ObtenerPorId(int id)
-        => Mapear(await _repo.ObtenerPorId(id));
+    public async Task<(PacienteDto? paciente, string? error, bool prohibido)> ObtenerPorId(
+        int id, int idUsuarioCaller, bool callerEsStaff)
+    {
+        if (!callerEsStaff)
+        {
+            var propio = await _repo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (null, "Tu usuario no tiene un perfil de paciente asociado.", false);
+            if (propio.Id != id)
+                return (null, null, true);
+        }
+
+        var paciente = Mapear(await _repo.ObtenerPorId(id));
+        return paciente == null
+            ? (null, "Paciente no encontrado.", false)
+            : (paciente, null, false);
+    }
 
     public async Task<PacienteDto?> ObtenerPorIdUsuario(int idUsuario)
         => Mapear(await _repo.ObtenerPorIdUsuario(idUsuario));
@@ -47,10 +62,20 @@ public class PacienteLogica : IPacienteLogica
         );
     }
 
-    public async Task<(bool ok, string? error)> Actualizar(int id, PacienteUpdateDto dto)
+    public async Task<(bool ok, string? error, bool prohibido)> Actualizar(
+        int id, PacienteUpdateDto dto, int idUsuarioCaller, bool callerEsStaff)
     {
+        if (!callerEsStaff)
+        {
+            var propio = await _repo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (false, "Tu usuario no tiene un perfil de paciente asociado.", false);
+            if (propio.Id != id)
+                return (false, null, true);
+        }
+
         var paciente = await _repo.ObtenerPorId(id);
-        if (paciente == null) return (false, "Paciente no encontrado.");
+        if (paciente == null) return (false, "Paciente no encontrado.", false);
 
         if (dto.FechaNacimiento.HasValue) paciente.FechaNacimiento = dto.FechaNacimiento;
         if (!string.IsNullOrEmpty(dto.Sexo))           paciente.Sexo          = dto.Sexo;
@@ -59,6 +84,6 @@ public class PacienteLogica : IPacienteLogica
         if (!string.IsNullOrEmpty(dto.Condiciones))    paciente.Condiciones   = dto.Condiciones;
 
         await _repo.Actualizar(paciente);
-        return (true, null);
+        return (true, null, false);
     }
 }

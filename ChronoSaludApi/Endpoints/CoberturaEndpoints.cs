@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -23,20 +24,40 @@ public static class CoberturaEndpoints
             .RequireAuthorization();
 
         // GET /pacientes/{id}/coberturas
-        grupo.MapGet("/", async (int id, ICoberturaLogica logica) =>
+        grupo.MapGet("/", async (int id, HttpContext ctx, ICoberturaLogica logica) =>
         {
-            var coberturas = await logica.ObtenerDePaciente(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (coberturas, error, prohibido) = await logica.ObtenerDePaciente(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (error != null) return Results.NotFound(new { error });
+
             return Results.Ok(new { coberturas });
         })
         .WithSummary("Listar coberturas de un paciente");
 
         // POST /pacientes/{id}/coberturas
-        grupo.MapPost("/", async (int id, AsociarCoberturaDto dto, ICoberturaLogica logica) =>
+        grupo.MapPost("/", async (int id, AsociarCoberturaDto dto, HttpContext ctx, ICoberturaLogica logica) =>
         {
             if (dto.IdCobertura == 0 || string.IsNullOrEmpty(dto.IdAfiliado))
                 return Results.BadRequest(new { error = "id_cobertura e id_afiliado son requeridos." });
 
-            var (ok, error) = await logica.AsociarAPaciente(id, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            // Cambiar la cobertura de un paciente es administrativo, no clínico:
+            // acá el doctor no cuenta como staff, sólo administrador/secretario.
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (ok, error, sinPerfil, prohibido) = await logica.AsociarAPaciente(id, dto, idUsuario, callerEsPaciente, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (sinPerfil) return Results.NotFound(new { error });
             if (!ok)
             {
                 if (error!.Contains("ya está asociada")) return Results.Conflict(new { error });
@@ -48,12 +69,21 @@ public static class CoberturaEndpoints
         .WithSummary("Asociar cobertura a paciente");
 
         // PUT /pacientes/{id}/coberturas
-        grupo.MapPut("/", async (int id, AsociarCoberturaDto dto, ICoberturaLogica logica) =>
+        grupo.MapPut("/", async (int id, AsociarCoberturaDto dto, HttpContext ctx, ICoberturaLogica logica) =>
         {
             if (dto.IdCobertura == 0 || string.IsNullOrEmpty(dto.IdAfiliado))
                 return Results.BadRequest(new { error = "id_cobertura e id_afiliado son requeridos." });
 
-            var (ok, error) = await logica.ActualizarDePaciente(id, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (ok, error, sinPerfil, prohibido) = await logica.ActualizarDePaciente(id, dto, idUsuario, callerEsPaciente, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (sinPerfil) return Results.NotFound(new { error });
             if (!ok)
                 return error!.Contains("no encontrada")
                     ? Results.NotFound(new { error })
@@ -64,9 +94,18 @@ public static class CoberturaEndpoints
         .WithSummary("Modificar cobertura de paciente");
 
         // DELETE /pacientes/{id}/coberturas/{cobertura_id}
-        grupo.MapDelete("/{cobertura_id:int}", async (int id, int cobertura_id, ICoberturaLogica logica) =>
+        grupo.MapDelete("/{cobertura_id:int}", async (int id, int cobertura_id, HttpContext ctx, ICoberturaLogica logica) =>
         {
-            var (ok, error) = await logica.DesvincularDePaciente(id, cobertura_id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsPaciente = ctx.User.IsInRole("paciente");
+            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (ok, error, sinPerfil, prohibido) = await logica.DesvincularDePaciente(id, cobertura_id, idUsuario, callerEsPaciente, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (sinPerfil) return Results.NotFound(new { error });
             if (!ok)
                 return error!.Contains("no encontrada")
                     ? Results.NotFound(new { error })

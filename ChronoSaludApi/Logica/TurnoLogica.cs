@@ -7,13 +7,38 @@ namespace ChronoSaludApi.Logica;
 public class TurnoLogica : ITurnoLogica
 {
     private readonly ITurnoRepository _repo;
+    private readonly IPacienteRepository _pacienteRepo;
+    private readonly IDoctorRepository _doctorRepo;
 
-    public TurnoLogica(ITurnoRepository repo) => _repo = repo;
-
-    public async Task<(int total, IEnumerable<TurnoListaDto> turnos)> ObtenerTodos(
-        int? pacienteId, int? doctorId, string? estado,
-        DateTime? desde, DateTime? hasta, int pagina, int limite)
+    public TurnoLogica(ITurnoRepository repo, IPacienteRepository pacienteRepo, IDoctorRepository doctorRepo)
     {
+        _repo = repo;
+        _pacienteRepo = pacienteRepo;
+        _doctorRepo = doctorRepo;
+    }
+
+    public async Task<(int total, IEnumerable<TurnoListaDto> turnos, string? error)> ObtenerTodos(
+        int? pacienteId, int? doctorId, string? estado,
+        DateTime? desde, DateTime? hasta, int pagina, int limite,
+        int idUsuarioCaller, bool callerEsPaciente, bool callerEsDoctor)
+    {
+        // El paciente/doctor autenticado nunca elige de quién ve la agenda:
+        // se ignora lo que venga en la query y se fuerza siempre lo propio.
+        if (callerEsPaciente)
+        {
+            var paciente = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (paciente == null)
+                return (0, Enumerable.Empty<TurnoListaDto>(), "Tu usuario no tiene un perfil de paciente asociado.");
+            pacienteId = paciente.Id;
+        }
+        else if (callerEsDoctor)
+        {
+            var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (doctor == null)
+                return (0, Enumerable.Empty<TurnoListaDto>(), "Tu usuario no tiene un perfil de doctor asociado.");
+            doctorId = doctor.Id;
+        }
+
         var todos = await _repo.ObtenerTodos(pacienteId, doctorId, estado, desde, hasta);
         var total = todos.Count();
         var resultado = todos
@@ -28,15 +53,40 @@ public class TurnoLogica : ITurnoLogica
                 t.Doctor?.Especialidad ?? string.Empty,
                 $"{t.Paciente?.Usuario?.Nombre} {t.Paciente?.Usuario?.Apellido}"
             ));
-        return (total, resultado);
+        return (total, resultado, null);
     }
 
-    public async Task<TurnoDto?> ObtenerPorId(int id)
+    public async Task<(TurnoDto? turno, string? error)> ObtenerPorId(
+        int id, int idUsuarioCaller, bool callerEsPaciente, bool callerEsDoctor, bool callerEsStaff)
     {
         var t = await _repo.ObtenerPorId(id);
-        if (t == null) return null;
+        if (t == null) return (null, "Turno no encontrado.");
 
-        return new TurnoDto(
+        if (!callerEsStaff)
+        {
+            if (callerEsPaciente)
+            {
+                var paciente = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+                if (paciente == null)
+                    return (null, "Tu usuario no tiene un perfil de paciente asociado.");
+                if (paciente.Id != t.IdPaciente)
+                    return (null, "Turno no encontrado.");
+            }
+            else if (callerEsDoctor)
+            {
+                var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+                if (doctor == null)
+                    return (null, "Tu usuario no tiene un perfil de doctor asociado.");
+                if (doctor.Id != t.IdDoctor)
+                    return (null, "Turno no encontrado.");
+            }
+            else
+            {
+                return (null, "Turno no encontrado.");
+            }
+        }
+
+        return (new TurnoDto(
             t.Id,
             t.FechaInicio,
             t.HoraInicio.ToString(@"hh\:mm"),
@@ -45,7 +95,7 @@ public class TurnoLogica : ITurnoLogica
             t.IdPaciente,
             t.IdDoctor,
             t.Observaciones
-        );
+        ), null);
     }
 
     public async Task<(int? id, string? error)> Crear(TurnoCreateDto dto)

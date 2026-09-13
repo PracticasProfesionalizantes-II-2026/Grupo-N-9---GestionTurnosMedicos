@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -10,12 +11,22 @@ public static class EstudioEndpoints
         // GET /pacientes/{id}/estudios
         app.MapGet("/pacientes/{id:int}/estudios", async (
             int id,
+            HttpContext ctx,
             IEstudioLogica logica,
             string? tipo,
             string? estado,
             DateTime? fecha_desde) =>
         {
-            var estudios = await logica.ObtenerDePaciente(id, tipo, estado, fecha_desde);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (estudios, error, prohibido) = await logica.ObtenerDePaciente(id, tipo, estado, fecha_desde, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (error != null) return Results.NotFound(new { error });
+
             return Results.Ok(new { estudios });
         })
         .WithTags("Estudios")

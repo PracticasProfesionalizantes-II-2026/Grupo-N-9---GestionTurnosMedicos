@@ -39,19 +39,34 @@ public static class PacienteEndpoints
         .WithSummary("Obtener el perfil de paciente del usuario autenticado");
 
         // GET /pacientes/{id}
-        grupo.MapGet("/{id:int}", async (int id, IPacienteLogica logica) =>
+        grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, IPacienteLogica logica) =>
         {
-            var paciente = await logica.ObtenerPorId(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (paciente, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+
             return paciente == null
-                ? Results.NotFound(new { error = "Paciente no encontrado." })
+                ? Results.NotFound(new { error })
                 : Results.Ok(paciente);
         })
         .WithSummary("Obtener perfil de paciente");
 
         // PUT /pacientes/{id}
-        grupo.MapPut("/{id:int}", async (int id, PacienteUpdateDto dto, IPacienteLogica logica) =>
+        grupo.MapPut("/{id:int}", async (int id, PacienteUpdateDto dto, HttpContext ctx, IPacienteLogica logica) =>
         {
-            var (ok, error) = await logica.Actualizar(id, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (ok, error, prohibido) = await logica.Actualizar(id, dto, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
             if (!ok)
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })

@@ -1,0 +1,575 @@
+### ChronoSaludApi — Pruebas manuales Fase 1b (seguridad: dueño de recurso)
+###
+### Cubre 4.10 del plan: Pacientes, Historiales clínicos, Recetas, Estudios,
+### Turnos (listado y detalle), Notificaciones y Coberturas.
+###
+### Requisitos:
+###   1. La API corriendo en http://localhost:5001 (perfil "http" de launchSettings).
+###   2. Extensión "REST Client" (humao.rest-client) en VS Code para poder
+###      ejecutar cada bloque con "Send Request" y encadenar variables entre
+###      requests ({{nombre.response.body.$.campo}}).
+###   3. Correr antes .\seed-datos.ps1 (contraseña por defecto: Chrono2026!).
+###      Este archivo asume esas cuentas: administrador, doctores
+###      laura.gomez / martin.rivas, pacientes ana.duarte / bruno.salas.
+###
+### Convención de cada bloque de prueba:
+###   AHORA (Fase 1b)  -> lo que tiene que devolver con este cambio aplicado.
+###   ANTES (main)      -> lo que devolvía antes de este PR (el agujero que se cierra).
+###
+### Los pasos 0.x son setup (login + resolver ids). Las secciones 1 a 7 son
+### las pruebas en sí, en el mismo orden que la Sección 8 del plan.
+
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+
+
+### ============================================================
+### 0. SETUP — login y resolución de ids
+### ============================================================
+
+### 0.1 Login administrador
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenAdmin = {{loginAdmin.response.body.$.token}}
+
+
+### 0.2 Login Doctor Gómez (Clínica) — va a hacer de "doctor dueño" en las pruebas
+# @name loginGomez
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "laura.gomez@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenGomez = {{loginGomez.response.body.$.token}}
+
+
+### 0.3 Login Doctor Rivas (Cardiología) — hace de "doctor ajeno" en las pruebas
+# @name loginRivas
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "martin.rivas@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenRivas = {{loginRivas.response.body.$.token}}
+
+
+### 0.4 Login Paciente Duarte — va a hacer de "paciente dueño" en las pruebas
+# @name loginDuarte
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "ana.duarte@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenDuarte = {{loginDuarte.response.body.$.token}}
+
+
+### 0.5 Login Paciente Salas — hace de "paciente ajeno" en las pruebas
+# @name loginSalas
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "bruno.salas@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenSalas = {{loginSalas.response.body.$.token}}
+
+
+### 0.6 Id de paciente de Duarte (Paciente.Id, no el de usuario)
+# @name meDuarte
+GET {{baseUrl}}/pacientes/me
+Authorization: Bearer {{tokenDuarte}}
+
+###
+
+@idPacienteDuarte = {{meDuarte.response.body.$.idPaciente}}
+
+
+### 0.7 Id de paciente de Salas
+# @name meSalas
+GET {{baseUrl}}/pacientes/me
+Authorization: Bearer {{tokenSalas}}
+
+###
+
+@idPacienteSalas = {{meSalas.response.body.$.idPaciente}}
+
+
+### 0.8 Id de doctor de Gómez
+# @name meGomez
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenGomez}}
+
+###
+
+@idDoctorGomez = {{meGomez.response.body.$.idDoctor}}
+
+
+### 0.9 Id de doctor de Rivas
+# @name meRivas
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenRivas}}
+
+###
+
+@idDoctorRivas = {{meRivas.response.body.$.idDoctor}}
+
+
+### 0.10 Listar turnos (como admin, ve todo) para elegir dos turnos de prueba.
+### seed-datos.ps1 crea, entre otros: Gómez+Duarte (día 0) y Rivas+Ponce (día 0).
+### Mirá la respuesta y completá a mano las dos variables de abajo:
+###   - @idTurnoPropio  -> el turno de Gómez con Duarte (paciente=Duarte, doctor=Gómez)
+###   - @idTurnoAjeno   -> un turno donde NO participan ni Duarte ni Gómez (ej. Rivas+Ponce)
+GET {{baseUrl}}/turnos?limite=200
+Authorization: Bearer {{tokenAdmin}}
+
+### Completar a mano con los id_turno reales de la respuesta anterior:
+@idTurnoPropio = 0
+@idTurnoAjeno = 0
+
+
+### 0.11 [Doctor Gómez] Crear una entrada de historial para Duarte
+### (setup para probar el PUT restringido al doctor autor, Sección 4.10 último punto)
+POST {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "fecha": "2026-09-13",
+  "descripcion": "Consulta de control, prueba Fase 1b",
+  "diagnostico": "Sano",
+  "idTurno": null
+}
+
+
+### 0.12 Releer el historial de Duarte para sacar el idHistorial recién creado
+# (como Gómez o como admin, da igual acá)
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos
+Authorization: Bearer {{tokenGomez}}
+
+### Completar a mano con el idHistorial de la última entrada devuelta arriba:
+@idHistorialDeGomez = 0
+
+
+### 0.13 (Sólo si vas a correr la Sección 7) — catálogo de coberturas.
+### No existe ningún endpoint para dar de alta una cobertura nueva (GET
+### /coberturas es de sólo lectura, ver CoberturaEndpoints.cs), así que la
+### Sección 7 no puede crear su propio dato de prueba por HTTP. Paso único,
+### manual, antes de correr la Sección 7 — insertarlo por SQL (SSMS, sqlcmd o
+### Invoke-Sqlcmd), es idempotente, no duplica si ya corriste esto antes:
+###
+###   IF NOT EXISTS (SELECT 1 FROM Coberturas WHERE Nombre = 'OSDE Prueba Fase1b')
+###     INSERT INTO Coberturas (Nombre, [Plan]) VALUES ('OSDE Prueba Fase1b', 'Plan 210');
+###
+### Si no vas a correr la Sección 7, saltá este paso y el 7.x de más abajo.
+GET {{baseUrl}}/coberturas
+Authorization: Bearer {{tokenAdmin}}
+
+### Completar a mano con el idCobertura de la fila "OSDE Prueba Fase1b" en la
+### respuesta anterior (o el que corresponda si ya tenías otra cargada):
+@idCobertura = 0
+
+
+### ============================================================
+### 1. Pacientes — GET /pacientes/{id} y PUT /pacientes/{id}
+### ============================================================
+
+### 1.1 [Duarte] GET su propio perfil
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios, siempre funcionó).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 1.2 [Salas] GET el perfil de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 con los datos clínicos completos de Duarte (fecha de nacimiento,
+### sexo, grupo sanguíneo, alergias, condiciones) — el agujero que cierra 4.10.
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenSalas}}
+
+
+### 1.3 [Gómez, doctor] GET el perfil de Duarte
+### AHORA: 200 (doctor = staff, sigue viendo cualquier paciente). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenGomez}}
+
+
+### 1.4 [Admin] GET el perfil de Duarte
+### AHORA: 200. ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 1.5 [Salas] PUT sobre el perfil de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — cualquier paciente autenticado podía pisar los datos clínicos
+### de cualquier otro paciente.
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenSalas}}
+Content-Type: application/json
+
+{
+  "sexo": "F",
+  "grupoSanguineo": "O+"
+}
+
+
+### 1.6 [Duarte] PUT sobre su propio perfil
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "sexo": "F",
+  "grupoSanguineo": "O+"
+}
+
+
+### ============================================================
+### 2. Historiales clínicos
+### ============================================================
+
+### 2.1 [Duarte] GET su propio historial
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.2 [Salas] GET el historial de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 con los diagnósticos completos de Duarte — cualquier autenticado
+### podía leer el historial clínico de cualquier paciente.
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos
+Authorization: Bearer {{tokenSalas}}
+
+
+### 2.3 [Rivas, doctor ajeno al caso] GET el historial de Duarte
+### AHORA: 200 (doctor = staff, ve cualquier paciente). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos
+Authorization: Bearer {{tokenRivas}}
+
+
+### 2.4 [Rivas] PUT sobre la entrada que escribió Gómez (doctor NO autor)
+### AHORA: 404 "Registro de historial clinico no encontrado." — se trata igual
+### que una entrada de otro paciente, no se confirma que exista de otro doctor.
+### ANTES: 200 — cualquier cuenta con rol doctor podía editar entradas ajenas.
+### Nota: RequireAuthorization sigue exigiendo sólo rol "doctor" (no se amplió
+### a administrador/secretario en esta fase).
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos/{{idHistorialDeGomez}}
+Authorization: Bearer {{tokenRivas}}
+Content-Type: application/json
+
+{
+  "fecha": "2026-09-13",
+  "descripcion": "Intento de edición ajena",
+  "diagnostico": "No debería aplicarse",
+  "idTurno": null
+}
+
+
+### 2.5 [Gómez] PUT sobre su propia entrada (doctor autor)
+### AHORA: 200 (sigue pudiendo editar lo suyo). ANTES: 200 (sin cambios).
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}/historiales-clinicos/{{idHistorialDeGomez}}
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "fecha": "2026-09-13",
+  "descripcion": "Consulta de control, editada por el autor",
+  "diagnostico": "Sano",
+  "idTurno": null
+}
+
+
+### ============================================================
+### 3. Recetas
+### ============================================================
+
+### 3.1 [Duarte] GET sus propias recetas
+### AHORA: 200 (dueño, aunque la lista venga vacía). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/recetas
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.2 [Salas] GET las recetas de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — exponía qué medicamentos tiene recetados otro paciente.
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/recetas
+Authorization: Bearer {{tokenSalas}}
+
+
+### 3.3 [Gómez, doctor] GET las recetas de Duarte
+### AHORA: 200 (staff). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/recetas
+Authorization: Bearer {{tokenGomez}}
+
+
+### ============================================================
+### 4. Estudios
+### ============================================================
+
+### 4.1 [Duarte] GET sus propios estudios
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/estudios
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 4.2 [Salas] GET los estudios de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — exponía tipo/resultado de estudios médicos ajenos.
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/estudios
+Authorization: Bearer {{tokenSalas}}
+
+
+### 4.3 [Gómez, doctor] GET los estudios de Duarte
+### AHORA: 200 (staff). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/estudios
+Authorization: Bearer {{tokenGomez}}
+
+
+### ============================================================
+### 5. Turnos — listado y detalle
+### ============================================================
+
+### 5.1 [Duarte] GET /turnos sin filtros en la query
+### AHORA: 200, pero la API fuerza paciente_id al propio de Duarte por más que
+### no se mande ningún filtro — sólo aparecen turnos de Duarte.
+### ANTES: 200 con la agenda COMPLETA de todos los pacientes y doctores del
+### sistema (el paciente_id era opcional y sin mandarlo no filtraba nada).
+GET {{baseUrl}}/turnos
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 5.2 [Gómez, doctor] GET /turnos sin filtros en la query
+### AHORA: 200, sólo turnos donde Gómez es el doctor (se fuerza doctor_id al propio).
+### ANTES: 200 con la agenda completa de todos.
+GET {{baseUrl}}/turnos
+Authorization: Bearer {{tokenGomez}}
+
+
+### 5.3 [Admin] GET /turnos sin filtros
+### AHORA: 200, sigue viendo todo sin restricción. ANTES: 200 (sin cambios).
+GET {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 5.4 [Duarte] GET detalle de su propio turno (idTurnoPropio, con Gómez)
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/turnos/{{idTurnoPropio}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 5.5 [Duarte] GET detalle de un turno ajeno (idTurnoAjeno, sin Duarte)
+### AHORA: 404 "Turno no encontrado" — se responde igual que si no existiera,
+### para no confirmarle a quien pide que el turno existe (mismo criterio que
+### ya usaba el frontend).
+### ANTES: 200 con el detalle completo del turno de otro paciente con otro doctor.
+GET {{baseUrl}}/turnos/{{idTurnoAjeno}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 5.6 [Gómez] GET detalle de un turno donde no participa (idTurnoAjeno)
+### AHORA: 404 "Turno no encontrado" (mismo criterio que 5.5, del lado del doctor).
+### ANTES: 200 con el detalle completo.
+GET {{baseUrl}}/turnos/{{idTurnoAjeno}}
+Authorization: Bearer {{tokenGomez}}
+
+
+### 5.7 [Admin] GET detalle de cualquier turno (idTurnoAjeno)
+### AHORA: 200 (staff, sin restricción). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/turnos/{{idTurnoAjeno}}
+Authorization: Bearer {{tokenAdmin}}
+
+
+### ============================================================
+### 6. Notificaciones
+### ============================================================
+### Nota: acá "id" es directamente el id de Usuario (no de Paciente/Doctor),
+### así que no hace falta resolver ningún perfil. Usamos los ids de usuario
+### tal como vienen en la respuesta de los logins de arriba.
+
+@idUsuarioDuarte = {{loginDuarte.response.body.$.idUsuario}}
+
+### 6.1 [Duarte] GET sus propias notificaciones
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 6.2 [Salas] GET las notificaciones de Duarte (usuario ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — cualquier autenticado podía leer la bandeja de notificaciones
+### de cualquier otro usuario.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenSalas}}
+
+
+### 6.3 [Gómez, doctor] GET las notificaciones de Duarte
+### AHORA: 403 Forbidden — acá "staff" es sólo administrador/secretario, el
+### doctor NO tiene pase libre (a diferencia de Pacientes/Historiales/Recetas/Estudios).
+### ANTES: 200.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenGomez}}
+
+
+### 6.4 [Admin] GET las notificaciones de Duarte
+### AHORA: 200 (staff). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenAdmin}}
+
+
+### ============================================================
+### 7. Coberturas — requiere @idCobertura real (ver 0.13)
+### ============================================================
+
+### 7.1 [Duarte] GET sus propias coberturas
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 7.2 [Salas] GET las coberturas de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — exponía con qué obra social/plan está afiliado otro paciente.
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenSalas}}
+
+
+### 7.3 [Gómez, doctor] GET las coberturas de Duarte
+### AHORA: 200 — en el GET, doctor sigue contando como staff.
+### ANTES: 200 (sin cambios).
+GET {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenGomez}}
+
+
+### 7.4 [Gómez, doctor] POST asociar cobertura a Duarte
+### AHORA: 403 Forbidden — a diferencia del GET, acá "staff" es sólo
+### administrador/secretario: cambiar la cobertura médica de un paciente se
+### trató como administrativo, no clínico, y el doctor quedó afuera.
+### ANTES: 201 Created — cualquier doctor podía asociar coberturas.
+POST {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idCobertura": {{idCobertura}},
+  "idAfiliado": "AF-TEST-1B",
+  "plan": "Plan Prueba"
+}
+
+
+### 7.5 [Salas] POST asociar cobertura a Duarte (paciente ajeno)
+### AHORA: 403 Forbidden. ANTES: 201 Created (o 409 si ya estaba asociada) —
+### cualquier paciente autenticado podía asociarle una cobertura a cualquier otro.
+POST {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenSalas}}
+Content-Type: application/json
+
+{
+  "idCobertura": {{idCobertura}},
+  "idAfiliado": "AF-TEST-1B",
+  "plan": "Plan Prueba"
+}
+
+
+### 7.6 [Admin] POST asociar cobertura a Duarte
+### AHORA: 201 Created (o 409 si ya estaba asociada por un intento anterior).
+### ANTES: 201/409 (sin cambios, admin siempre pudo).
+POST {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idCobertura": {{idCobertura}},
+  "idAfiliado": "AF-TEST-1B",
+  "plan": "Plan Prueba"
+}
+
+
+### 7.7 [Gómez, doctor] PUT sobre la cobertura de Duarte
+### AHORA: 403 Forbidden (mismo criterio que 7.4). ANTES: 200.
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idCobertura": {{idCobertura}},
+  "idAfiliado": "AF-TEST-1B-MOD",
+  "plan": "Plan Prueba Modificado"
+}
+
+
+### 7.8 [Duarte] PUT sobre su propia cobertura
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+PUT {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "idCobertura": {{idCobertura}},
+  "idAfiliado": "AF-TEST-1B-MOD",
+  "plan": "Plan Prueba Modificado"
+}
+
+
+### 7.9 [Gómez, doctor] DELETE la cobertura de Duarte
+### AHORA: 403 Forbidden (mismo criterio que 7.4/7.7). ANTES: 204 No Content.
+DELETE {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas/{{idCobertura}}
+Authorization: Bearer {{tokenGomez}}
+
+
+### 7.10 [Admin] DELETE la cobertura de Duarte (limpieza + verificación final)
+### AHORA: 204 No Content (sin cambios). ANTES: 204 (sin cambios).
+### Esto borra la ASOCIACIÓN paciente-cobertura, no la fila del catálogo
+### "OSDE Prueba Fase1b" creada en 0.13 (no hay endpoint para eso tampoco).
+DELETE {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas/{{idCobertura}}
+Authorization: Bearer {{tokenAdmin}}
+
+
+### Limpieza opcional del catálogo (manual, por SQL) — si querés sacar la
+### cobertura de prueba de 0.13 en vez de dejarla para la próxima corrida:
+###
+###   DELETE FROM PacienteCoberturas WHERE IdCobertura IN
+###     (SELECT Id FROM Coberturas WHERE Nombre = 'OSDE Prueba Fase1b');
+###   DELETE FROM Coberturas WHERE Nombre = 'OSDE Prueba Fase1b';
+
+
+### ============================================================
+### 8. Caso borde NO cubierto por este archivo: "sin perfil de paciente/doctor"
+### ============================================================
+### La Sección 1.8 del plan define que si el caller tiene rol paciente/doctor
+### pero no tiene fila propia en Paciente/Doctor, la API responde 404 con
+### "Tu usuario no tiene un perfil de <paciente|doctor> asociado." en vez del
+### 403/404 genérico. Hoy no hay forma de llegar a ese estado por la API en
+### esta fase (el registro público siempre crea la fila de Paciente, y el
+### campo Rol de PUT /usuarios/{id} es Fase 2, no está implementado todavía).
+### Para probarlo manualmente haría falta un usuario con Rol='paciente' sin
+### fila en Pacientes, insertado a mano por SQL — no se automatiza acá.

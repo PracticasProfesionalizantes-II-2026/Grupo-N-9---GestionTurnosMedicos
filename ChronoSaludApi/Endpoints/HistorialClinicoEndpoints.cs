@@ -15,15 +15,21 @@ public static class HistorialClinicoEndpoints
         // GET /pacientes/{id}/historiales-clinicos
         grupo.MapGet("/", async (
             int id,
+            HttpContext ctx,
             IHistorialClinicoLogica logica,
             DateTime? fecha_desde,
             DateTime? fecha_hasta) =>
         {
-            var resultado = await logica.ObtenerDePaciente(id, fecha_desde, fecha_hasta);
-            if (resultado == null)
-                return Results.NotFound(new { error = "Paciente no encontrado." });
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
 
-            var (idPaciente, historiales) = resultado.Value;
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (idPaciente, historiales, error, prohibido) = await logica.ObtenerDePaciente(id, fecha_desde, fecha_hasta, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (error != null) return Results.NotFound(new { error });
+
             return Results.Ok(new { id_paciente = idPaciente, historiales });
         })
         .WithSummary("Obtener historial clínico del paciente");
@@ -51,18 +57,26 @@ public static class HistorialClinicoEndpoints
         .RequireAuthorization(p => p.RequireRole("doctor"));
 
         // PUT /pacientes/{id}/historiales-clinicos/{idHistorial}
-        grupo.MapPut("/{idHistorial:int}", async (int id, int idHistorial, HistorialClinicoCreateDto dto, IHistorialClinicoLogica logica) =>
+        grupo.MapPut("/{idHistorial:int}", async (int id, int idHistorial, HistorialClinicoCreateDto dto, HttpContext ctx, IHistorialClinicoLogica logica) =>
         {
             if (string.IsNullOrEmpty(dto.Descripcion) || string.IsNullOrEmpty(dto.Diagnostico))
                 return Results.BadRequest(new { error = "Descripcion y diagnostico son requeridos." });
 
-            // Solo modifica la entrada indicada. Si no existe es 404: un PUT
-            // nunca crea una entrada nueva en la historia clinica.
-            var (ok, error) = await logica.Actualizar(id, idHistorial, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            // Solo modifica la entrada indicada, y solo si el caller es el doctor
+            // autor. Si no existe, es de otro paciente o es de otro doctor, 404:
+            // un PUT nunca crea una entrada nueva en la historia clinica.
+            var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, idHistorial, dto, idUsuario);
             if (!ok)
+            {
+                if (sinPerfilDoctor) return Results.NotFound(new { error });
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
+            }
 
             return Results.Ok(new { mensaje = "Historial modificado correctamente." });
         })

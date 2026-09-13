@@ -22,8 +22,9 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            var (total, turnos) = await logica.ObtenerTodos(
-                null, doctor_id, null, fecha_desde, fecha_hasta, 1, int.MaxValue);
+            var (total, turnos, _) = await logica.ObtenerTodos(
+                null, doctor_id, null, fecha_desde, fecha_hasta, 1, int.MaxValue,
+                idUsuarioCaller: 0, callerEsPaciente: false, callerEsDoctor: false);
 
             var completados = turnos.Count(t => t.Estado == "completado");
             var cancelados  = turnos.Count(t => t.Estado == "cancelado");

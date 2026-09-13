@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -8,9 +9,18 @@ public static class RecetaEndpoints
     public static void MapRecetaEndpoints(this IEndpointRouteBuilder app)
     {
         // GET /pacientes/{id}/recetas
-        app.MapGet("/pacientes/{id:int}/recetas", async (int id, IRecetaLogica logica) =>
+        app.MapGet("/pacientes/{id:int}/recetas", async (int id, HttpContext ctx, IRecetaLogica logica) =>
         {
-            var recetas = await logica.ObtenerDePaciente(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (recetas, error, prohibido) = await logica.ObtenerDePaciente(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (error != null) return Results.NotFound(new { error });
+
             return Results.Ok(new { recetas });
         })
         .WithTags("Recetas")

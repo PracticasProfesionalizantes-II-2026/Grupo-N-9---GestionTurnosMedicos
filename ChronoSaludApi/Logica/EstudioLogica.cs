@@ -7,14 +7,28 @@ namespace ChronoSaludApi.Logica;
 public class EstudioLogica : IEstudioLogica
 {
     private readonly IEstudioRepository _repo;
+    private readonly IPacienteRepository _pacienteRepo;
 
-    public EstudioLogica(IEstudioRepository repo) => _repo = repo;
-
-    public async Task<IEnumerable<EstudioDto>> ObtenerDePaciente(
-        int pacienteId, string? tipo, string? estado, DateTime? desde)
+    public EstudioLogica(IEstudioRepository repo, IPacienteRepository pacienteRepo)
     {
+        _repo = repo;
+        _pacienteRepo = pacienteRepo;
+    }
+
+    public async Task<(IEnumerable<EstudioDto> estudios, string? error, bool prohibido)> ObtenerDePaciente(
+        int pacienteId, string? tipo, string? estado, DateTime? desde, int idUsuarioCaller, bool callerEsStaff)
+    {
+        if (!callerEsStaff)
+        {
+            var propio = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (Enumerable.Empty<EstudioDto>(), "Tu usuario no tiene un perfil de paciente asociado.", false);
+            if (propio.Id != pacienteId)
+                return (Enumerable.Empty<EstudioDto>(), null, true);
+        }
+
         var estudios = await _repo.ObtenerDePaciente(pacienteId, tipo, estado, desde);
-        return estudios.Select(MapearDto);
+        return (estudios.Select(MapearDto), null, false);
     }
 
     public async Task<EstudioDto?> ObtenerPorId(int id)
