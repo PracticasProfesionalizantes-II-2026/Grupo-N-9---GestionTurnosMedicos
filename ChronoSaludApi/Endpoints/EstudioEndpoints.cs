@@ -87,5 +87,19 @@ public static class EstudioEndpoints
             });
         })
         .WithSummary("Descargar resultado de estudio");
+
+        // GET /estudios/{id}/archivo
+        grupo.MapGet("/{id:int}/archivo", async (int id, IEstudioLogica logica) =>
+        {
+            var estudio = await logica.ObtenerPorId(id);
+            if (estudio == null)
+                return Results.NotFound(new { error = "Estudio no encontrado." });
+
+            if (string.IsNullOrEmpty(estudio.ArchivoUrl))
+                return Results.NotFound(new { error = "El estudio aún no tiene resultado disponible." });
+
+            return Results.Redirect(estudio.ArchivoUrl);
+        })
+        .WithSummary("Descargar el archivo real del resultado de estudio");
     }
 }

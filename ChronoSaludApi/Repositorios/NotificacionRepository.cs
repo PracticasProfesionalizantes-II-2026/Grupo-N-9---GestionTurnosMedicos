@@ -21,6 +21,12 @@ public class NotificacionRepository : INotificacionRepository
     public async Task<Notificacion?> ObtenerPorId(int id)
         => await _db.Notificaciones.FindAsync(id);
 
+    public async Task Agregar(Notificacion notificacion)
+    {
+        _db.Notificaciones.Add(notificacion);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task Actualizar(Notificacion notificacion)
     {
         _db.Notificaciones.Update(notificacion);
