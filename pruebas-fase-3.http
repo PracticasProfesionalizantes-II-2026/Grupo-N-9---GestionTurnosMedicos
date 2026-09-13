@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+
+### Login admin
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+@token = {{loginAdmin.response.body.$.token}}
+
+### Ver pacientes y sus ids
+GET {{baseUrl}}/pacientes
+Authorization: Bearer {{token}}
+
+### A - Cargar DNI a Duarte (cambiá el 1 por el id real)
+PUT {{baseUrl}}/pacientes/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "dni": "30111222"
+}
+
+### B - Cargar DNI a Salas
+PUT {{baseUrl}}/pacientes/2
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "dni": "28999888"
+}
+
+### C - Duplicado: mismo DNI de Duarte en Salas -> 409
+PUT {{baseUrl}}/pacientes/2
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "dni": "30111222"
+}
+
+### D - Borrar DNI de Duarte -> 200 y queda null
+PUT {{baseUrl}}/pacientes/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "dni": ""
+}
+
+### D2 - Confirmar que quedó null
+GET {{baseUrl}}/pacientes/1
+Authorization: Bearer {{token}}
+
+### E - Filtro parcial (volvé a cargar el DNI en A antes)
+GET {{baseUrl}}/pacientes?dni=3011
+Authorization: Bearer {{token}}
