@@ -1,0 +1,267 @@
+### ChronoSaludApi — Pruebas manuales Fase 5 (stubs completados)
+###
+### Cubre 4.7 y 4.8 del plan (reportes de pacientes y de disponibilidad con
+### datos reales), 3.5 (ruta nueva para descargar el archivo real de un
+### estudio) y 4.9 (notificaciones insertadas en los flujos de turnos y
+### estudios).
+###
+### Requisitos:
+###   1. La API corriendo en http://localhost:5001 (perfil "http" de launchSettings).
+###   2. Extensión "REST Client" (humao.rest-client) en VS Code para poder
+###      ejecutar cada bloque con "Send Request" y encadenar variables entre
+###      requests ({{nombre.response.body.$.campo}}).
+###   3. Correr antes .\seed-datos.ps1 (contraseña por defecto: Chrono2026!).
+###      Este archivo asume esas cuentas: administrador, doctora
+###      laura.gomez, paciente ana.duarte.
+###
+### Convención de cada bloque de prueba:
+###   AHORA (Fase 5)   -> lo que tiene que devolver con este cambio aplicado.
+###   ANTES (main)      -> lo que devolvía el stub/placeholder antes de este PR.
+###
+### El paso 0.x es setup (login + resolver ids). Las secciones 1 a 3 son las
+### pruebas en sí: 1) Reportes, 2) Descarga de estudio, 3) Notificaciones.
+
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+
+
+### ============================================================
+### 0. SETUP — login y resolución de ids
+### ============================================================
+
+### 0.1 Login administrador
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenAdmin = {{loginAdmin.response.body.$.token}}
+
+
+### 0.2 Login Doctora Gómez (Clínica)
+# @name loginGomez
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "laura.gomez@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenGomez = {{loginGomez.response.body.$.token}}
+
+
+### 0.3 Login Paciente Duarte
+# @name loginDuarte
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "ana.duarte@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenDuarte = {{loginDuarte.response.body.$.token}}
+@idUsuarioDuarte = {{loginDuarte.response.body.$.idUsuario}}
+
+
+### 0.4 Id de paciente de Duarte (Paciente.Id, no el de usuario)
+# @name meDuarte
+GET {{baseUrl}}/pacientes/me
+Authorization: Bearer {{tokenDuarte}}
+
+###
+
+@idPacienteDuarte = {{meDuarte.response.body.$.idPaciente}}
+
+
+### 0.5 Id de doctor de Gómez
+# @name meGomez
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenGomez}}
+
+###
+
+@idDoctorGomez = {{meGomez.response.body.$.idDoctor}}
+
+
+### ============================================================
+### 1. Reportes — 4.7 (/reportes/pacientes) y 4.8 (/reportes/disponibilidad)
+### ============================================================
+
+### 1.1 [Admin] Reporte de pacientes
+### AHORA: 200 con total_pacientes, turnos_en_periodo y
+### pacientes_atendidos_en_periodo calculados de verdad con los repositorios
+### existentes (sin migración: no hay campo de fecha de alta de paciente,
+### por eso no se agrega "pacientes_nuevos_en_periodo").
+### ANTES: 200 con sólo { mensaje, periodo } fijo, sin ningún número real.
+GET {{baseUrl}}/reportes/pacientes?fecha_desde=2020-01-01&fecha_hasta=2030-12-31
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 1.2 [Admin] Reporte de disponibilidad, sin doctor_id (todos los doctores)
+### AHORA: 200 con turnos_ocupados_por_doctor, un array con la ocupación real
+### (turnos no cancelados) de cada doctor activo en el período — una sola
+### consulta de turnos agrupada en memoria, no una consulta por doctor.
+### ANTES: 200 con sólo { mensaje, doctor_id: null, periodo }.
+GET {{baseUrl}}/reportes/disponibilidad?fecha_desde=2020-01-01&fecha_hasta=2030-12-31
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 1.3 [Admin] Reporte de disponibilidad de un doctor puntual (Gómez)
+### AHORA: 200 con turnos_ocupados (número real) para ese doctor en el período.
+### ANTES: 200 con sólo { mensaje, doctor_id, periodo }.
+GET {{baseUrl}}/reportes/disponibilidad?doctor_id={{idDoctorGomez}}&fecha_desde=2020-01-01&fecha_hasta=2030-12-31
+Authorization: Bearer {{tokenAdmin}}
+
+
+### ============================================================
+### 2. Estudios — 3.5 (GET /estudios/{id}/archivo)
+### ============================================================
+
+### 2.1 [Gómez] Solicitar un estudio para Duarte (setup)
+# @name crearEstudio
+POST {{baseUrl}}/estudios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idTurno": null,
+  "tipo": "sangre",
+  "descripcion": "Hemograma completo, prueba Fase 5",
+  "fechaSolicitud": "2026-09-13"
+}
+
+###
+
+@idEstudio = {{crearEstudio.response.body.$.id_estudio}}
+
+
+### 2.2 [Duarte] GET /estudios/{id}/archivo, todavía sin resultado cargado
+### AHORA: 404 "El estudio aún no tiene resultado disponible." (la ruta ya
+### existe y hace la misma validación de negocio que /descargar).
+### ANTES: la ruta no existía -> 404 genérico de routing, sin este mensaje.
+GET {{baseUrl}}/estudios/{{idEstudio}}/archivo
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.3 [Gómez] Cargar el resultado del estudio, con archivo (setup — además
+### dispara la notificación de estudio que se confirma en la Sección 3.8)
+PUT {{baseUrl}}/estudios/{{idEstudio}}/resultados
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "resultado": "Valores dentro de rango normal.",
+  "archivoUrl": "https://storage.chronosalud.demo/estudios/prueba-fase5.pdf",
+  "estado": "validado",
+  "fechaResultado": "2026-09-13"
+}
+
+
+### 2.4 [Duarte] GET /estudios/{id}/archivo, ya con resultado cargado
+### AHORA: 302 Found, redirige a la URL real del archivo (ArchivoUrl).
+### ANTES: 200 con JSON placeholder { mensaje, archivo_url }, nunca servía
+### ni redirigía al archivo real (comentario del propio código: "Placeholder:
+### en producción redirigir a ArchivoUrl o servir el binario").
+GET {{baseUrl}}/estudios/{{idEstudio}}/archivo
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.5 [Duarte] GET /estudios/{id}/archivo con un id inexistente
+### AHORA y ANTES: 404 "Estudio no encontrado." (caso ya cubierto igual que
+### en /descargar, sin cambios de comportamiento).
+GET {{baseUrl}}/estudios/999999/archivo
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 3. Notificaciones — 4.9 (insertadas en los flujos existentes)
+### ============================================================
+
+### 3.1 [Duarte] Bandeja de notificaciones antes de tocar nada en esta sección
+### Sirve de referencia para comparar el total contra los pasos siguientes.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.2 [Duarte] Crear un turno propio con Gómez (fecha lejana para no
+### chocar con los turnos que carga el seed)
+# @name crearTurno
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "2027-01-15",
+  "horaInicio": "07:00",
+  "horaFin": "07:30",
+  "observaciones": "Turno de prueba Fase 5"
+}
+
+###
+
+@idTurnoPrueba = {{crearTurno.response.body.$.id_turno}}
+
+
+### 3.3 [Duarte] Confirmar que se insertó una notificación de turno creado
+### AHORA: aparece una notificación nueva, tipo "turno", con un mensaje de
+### alta ("Se creó tu turno para el 15/01/2027 a las 07:00.").
+### ANTES: la bandeja quedaba vacía siempre — no existía ningún método
+### Agregar/insert en INotificacionRepository ni se llamaba desde TurnoLogica.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.4 [Admin] Cambiar el estado del turno de prueba a "confirmado"
+PUT {{baseUrl}}/turnos/{{idTurnoPrueba}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "estado": "confirmado"
+}
+
+
+### 3.5 [Duarte] Confirmar la notificación de cambio de estado
+### AHORA: nueva notificación tipo "turno" ("El estado de tu turno del
+### 15/01/2027 cambió a "confirmado".").
+### ANTES: ningún insert, la bandeja no reflejaba el cambio de estado.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.6 [Duarte] Cancelar su propio turno de prueba
+DELETE {{baseUrl}}/turnos/{{idTurnoPrueba}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.7 [Duarte] Confirmar la notificación de cancelación
+### AHORA: nueva notificación tipo "turno" ("Tu turno del 15/01/2027 fue
+### cancelado.").
+### ANTES: ningún insert.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.8 [Duarte] Confirmar también la notificación de resultado de estudio
+### (insertada en el paso 2.3 de la Sección 2)
+### AHORA: incluye una notificación tipo "estudio" ("El resultado de tu
+### estudio de sangre ya está disponible.").
+### ANTES: ningún insert — EstudioLogica.CargarResultado nunca creaba
+### ninguna Notificacion.
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones?tipo=estudio
+Authorization: Bearer {{tokenDuarte}}
