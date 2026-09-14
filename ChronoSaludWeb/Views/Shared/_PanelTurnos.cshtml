@@ -1,8 +1,12 @@
 @model PanelTurnosViewModel
 
-<section class="overflow-hidden rounded-card border border-border bg-surface">
-    <header class="border-b border-border px-6 py-4">
+<section class="overflow-hidden rounded-card neu-elevado">
+    <header class="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">@Model.Titulo</h2>
+        @if (Model.VerMas is not null)
+        {
+            <partial name="_VerMas" model="Model.VerMas" />
+        }
     </header>
 
     @if (Model.Turnos.Count == 0)
@@ -31,11 +35,14 @@
                 var secundario = Model.Vista switch
                 {
                     VistaPanel.Paciente      => turno.FechaCorta,
+                    // El panel del doctor muestra los próximos turnos, no solo
+                    // los de hoy: sin la fecha no se sabe de qué día es cada uno.
+                    VistaPanel.Doctor        => turno.FechaCorta,
                     VistaPanel.Administrador => turno.DoctorMostrado,
                     _                        => null
                 };
 
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-6 py-4 last:border-0 hover:bg-canvas"
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-6 py-4 last:border-0 hover:bg-surface"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span class="w-12 shrink-0 text-sm font-medium tabular-nums text-ink">@(turno.Hora ?? "—")</span>
 

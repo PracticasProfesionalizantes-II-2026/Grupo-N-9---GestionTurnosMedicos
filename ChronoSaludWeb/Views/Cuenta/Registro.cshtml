@@ -1,0 +1,81 @@
+@model RegistroViewModel
+@{
+    ViewData["Title"] = "Crear cuenta";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<div class="mx-auto max-w-md">
+    <h1 class="text-center text-2xl font-bold tracking-tight text-ink">Crear cuenta</h1>
+    <p class="mt-2 text-center text-sm text-muted">
+        Este formulario registra pacientes. El alta de doctores y
+        administradores la hace un administrador ya logueado.
+    </p>
+
+    <div class="mt-8 rounded-card border border-border bg-surface p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div class="mb-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                @foreach (var error in erroresGenerales)
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form asp-action="Registro" method="post" novalidate>
+            <div class="grid gap-5 sm:grid-cols-2">
+                <div>
+                    <label asp-for="Nombre" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Nombre" autocomplete="given-name" autofocus class="@claseCampo" />
+                    <span asp-validation-for="Nombre" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Apellido" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Apellido" autocomplete="family-name" class="@claseCampo" />
+                    <span asp-validation-for="Apellido" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Email" autocomplete="email" placeholder="tu@@email.com" class="@claseCampo" />
+                    <span asp-validation-for="Email" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Telefono" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Telefono" autocomplete="tel" placeholder="Opcional" class="@claseCampo" />
+                    <span asp-validation-for="Telefono" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Contrasena" autocomplete="new-password" placeholder="••••••••" class="@claseCampo" />
+                    <span asp-validation-for="Contrasena" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="ConfirmarContrasena" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="ConfirmarContrasena" autocomplete="new-password" placeholder="••••••••" class="@claseCampo" />
+                    <span asp-validation-for="ConfirmarContrasena" class="@claseError"></span>
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="mt-7 w-full rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                Crear cuenta
+            </button>
+        </form>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-muted">
+        ¿Ya tenés cuenta?
+        <a asp-controller="Cuenta" asp-action="Login" class="font-semibold text-primary hover:text-primary-hover">Iniciar sesión</a>
+    </p>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

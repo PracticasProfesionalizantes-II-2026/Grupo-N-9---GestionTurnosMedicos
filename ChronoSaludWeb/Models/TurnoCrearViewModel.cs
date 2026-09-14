@@ -37,6 +37,15 @@ public class TurnoCrearViewModel : IValidatableObject
     public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
     public IReadOnlyList<SelectListItem> Doctores { get; set; } = Array.Empty<SelectListItem>();
 
+    /// <summary>Lo fija el controlador; define si se muestra el selector de paciente.</summary>
+    public string? Rol { get; set; }
+
+    /// <summary>
+    /// Un paciente no elige de una lista: el controlador ya le fijó su propio
+    /// IdPaciente antes de renderizar, así que el selector sobra.
+    /// </summary>
+    public bool MostrarSelectorPaciente => Rol != "paciente";
+
     /// <summary>
     /// La API no valida que el fin sea posterior al inicio, así que lo cortamos acá
     /// para no cargar turnos con un rango imposible.

@@ -259,14 +259,28 @@ else
                                     @* El enlace estirado está acotado a la celda del paciente, pero
                                        el z-10 deja esto a salvo si algún día se mueve al <tr>. *@
                                     <td class="whitespace-nowrap px-5 py-4 text-right">
-                                        @if (!turno.EstaCancelado)
-                                        {
-                                            <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
-                                               class="relative z-10 rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-cancelado/10 hover:text-status-cancelado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
-                                                Cancelar
-                                                <span class="sr-only">el turno de @turno.PacienteMostrado</span>
-                                            </a>
-                                        }
+                                        <div class="flex items-center justify-end gap-1">
+                                            @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeConfirmarse)
+                                            {
+                                                <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="relative z-10">
+                                                    <input type="hidden" name="estado" value="confirmado" />
+                                                    <input type="hidden" name="volverA" value="Index" />
+                                                    <button type="submit"
+                                                            class="rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-confirmado/10 hover:text-status-confirmado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-confirmado/40">
+                                                        Confirmar
+                                                        <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (!turno.EstaCancelado)
+                                            {
+                                                <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
+                                                   class="relative z-10 rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-cancelado/10 hover:text-status-cancelado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
+                                                    Cancelar
+                                                    <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                </a>
+                                            }
+                                        </div>
                                     </td>
                                 }
                             </tr>

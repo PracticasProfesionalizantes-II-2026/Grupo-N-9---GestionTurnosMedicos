@@ -49,6 +49,10 @@
                     <a class="@ClaseNav("Doctores")" asp-controller="Doctores" asp-action="Index">Doctores</a>
                     <a class="@ClaseNav("Recetas")" asp-controller="Recetas" asp-action="Index">Recetas</a>
                     <a class="@ClaseNav("Historial")" asp-controller="Historial" asp-action="Index">Historia clínica</a>
+                    @if (Auth.EsAdministrador)
+                    {
+                        <a class="@ClaseNav("Admin")" asp-controller="Admin" asp-action="Index">Administración</a>
+                    }
                 }
                 @if (Auth.SesionActual is { } sesion)
                 {
@@ -64,6 +68,7 @@
                 }
                 else
                 {
+                    <a class="@ClaseNav("Cuenta", "Registro")" asp-controller="Cuenta" asp-action="Registro">Registrarse</a>
                     <a class="rounded-input bg-primary px-3 py-1.5 font-semibold text-white hover:bg-primary-hover"
                        asp-controller="Cuenta" asp-action="Login">Iniciar sesión</a>
                 }

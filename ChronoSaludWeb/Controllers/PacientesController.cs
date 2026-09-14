@@ -14,11 +14,19 @@ public class PacientesController : ControladorBase
         "y el detalle incluye datos clínicos.";
 
     private readonly PacienteService _pacientes;
+    private readonly CoberturaService _coberturas;
+    private readonly TurnoService _turnos;
     private readonly AuthService _auth;
 
-    public PacientesController(PacienteService pacientes, AuthService auth)
+    public PacientesController(
+        PacienteService pacientes,
+        CoberturaService coberturas,
+        TurnoService turnos,
+        AuthService auth)
     {
         _pacientes = pacientes;
+        _coberturas = coberturas;
+        _turnos = turnos;
         _auth = auth;
     }
 
@@ -72,6 +80,12 @@ public class PacientesController : ControladorBase
             if (paciente is null)
                 return NoEncontrado(id, "Paciente no encontrado", "paciente");
 
+            // Coberturas y turnos son datos "extra" de la ficha: si cualquiera de
+            // los dos falla, se muestra igual la ficha con lo que sí llegó, en
+            // vez de tirar toda la página abajo por un servicio secundario.
+            var coberturas = await ObtenerCoberturasSinRomperAsync(id);
+            var ultimoTurno = await ObtenerUltimoTurnoSinRomperAsync(id);
+
             return View(new PacienteDetalleViewModel
             {
                 IdPaciente = paciente.IdPaciente,
@@ -81,12 +95,49 @@ public class PacientesController : ControladorBase
                 Sexo = paciente.Sexo,
                 GrupoSanguineo = paciente.GrupoSanguineo,
                 Alergias = paciente.Alergias,
-                Condiciones = paciente.Condiciones
+                Condiciones = paciente.Condiciones,
+                Coberturas = coberturas,
+                UltimoTurno = ultimoTurno
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             return View(new PacienteDetalleViewModel { IdPaciente = id, Error = error.Message });
+        }
+    }
+
+    private async Task<IReadOnlyList<CoberturaFilaViewModel>> ObtenerCoberturasSinRomperAsync(int idPaciente)
+    {
+        try
+        {
+            var coberturas = await _coberturas.ObtenerDePacienteAsync(idPaciente);
+            return coberturas
+                .Select(c => new CoberturaFilaViewModel
+                {
+                    NombreCobertura = c.NombreCobertura,
+                    Plan = c.Plan,
+                    IdAfiliado = c.IdAfiliado
+                })
+                .ToList();
+        }
+        catch (ApiException)
+        {
+            return Array.Empty<CoberturaFilaViewModel>();
+        }
+    }
+
+    private async Task<DateTime?> ObtenerUltimoTurnoSinRomperAsync(int idPaciente)
+    {
+        try
+        {
+            var pagina = await _turnos.ObtenerAsync(pacienteId: idPaciente, limite: Limite);
+            return pagina.Turnos.Count == 0
+                ? null
+                : pagina.Turnos.Max(t => t.FechaInicio);
+        }
+        catch (ApiException)
+        {
+            return null;
         }
     }
 }

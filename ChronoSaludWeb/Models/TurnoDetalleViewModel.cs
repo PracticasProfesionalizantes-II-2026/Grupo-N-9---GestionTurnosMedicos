@@ -41,4 +41,17 @@ public class TurnoDetalleViewModel
     public string Iniciales => TurnosIndexViewModel.CalcularIniciales(PacienteMostrado);
 
     public bool TieneObservaciones => !string.IsNullOrWhiteSpace(Observaciones);
+
+    // Estados del dominio (Turno.Estado en la API): pendiente, confirmado,
+    // completado y cancelado, siempre en minúscula. Se comparan sin distinguir
+    // mayúsculas porque el PUT no valida el string y podría entrar cualquier cosa.
+    private bool EstadoEs(string otro) =>
+        string.Equals(Estado, otro, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Completado y cancelado son finales: de ahí el turno no se mueve más.</summary>
+    public bool EsTerminal => EstadoEs("completado") || EstadoEs("cancelado");
+
+    public bool PuedeConfirmarse => EstadoEs("pendiente");
+
+    public bool PuedeCompletarse => EstadoEs("pendiente") || EstadoEs("confirmado");
 }

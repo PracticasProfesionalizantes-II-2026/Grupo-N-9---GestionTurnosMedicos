@@ -18,10 +18,22 @@ public class DoctoresController : ControladorBase
         _auth = auth;
     }
 
+    private const string TituloSinPermiso = "No podés ver los doctores con tu rol";
+
+    // Hoy PuedeVerDoctores es true para cualquier sesión (GET /doctores no le
+    // exige rol a la API), así que este mensaje es inalcanzable en la práctica.
+    // Se deja el guard igual que en PacientesController para que, si el día de
+    // mañana la API restringe el endpoint, el cambio sea solo en AuthService.
+    private const string MotivoSinPermiso =
+        "Tu usuario no tiene permiso para ver el padrón de doctores.";
+
     public async Task<IActionResult> Index(string? especialidad)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index)));
+
+        if (!_auth.PuedeVerDoctores)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
 
         var filtro = string.IsNullOrWhiteSpace(especialidad) ? null : especialidad.Trim();
 
@@ -54,6 +66,9 @@ public class DoctoresController : ControladorBase
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Detalle), new { id }));
+
+        if (!_auth.PuedeVerDoctores)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
 
         try
         {

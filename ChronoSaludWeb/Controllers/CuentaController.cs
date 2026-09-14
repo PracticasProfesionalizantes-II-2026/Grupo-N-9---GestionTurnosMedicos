@@ -7,8 +7,13 @@ namespace ChronoSaludWeb.Controllers;
 public class CuentaController : Controller
 {
     private readonly AuthService _auth;
+    private readonly string? _apiBaseUrl;
 
-    public CuentaController(AuthService auth) => _auth = auth;
+    public CuentaController(AuthService auth, IConfiguration configuration)
+    {
+        _auth = auth;
+        _apiBaseUrl = configuration["Api:BaseUrl"];
+    }
 
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -17,6 +22,7 @@ public class CuentaController : Controller
         if (_auth.HaySesion)
             return RedirigirA(returnUrl);
 
+        ViewData["ApiBaseUrl"] = _apiBaseUrl;
         return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
@@ -24,6 +30,8 @@ public class CuentaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel modelo)
     {
+        ViewData["ApiBaseUrl"] = _apiBaseUrl;
+
         if (!ModelState.IsValid)
             return View(modelo);
 
@@ -39,6 +47,40 @@ public class CuentaController : Controller
         }
 
         return RedirigirA(modelo.ReturnUrl);
+    }
+
+    [HttpGet]
+    public IActionResult Registro()
+    {
+        // Igual que Login: con sesión abierta no tiene sentido este formulario.
+        if (_auth.HaySesion)
+            return RedirigirA(null);
+
+        return View(new RegistroViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Registro(RegistroViewModel modelo)
+    {
+        if (!ModelState.IsValid)
+            return View(modelo);
+
+        try
+        {
+            await _auth.RegistrarPacienteAsync(
+                modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono);
+        }
+        catch (ApiException ex)
+        {
+            // Email ya registrado (409), datos inválidos (400), API caída, etc.
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(modelo);
+        }
+
+        // El registro ya deja la sesión abierta: de acá se va a completar la
+        // ficha clínica, que queda vacía apenas se crea el perfil de paciente.
+        return RedirectToAction("CompletarPaciente", "MiPerfil");
     }
 
     [HttpPost]

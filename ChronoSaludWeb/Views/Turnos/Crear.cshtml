@@ -41,13 +41,16 @@
 
         <form asp-action="Crear" method="post" novalidate>
             <div class="grid gap-5 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                    <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                        <option value="">Elegí un paciente</option>
-                    </select>
-                    <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                </div>
+                @if (Model.MostrarSelectorPaciente)
+                {
+                    <div class="sm:col-span-2">
+                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                            <option value="">Elegí un paciente</option>
+                        </select>
+                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                    </div>
+                }
 
                 <div class="sm:col-span-2">
                     <label asp-for="IdDoctor" class="block text-sm font-medium text-ink"></label>

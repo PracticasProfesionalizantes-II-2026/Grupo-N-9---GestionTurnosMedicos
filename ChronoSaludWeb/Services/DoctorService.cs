@@ -83,4 +83,27 @@ public class DoctorService
             return null;
         }
     }
+
+    /// <summary>
+    /// POST /doctores: completa la fila de Doctores de un Usuario que ya existe
+    /// (con rol "doctor" o no — la API no lo valida). Reservado a administrador.
+    /// Devuelve el IdDoctor creado. Tira ApiException 409 con "matrícula" si ya
+    /// está tomada, 400 si faltan datos o el IdUsuario no existe.
+    /// </summary>
+    public Task<DoctorAlta?> CrearAsync(int idUsuario, string especialidad, string matricula, string? consultorio)
+        => _api.PostAsync<DoctorAlta>(
+            "/doctores",
+            new { idUsuario, especialidad, matricula, consultorio });
 }
+
+/// <summary>
+/// Respuesta de POST /doctores: { id_doctor, especialidad, matricula }. A
+/// diferencia del resto de la API, acá el id viene en snake_case (el endpoint
+/// arma un objeto anónimo a mano en vez de un DTO), así que hace falta el
+/// JsonPropertyName explícito: la comparación de ApiClient solo ignora
+/// mayúsculas/minúsculas, no el guión bajo.
+/// </summary>
+public record DoctorAlta(
+    [property: System.Text.Json.Serialization.JsonPropertyName("id_doctor")] int IdDoctor,
+    string Especialidad,
+    string Matricula);

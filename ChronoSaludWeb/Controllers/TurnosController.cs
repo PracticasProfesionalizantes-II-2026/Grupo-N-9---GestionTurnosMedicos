@@ -185,6 +185,85 @@ public class TurnosController : ControladorBase
     }
 
     /// <summary>
+    /// Mueve el turno a "confirmado" o a "completado". La cancelación no pasa por
+    /// acá: sigue yendo por DELETE (Cancelar), así hay un solo camino para cancelar.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CambiarEstado(int id, string estado, string? volverA)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Detalle), new { id }));
+
+        if (!_auth.PuedeCambiarEstadoTurno)
+            return SinPermiso(
+                "No podés cambiar el estado de un turno con tu rol",
+                "La API reserva PUT /turnos al administrador. Un doctor solo puede cancelar.");
+
+        // El estado llega del formulario y la API lo guardaría tal cual, sin
+        // validarlo, así que la lista blanca la ponemos nosotros.
+        if (!EstadosQueSePuedenAplicar.Contains(estado))
+        {
+            TempData["Error"] = $"\"{estado}\" no es un estado que se pueda aplicar desde acá.";
+            return VolverDe(volverA, id);
+        }
+
+        try
+        {
+            // Mismo motivo que en CancelarConfirmado: sin revalidar el ámbito
+            // alcanzaba con postear el id de un turno ajeno.
+            var ambito = await ResolverAmbitoAsync();
+            var turno = await _turnos.ObtenerPorIdAsync(id);
+
+            if (turno is null || !ambito.Incluye(turno.IdPaciente, turno.IdDoctor))
+            {
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+            }
+
+            // Se valida contra el estado real que devolvió la API, no contra el que
+            // tenía la página cuando se pintó: el turno pudo moverse mientras tanto.
+            var actual = new TurnoDetalleViewModel { Estado = turno.Estado };
+
+            var habilitado = estado == "confirmado"
+                ? actual.PuedeConfirmarse
+                : actual.PuedeCompletarse;
+
+            if (!habilitado)
+            {
+                TempData["Error"] =
+                    $"El turno #{id} está {turno.Estado} y no se puede pasar a {estado}.";
+                return VolverDe(volverA, id);
+            }
+
+            await _turnos.CambiarEstadoAsync(id, estado);
+            TempData["Exito"] = $"Turno #{id} marcado como {estado}.";
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // El 401 no se atrapa a propósito: lo maneja ApiExceptionFilter
+            // mandando al login.
+            TempData["Error"] = error.Message;
+        }
+
+        return VolverDe(volverA, id);
+    }
+
+    /// <summary>
+    /// Los dos únicos estados que el front aplica por PUT. "cancelado" queda
+    /// afuera porque va por DELETE, y "pendiente" porque no se vuelve atrás.
+    /// </summary>
+    private static readonly string[] EstadosQueSePuedenAplicar = ["confirmado", "completado"];
+
+    /// <summary>
+    /// Devuelve al usuario a donde estaba: al listado si apretó el botón desde
+    /// ahí, al detalle del turno en cualquier otro caso.
+    /// </summary>
+    private IActionResult VolverDe(string? volverA, int id) =>
+        volverA == nameof(Index)
+            ? RedirectToAction(nameof(Index))
+            : RedirectToAction(nameof(Detalle), new { id });
+
+    /// <summary>
     /// Trae el turno y le pega los nombres del paciente y del doctor, que
     /// TurnoDto no manda. Null si no existe o si no entra en el ámbito.
     /// </summary>
@@ -222,7 +301,7 @@ public class TurnosController : ControladorBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Crear()
+    public async Task<IActionResult> Crear(int? paciente)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear)));
@@ -233,8 +312,28 @@ public class TurnosController : ControladorBase
                 "Para dar un turno hay que elegir el paciente de una lista, y la API solo se la " +
                 "muestra a los roles doctor y administrador.");
 
-        var modelo = new TurnoCrearViewModel { FechaInicio = DateTime.Today };
-        await CargarListasAsync(modelo);
+        var rol = _auth.SesionActual?.Rol;
+        var modelo = new TurnoCrearViewModel { FechaInicio = DateTime.Today, Rol = rol };
+
+        if (rol == "paciente")
+        {
+            var idPaciente = await _perfil.IdPerfilAsync(esDoctor: false);
+            if (idPaciente is null)
+                return SinPermiso(
+                    "Todavía no podés agendar turnos",
+                    "Tu usuario no tiene un perfil de paciente asociado, así que no podemos crear " +
+                    "el turno a tu nombre. Pedile a la administración que lo cree.");
+
+            modelo.IdPaciente = idPaciente;
+        }
+        else if (paciente is not null)
+        {
+            // Se llega acá desde la ficha de un paciente ("Agendar turno"): se
+            // precarga el select en vez de dejarlo en la opción vacía.
+            modelo.IdPaciente = paciente;
+        }
+
+        await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
         return View(modelo);
     }
 
@@ -251,9 +350,29 @@ public class TurnosController : ControladorBase
                 "Para dar un turno hay que elegir el paciente de una lista, y la API solo se la " +
                 "muestra a los roles doctor y administrador.");
 
+        var rol = _auth.SesionActual?.Rol;
+        modelo.Rol = rol;
+
+        if (rol == "paciente")
+        {
+            var idPaciente = await _perfil.IdPerfilAsync(esDoctor: false);
+            if (idPaciente is null)
+                return SinPermiso(
+                    "Todavía no podés agendar turnos",
+                    "Tu usuario no tiene un perfil de paciente asociado, así que no podemos crear " +
+                    "el turno a tu nombre. Pedile a la administración que lo cree.");
+
+            // El formulario del paciente no tiene selector: el IdPaciente sale
+            // siempre del perfil logueado, nunca de lo que llegue posteado, así
+            // nadie puede cargar un turno a nombre de otro paciente (la API no
+            // lo controla: POST /turnos toma el IdPaciente del body tal cual).
+            modelo.IdPaciente = idPaciente.Value;
+            ModelState.Remove(nameof(modelo.IdPaciente));
+        }
+
         if (!ModelState.IsValid)
         {
-            await CargarListasAsync(modelo);
+            await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
             return View(modelo);
         }
 
@@ -279,23 +398,29 @@ public class TurnosController : ControladorBase
             // no responde. El mensaje va arriba del formulario y el modelo vuelve
             // a la vista con todo lo que el usuario había cargado.
             ModelState.AddModelError(string.Empty, error.Message);
-            await CargarListasAsync(modelo);
+            await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
             return View(modelo);
         }
     }
 
     /// <summary>
     /// Llena los selects. Si la API falla no tira: deja las listas vacías para
-    /// no perder lo que el usuario venía cargando en el formulario.
+    /// no perder lo que el usuario venía cargando en el formulario. Un paciente
+    /// no puede pedir GET /pacientes (reservado a doctor/administrador), así que
+    /// para ese rol se salta ese fetch: <paramref name="incluirPacientes"/> en
+    /// false.
     /// </summary>
-    private async Task CargarListasAsync(TurnoCrearViewModel modelo)
+    private async Task CargarListasAsync(TurnoCrearViewModel modelo, bool incluirPacientes = true)
     {
         try
         {
-            var pacientes = await _pacientes.ObtenerTodosAsync();
-            modelo.Pacientes = pacientes
-                .Select(p => new SelectListItem($"{p.Nombre} {p.Apellido}".Trim(), p.IdPaciente.ToString()))
-                .ToList();
+            if (incluirPacientes)
+            {
+                var pacientes = await _pacientes.ObtenerTodosAsync();
+                modelo.Pacientes = pacientes
+                    .Select(p => new SelectListItem($"{p.Nombre} {p.Apellido}".Trim(), p.IdPaciente.ToString()))
+                    .ToList();
+            }
 
             var doctores = await _doctores.ObtenerTodosAsync();
             modelo.Doctores = doctores

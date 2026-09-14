@@ -1,0 +1,46 @@
+@model PanelActividadViewModel
+
+@* Mismo esqueleto que _PanelTurnos, pero con las consultas y recetas del
+   paciente. Tiene su propio estado de error porque se arma con dos llamadas
+   que pueden fallar sin que eso deba voltear el tablero entero. *@
+<section class="overflow-hidden rounded-card border border-border bg-surface">
+    <header class="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">@Model.Titulo</h2>
+        @if (Model.VerMas is not null)
+        {
+            <partial name="_VerMas" model="Model.VerMas" />
+        }
+    </header>
+
+    @if (Model.HuboError)
+    {
+        <div class="px-6 py-8 text-center">
+            <p class="mx-auto max-w-xs text-sm text-status-pendiente">@Model.Error</p>
+        </div>
+    }
+    else if (Model.Entradas.Count == 0)
+    {
+        <div class="px-6 py-10 text-center">
+            <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos("historia"))
+            </svg>
+            <p class="mx-auto mt-4 max-w-xs text-sm text-muted">@Model.TextoVacio</p>
+        </div>
+    }
+    else
+    {
+        <ul>
+            @{ var fila = 0; }
+            @foreach (var entrada in Model.Entradas)
+            {
+                <li class="fila-animada flex items-baseline gap-2 border-b border-border px-6 py-4 last:border-0"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                    <span class="font-medium text-ink">@entrada.Tipo</span>
+                    <span class="text-muted" aria-hidden="true">·</span>
+                    <span class="truncate text-sm text-muted">@entrada.FechaCorta</span>
+                </li>
+            }
+        </ul>
+    }
+</section>

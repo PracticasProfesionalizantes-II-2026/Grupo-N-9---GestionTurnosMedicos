@@ -42,6 +42,14 @@ public record TurnoNuevo(
     string? Observaciones);
 
 /// <summary>
+/// Cuerpo de PUT /turnos/{id} cuando solo se quiere mover el estado.
+/// TurnoUpdateDto tiene cinco campos y todos son opcionales, así que mandamos
+/// nada más el estado: si viajaran también la fecha y las horas, la API
+/// revalidaría el solapamiento y el turno chocaría contra sí mismo con un 409.
+/// </summary>
+public record TurnoCambioEstado(string Estado);
+
+/// <summary>
 /// Respuesta del alta. Ojo: este endpoint contesta en snake_case
 /// (id_turno), a diferencia del resto de la API, que usa camelCase.
 /// </summary>
@@ -117,4 +125,14 @@ public class TurnoService
     /// "cancelado", no lo borra. Contesta 204, así que no devuelve nada.
     /// </summary>
     public Task CancelarAsync(int id) => _api.DeleteAsync($"/turnos/{id}");
+
+    /// <summary>
+    /// PUT /turnos/{id} para mover el estado del turno. La API lo reserva a los
+    /// roles administrador y secretario, y no valida el estado contra ninguna
+    /// lista: guarda el string tal cual llega, así que el que valida somos
+    /// nosotros. Contesta 200 con { mensaje }, que no nos interesa.
+    /// Deja pasar la ApiException para que el controlador muestre el mensaje.
+    /// </summary>
+    public Task CambiarEstadoAsync(int id, string estado)
+        => _api.PutAsync($"/turnos/{id}", new TurnoCambioEstado(estado));
 }

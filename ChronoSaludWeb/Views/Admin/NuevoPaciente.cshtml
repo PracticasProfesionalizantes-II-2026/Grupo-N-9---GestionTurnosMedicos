@@ -1,0 +1,87 @@
+@model NuevoPacienteViewModel
+@{
+    ViewData["Title"] = "Nuevo paciente";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<a asp-action="Index"
+   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver a Cuentas
+</a>
+
+<div class="mt-6 max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Nuevo paciente</h1>
+    <p class="mt-1 text-sm text-muted">
+        Alta asistida para alguien que no puede autogestionarse por la web. Un solo paso:
+        la API crea la ficha de paciente sola, sin datos clínicos todavía.
+    </p>
+
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div class="mb-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                @foreach (var error in erroresGenerales)
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form asp-action="NuevoPaciente" method="post" novalidate>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos de la cuenta</h2>
+            <div class="mt-3 grid gap-5 sm:grid-cols-2">
+                <div>
+                    <label asp-for="Nombre" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Nombre" class="@claseCampo" />
+                    <span asp-validation-for="Nombre" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Apellido" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Apellido" class="@claseCampo" />
+                    <span asp-validation-for="Apellido" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Email" autocomplete="off" placeholder="paciente@@email.com" class="@claseCampo" />
+                    <span asp-validation-for="Email" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Contrasena" autocomplete="new-password" placeholder="••••••••" class="@claseCampo" />
+                    <span asp-validation-for="Contrasena" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Telefono" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Telefono" placeholder="Opcional" class="@claseCampo" />
+                    <span asp-validation-for="Telefono" class="@claseError"></span>
+                </div>
+            </div>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit"
+                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    Crear paciente
+                </button>
+                <a asp-action="Index"
+                   class="rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
