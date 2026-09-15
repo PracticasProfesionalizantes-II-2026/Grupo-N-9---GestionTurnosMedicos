@@ -7,6 +7,7 @@ public interface IUsuarioRepository
     Task<IEnumerable<Usuario>> ObtenerTodos();
     Task<Usuario?> ObtenerPorId(int id);
     Task<Usuario?> ObtenerPorEmail(string email);
+    Task<bool> ExisteAlgunAdministrador();
     Task Agregar(Usuario usuario);
     Task Actualizar(Usuario usuario);
     Task Eliminar(Usuario usuario);

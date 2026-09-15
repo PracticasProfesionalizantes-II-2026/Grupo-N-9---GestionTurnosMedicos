@@ -98,20 +98,31 @@ public class TurnoLogica : ITurnoLogica
         ), null);
     }
 
-    public async Task<(int? id, string? error)> Crear(TurnoCreateDto dto)
+    public async Task<(int? id, string? error, bool sinPerfilPaciente)> Crear(TurnoCreateDto dto, int idUsuarioCaller, bool callerEsPaciente)
     {
+        var idPaciente = dto.IdPaciente;
+
+        if (callerEsPaciente)
+        {
+            var paciente = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (paciente == null)
+                return (null, "Tu usuario no tiene un perfil de paciente asociado.", true);
+
+            idPaciente = paciente.Id;
+        }
+
         if (!TimeSpan.TryParse(dto.HoraInicio, out var horaInicio))
-            return (null, "Formato de hora inicio inválido. Use HH:MM.");
+            return (null, "Formato de hora inicio inválido. Use HH:MM.", false);
         if (!TimeSpan.TryParse(dto.HoraFin, out var horaFin))
-            return (null, "Formato de hora fin inválido. Use HH:MM.");
+            return (null, "Formato de hora fin inválido. Use HH:MM.", false);
 
         var conflicto = await _repo.HayConflictoHorario(dto.IdDoctor, dto.FechaInicio, horaInicio, horaFin);
         if (conflicto)
-            return (null, "Conflicto de horario: el doctor ya tiene un turno en ese rango.");
+            return (null, "Conflicto de horario: el doctor ya tiene un turno en ese rango.", false);
 
         var turno = new Turno
         {
-            IdPaciente   = dto.IdPaciente,
+            IdPaciente   = idPaciente,
             IdDoctor     = dto.IdDoctor,
             FechaInicio  = dto.FechaInicio,
             HoraInicio   = horaInicio,
@@ -121,7 +132,7 @@ public class TurnoLogica : ITurnoLogica
         };
 
         await _repo.Agregar(turno);
-        return (turno.Id, null);
+        return (turno.Id, null, false);
     }
 
     public async Task<(bool ok, string? error)> Actualizar(int id, TurnoUpdateDto dto)
