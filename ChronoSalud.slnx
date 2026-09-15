@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="ChronoSaludApi/ChronoSaludApi.csproj" />
   <Project Path="ChronoSaludWeb/ChronoSaludWeb.csproj" />
+  <Project Path="tools/Seed/Seed.csproj" />
 </Solution>

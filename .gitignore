@@ -27,5 +27,5 @@ desktop.ini
 
 # ---- Tailwind CSS (frontend MVC) ----
 # El CLI standalone es un .exe de ~112 MB: no va al repo.
-# Se baja solo la primera vez que se corre ChronoSaludWeb/tools/css.ps1
+# Se baja solo la primera vez que se compila el CSS
 ChronoSaludWeb/tools/tailwindcss.exe
