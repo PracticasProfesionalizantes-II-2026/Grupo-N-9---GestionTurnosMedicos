@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ChronoSaludWeb.Models;
+using ChronoSaludWeb.Models.ViewModels;
 using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Controllers;
@@ -12,6 +13,10 @@ public class PacientesController : ControladorBase
     private const string MotivoSinPermiso =
         "La API reserva el listado de pacientes a los roles doctor y administrador, " +
         "y el detalle incluye datos clínicos.";
+
+    private const string TituloSinPermisoAlta = "No podés dar de alta pacientes con tu rol";
+    private const string MotivoSinPermisoAlta =
+        "El alta de pacientes está reservada al rol administrador.";
 
     private readonly PacienteService _pacientes;
     private readonly CoberturaService _coberturas;
@@ -104,6 +109,51 @@ public class PacientesController : ControladorBase
         {
             return View(new PacienteDetalleViewModel { IdPaciente = id, Error = error.Message });
         }
+    }
+
+    [HttpGet]
+    public IActionResult Crear()
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Crear)));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermisoAlta, MotivoSinPermisoAlta);
+
+        return View(new PacienteCreateViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Crear(PacienteCreateViewModel modelo)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Crear)));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermisoAlta, MotivoSinPermisoAlta);
+
+        if (!ModelState.IsValid)
+            return View(modelo);
+
+        try
+        {
+            // La API crea la fila en Pacientes sola al registrar el usuario.
+            // TODO: enviar documento, fecha de nacimiento, género, nacionalidad,
+            // estado civil, grupo sanguíneo, obra social, dirección, contacto de
+            // emergencia y alergias cuando la API los acepte en el alta. La foto
+            // tampoco se procesa todavía: solo se recibe el campo.
+            await _auth.RegistrarComoPacienteAsync(
+                modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(string.Empty, error.Message);
+            return View(modelo);
+        }
+
+        TempData["Exito"] = $"Paciente \"{modelo.Nombre} {modelo.Apellido}\" dado de alta correctamente.";
+        return RedirectToAction(nameof(Index));
     }
 
     private async Task<IReadOnlyList<CoberturaFilaViewModel>> ObtenerCoberturasSinRomperAsync(int idPaciente)

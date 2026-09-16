@@ -17,11 +17,11 @@
                 @(Model.Total == 1 ? "paciente" : "pacientes")
             </p>
         }
-        @* El alta de pacientes vive en Admin/NuevoPaciente, reservada al rol
+        @* El alta de pacientes vive en Pacientes/Crear, reservada al rol
            administrador (la API crea al paciente vía registro de usuario). *@
         @if (Auth.EsAdministrador)
         {
-            <a asp-controller="Admin" asp-action="NuevoPaciente"
+            <a asp-action="Crear"
                class="inline-flex items-center gap-1.5 rounded-input bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

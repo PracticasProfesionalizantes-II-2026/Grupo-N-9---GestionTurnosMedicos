@@ -74,37 +74,6 @@ public class CompletarDoctorViewModel
     public string? Consultorio { get; set; }
 }
 
-/// <summary>
-/// Alta de paciente hecha por un administrador (AuthService.RegistrarComoPacienteAsync).
-/// Un solo paso: la API crea la fila en Pacientes sola. No pide datos clínicos
-/// (fecha de nacimiento, etc.) — eso lo completa el propio paciente después
-/// desde MiPerfil/CompletarPaciente.
-/// </summary>
-public class NuevoPacienteViewModel
-{
-    [Required(ErrorMessage = "El nombre es obligatorio.")]
-    [Display(Name = "Nombre")]
-    public string Nombre { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "El apellido es obligatorio.")]
-    [Display(Name = "Apellido")]
-    public string Apellido { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "El email es obligatorio.")]
-    [EmailAddress(ErrorMessage = "El email no tiene un formato válido.")]
-    [Display(Name = "Email")]
-    public string Email { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "La contraseña es obligatoria.")]
-    [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
-    [DataType(DataType.Password)]
-    [Display(Name = "Contraseña")]
-    public string Contrasena { get; set; } = string.Empty;
-
-    [Display(Name = "Teléfono")]
-    public string? Telefono { get; set; }
-}
-
 public class NuevoAdministradorViewModel
 {
     [Required(ErrorMessage = "El nombre es obligatorio.")]

@@ -131,45 +131,16 @@ public class AdminController : ControladorBase
         return RedirectToAction(nameof(Index));
     }
 
+    // El alta de pacientes se mudó a Pacientes/Crear. Estas acciones quedan solo
+    // para no romper enlaces viejos; los permisos los revisa el destino.
     [HttpGet]
-    public IActionResult NuevoPaciente()
-    {
-        if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(NuevoPaciente)));
-
-        if (!_auth.EsAdministrador)
-            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
-
-        return View(new NuevoPacienteViewModel());
-    }
+    public IActionResult NuevoPaciente() =>
+        RedirectToActionPermanent("Crear", "Pacientes");
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> NuevoPaciente(NuevoPacienteViewModel modelo)
-    {
-        if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(NuevoPaciente)));
-
-        if (!_auth.EsAdministrador)
-            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
-
-        if (!ModelState.IsValid)
-            return View(modelo);
-
-        try
-        {
-            await _auth.RegistrarComoPacienteAsync(
-                modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono);
-        }
-        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
-        {
-            ModelState.AddModelError(string.Empty, error.Message);
-            return View(modelo);
-        }
-
-        TempData["Exito"] = $"Paciente \"{modelo.Nombre} {modelo.Apellido}\" dado de alta correctamente.";
-        return RedirectToAction(nameof(Index));
-    }
+    [ActionName(nameof(NuevoPaciente))]
+    public IActionResult NuevoPacientePost() =>
+        RedirectToActionPermanent("Crear", "Pacientes");
 
     [HttpGet]
     public IActionResult NuevoAdministrador()
