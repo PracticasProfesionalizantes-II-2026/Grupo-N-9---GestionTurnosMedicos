@@ -1,0 +1,876 @@
+### ChronoSaludApi — Pruebas manuales Fase 1c (permisos de recetas, descargas,
+### notificaciones y turnos)
+###
+### Cubre los cinco puntos del plan de la fase:
+###   1. GET /recetas/{id}/descargar      — dueño o staff
+###   2. GET /estudios/{id}/descargar     — dueño o staff
+###   3. POST y PUT /recetas              — doctor propio, o staff a nombre de otro
+###   4. PATCH /notificaciones/{id}/leer  — solo el dueño, sin excepción para staff
+###   5. PUT /turnos/{id}                 — doctor sobre los suyos, staff sobre todos
+###
+### Requisitos:
+###   1. La API corriendo en http://localhost:5001 (perfil "http" de launchSettings).
+###   2. Extensión "REST Client" (humao.rest-client) en VS Code para poder
+###      ejecutar cada bloque con "Send Request" y encadenar variables entre
+###      requests ({{nombre.response.body.$.campo}}).
+###   3. Correr antes .\seed-datos.ps1 (contraseña por defecto: Chrono2026!).
+###      Este archivo asume esas cuentas: administrador, doctores
+###      laura.gomez / martin.rivas, pacientes ana.duarte / bruno.salas.
+###
+### Convención de cada bloque de prueba:
+###   AHORA (Fase 1c)  -> lo que tiene que devolver con este cambio aplicado.
+###   ANTES (fase 1b)  -> lo que devolvía antes de estos commits (el agujero que
+###                       se cierra, o el permiso que no existía).
+###
+### Los pasos 0.x son setup: login, resolución de ids y creación de los datos de
+### prueba (una receta, un estudio con resultado y una notificación). Las
+### secciones 1 a 5 son las pruebas, en el mismo orden que los puntos del plan.
+###
+### IMPORTANTE: el setup 0.12 (notificación) es un INSERT por SQL a mano. No hay
+### ningún endpoint que cree notificaciones (INotificacionRepository sólo tiene
+### ObtenerDeUsuario, ObtenerPorId y Actualizar), así que la Sección 4 no puede
+### armar su propio dato por HTTP.
+
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+
+
+### ============================================================
+### 0. SETUP — login, ids y datos de prueba
+### ============================================================
+
+### 0.1 Login administrador
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenAdmin = {{loginAdmin.response.body.$.token}}
+
+
+### 0.2 Login Doctor Gómez (Clínica) — hace de "doctor dueño" en las pruebas
+# @name loginGomez
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "laura.gomez@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenGomez = {{loginGomez.response.body.$.token}}
+
+
+### 0.3 Login Doctor Rivas (Cardiología) — hace de "doctor ajeno" en las pruebas
+# @name loginRivas
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "martin.rivas@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenRivas = {{loginRivas.response.body.$.token}}
+
+
+### 0.4 Login Paciente Duarte — hace de "paciente dueño" en las pruebas
+# @name loginDuarte
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "ana.duarte@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenDuarte = {{loginDuarte.response.body.$.token}}
+@idUsuarioDuarte = {{loginDuarte.response.body.$.idUsuario}}
+
+
+### 0.5 Login Paciente Salas — hace de "paciente ajeno" en las pruebas
+# @name loginSalas
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "bruno.salas@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenSalas = {{loginSalas.response.body.$.token}}
+@idUsuarioSalas = {{loginSalas.response.body.$.idUsuario}}
+
+
+### 0.6 Id de paciente de Duarte (Paciente.Id, no el de usuario)
+# @name meDuarte
+GET {{baseUrl}}/pacientes/me
+Authorization: Bearer {{tokenDuarte}}
+
+###
+
+@idPacienteDuarte = {{meDuarte.response.body.$.idPaciente}}
+
+
+### 0.7 Id de doctor de Gómez
+# @name meGomez
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenGomez}}
+
+###
+
+@idDoctorGomez = {{meGomez.response.body.$.idDoctor}}
+
+
+### 0.8 Id de doctor de Rivas
+# @name meRivas
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenRivas}}
+
+###
+
+@idDoctorRivas = {{meRivas.response.body.$.idDoctor}}
+
+
+### 0.9 Catálogo de medicamentos, para armar las recetas de prueba.
+### Mirá la respuesta y completá a mano la variable de abajo con cualquier id.
+GET {{baseUrl}}/medicamentos
+Authorization: Bearer {{tokenGomez}}
+
+### Completar a mano con un idMedicamento real de la respuesta anterior:
+@idMedicamento = 0
+
+
+### 0.10 [Gómez] Emitir una receta para Duarte — es la receta "de Gómez" que
+### usan las secciones 1, 3 y 4.
+# @name recetaDeGomez
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "Receta de prueba Fase 1c",
+  "medicamentos": [
+    {
+      "idMedicamento": {{idMedicamento}},
+      "dosis": "500mg",
+      "frecuencia": "cada 8 horas",
+      "duracion": "7 días",
+      "indicaciones": "Con las comidas"
+    }
+  ]
+}
+
+###
+
+@idRecetaDeGomez = {{recetaDeGomez.response.body.$.id_receta}}
+
+
+### 0.11 [Gómez] Solicitar un estudio para Duarte y cargarle resultado, así
+### tiene ArchivoUrl y la descarga puede dar 200.
+# @name estudioDeDuarte
+POST {{baseUrl}}/estudios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idTurno": null,
+  "tipo": "sangre",
+  "descripcion": "Hemograma de prueba Fase 1c",
+  "fechaSolicitud": "2026-09-17"
+}
+
+###
+
+@idEstudioDeDuarte = {{estudioDeDuarte.response.body.$.id_estudio}}
+
+
+### 0.11b [Gómez] Cargar el resultado del estudio recién creado
+PUT {{baseUrl}}/estudios/{{idEstudioDeDuarte}}/resultados
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "resultado": "Valores dentro de rango.",
+  "archivoUrl": "https://ejemplo.test/estudios/prueba-1c.pdf",
+  "estado": "validado",
+  "fechaResultado": "2026-09-17"
+}
+
+
+### 0.11c [Gómez] Un segundo estudio, SIN resultado cargado: sirve para el caso
+### "existe pero todavía no tiene archivo" de la Sección 2.
+# @name estudioSinResultado
+POST {{baseUrl}}/estudios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idTurno": null,
+  "tipo": "imagen",
+  "descripcion": "Radiografía de prueba Fase 1c, sin resultado",
+  "fechaSolicitud": "2026-09-17"
+}
+
+###
+
+@idEstudioSinResultado = {{estudioSinResultado.response.body.$.id_estudio}}
+
+
+### 0.12 Notificación de prueba para Duarte — paso MANUAL, por SQL.
+### No hay endpoint que cree notificaciones. Corré esto en SSMS / sqlcmd /
+### Invoke-Sqlcmd reemplazando <ID_USUARIO_DUARTE> por el idUsuario que devolvió
+### el login de 0.4, y después completá @idNotificacionDeDuarte con el Id que
+### devuelva el SELECT:
+###
+###   INSERT INTO Notificaciones (IdUsuario, Tipo, Mensaje, Fecha, Leida)
+###   VALUES (<ID_USUARIO_DUARTE>, 'general', 'Notificación de prueba Fase 1c', GETDATE(), 0);
+###   SELECT TOP 1 Id FROM Notificaciones WHERE IdUsuario = <ID_USUARIO_DUARTE> ORDER BY Id DESC;
+###
+### Verificación por HTTP de que quedó bien (tiene que listarla):
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenDuarte}}
+
+### Completar a mano con el Id de la notificación insertada arriba:
+@idNotificacionDeDuarte = 0
+
+
+### 0.13 Listar turnos (como admin, ve todo) para elegir los dos de la Sección 5.
+### seed-datos.ps1 crea, entre otros: Gómez+Duarte y Rivas+Ponce.
+### Mirá la respuesta y completá a mano las dos variables de abajo:
+###   - @idTurnoDeGomez -> un turno cuyo doctor sea Gómez, en estado "pendiente"
+###   - @idTurnoDeRivas -> un turno cuyo doctor sea Rivas
+GET {{baseUrl}}/turnos?limite=200
+Authorization: Bearer {{tokenAdmin}}
+
+### Completar a mano con los id_turno reales de la respuesta anterior:
+@idTurnoDeGomez = 0
+@idTurnoDeRivas = 0
+
+
+### ============================================================
+### 1. GET /recetas/{id}/descargar — punto 1 del plan
+### ============================================================
+
+### 1.1 [Duarte] Descargar su propia receta
+### AHORA: 200. ANTES: 200 (sin cambios para el dueño).
+GET {{baseUrl}}/recetas/{{idRecetaDeGomez}}/descargar
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 1.2 [Salas] Descargar la receta de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 — cualquier autenticado se bajaba la receta de cualquier
+### paciente sabiendo el id. Es el agujero que cierra este punto.
+GET {{baseUrl}}/recetas/{{idRecetaDeGomez}}/descargar
+Authorization: Bearer {{tokenSalas}}
+
+
+### 1.3 [Gómez, doctor autor] Descargar la receta que él firmó
+### AHORA: 200 (doctor = staff). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/recetas/{{idRecetaDeGomez}}/descargar
+Authorization: Bearer {{tokenGomez}}
+
+
+### 1.4 [Rivas, doctor ajeno] Descargar una receta que firmó otro doctor
+### AHORA: 200 — el criterio es "cualquier doctor", el mismo que ya usa
+### GET /pacientes/{id}/recetas. No se restringe al doctor autor.
+GET {{baseUrl}}/recetas/{{idRecetaDeGomez}}/descargar
+Authorization: Bearer {{tokenRivas}}
+
+
+### 1.5 [Admin] Descargar la receta
+### AHORA: 200 (staff). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/recetas/{{idRecetaDeGomez}}/descargar
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 1.6 [Duarte] Descargar una receta inexistente
+### AHORA: 404 {"error": "Receta no encontrada."}
+GET {{baseUrl}}/recetas/999999/descargar
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 2. GET /estudios/{id}/descargar — punto 2 del plan
+### ============================================================
+
+### 2.1 [Duarte] Descargar su propio resultado de estudio
+### AHORA: 200 con archivo_url. ANTES: 200 (sin cambios para el dueño).
+GET {{baseUrl}}/estudios/{{idEstudioDeDuarte}}/descargar
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.2 [Salas] Descargar el resultado de Duarte (paciente ajeno)
+### AHORA: 403 Forbidden.
+### ANTES: 200 con la URL del archivo del estudio ajeno.
+GET {{baseUrl}}/estudios/{{idEstudioDeDuarte}}/descargar
+Authorization: Bearer {{tokenSalas}}
+
+
+### 2.3 [Rivas, doctor ajeno] Descargar el resultado
+### AHORA: 200 (cualquier doctor es staff).
+GET {{baseUrl}}/estudios/{{idEstudioDeDuarte}}/descargar
+Authorization: Bearer {{tokenRivas}}
+
+
+### 2.4 [Admin] Descargar el resultado
+### AHORA: 200 (staff).
+GET {{baseUrl}}/estudios/{{idEstudioDeDuarte}}/descargar
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 2.5 [Duarte] Descargar un estudio propio que todavía no tiene resultado
+### AHORA: 404 {"error": "El estudio aún no tiene resultado disponible."}
+### El chequeo de permisos pasa primero y el 404 de "sin archivo" se conserva.
+GET {{baseUrl}}/estudios/{{idEstudioSinResultado}}/descargar
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.6 [Salas] Descargar ese mismo estudio sin resultado, siendo ajeno
+### AHORA: 403 — el permiso se evalúa ANTES que el estado del estudio, así que
+### un paciente ajeno no puede usar este endpoint para sondear qué estudios
+### existen y cuáles ya tienen resultado.
+GET {{baseUrl}}/estudios/{{idEstudioSinResultado}}/descargar
+Authorization: Bearer {{tokenSalas}}
+
+
+### 2.7 [Duarte] Descargar un estudio inexistente
+### AHORA: 404 {"error": "Estudio no encontrado."}
+GET {{baseUrl}}/estudios/999999/descargar
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 3. POST /recetas — punto 3 del plan (quién firma)
+### ============================================================
+
+### 3.1 [Gómez] Emitir una receta a su propio nombre
+### AHORA: 201. ANTES: 201 (sin cambios).
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.1 — doctor a su propio nombre",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 3.2 [Gómez] Emitir una receta poniendo el id de OTRO doctor en el cuerpo
+### AHORA: 201, pero firmada por Gómez: el id_doctor del cuerpo se ignora.
+### ANTES: 201 firmada por Rivas — un doctor podía emitir recetas a nombre de
+### cualquier colega. Es el agujero que cierra este punto.
+###
+### Cómo se verifica que quedó a nombre de Gómez y no de Rivas: RecetaDto no
+### expone el id_doctor, así que se comprueba por el PUT de la Sección 4, que
+### sí distingue al autor (ver 4.4 y 4.5).
+# @name recetaConDoctorAjeno
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorRivas}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.2 — el id_doctor del cuerpo tiene que ignorarse",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 12 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+###
+
+@idRecetaConDoctorAjeno = {{recetaConDoctorAjeno.response.body.$.id_receta}}
+
+
+### 3.3 [Admin] Emitir una receta a nombre de un doctor explícito (Rivas)
+### AHORA: 201 firmada por Rivas.
+### ANTES: 403 — el POST estaba reservado al rol doctor. Es el permiso que
+### suma este punto.
+# @name recetaDeAdminParaRivas
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorRivas}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.3 — admin firmando a nombre de Rivas",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "250mg", "frecuencia": "cada 24 horas", "duracion": "3 días", "indicaciones": null }
+  ]
+}
+
+###
+
+@idRecetaDeRivas = {{recetaDeAdminParaRivas.response.body.$.id_receta}}
+
+
+### 3.4 [Admin] Emitir una receta con un id_doctor inexistente
+### AHORA: 404 {"error": "Doctor con id 999999 no encontrado."}
+### ANTES: 500 — se iba contra la foreign key. (Validación agregada sobre el
+### plan original, a pedido.)
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": 999999,
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.4 — doctor inexistente",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 3.5 [Admin] Emitir una receta SIN id_doctor
+### AHORA: 400 {"error": "id_paciente e id_doctor son requeridos."} — el staff
+### firma por otro, así que tiene que decir por quién.
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": 0,
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.5 — staff sin id_doctor",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 3.6 [Gómez] Emitir una receta SIN id_doctor
+### AHORA: 201 — al doctor ya no se le pide, sale a su nombre igual.
+### ANTES: 400. Es el único cambio de contrato de la fase, y afloja en vez de
+### endurecer: el que ya mandaba id_doctor sigue funcionando.
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": 0,
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.6 — doctor sin id_doctor en el cuerpo",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 3.7 [Duarte, paciente] Emitir una receta
+### AHORA: 403 — el rol paciente sigue afuera del endpoint.
+POST {{baseUrl}}/recetas
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-17",
+  "detalles": "3.7 — paciente autorecetándose",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### ============================================================
+### 4. PUT /recetas/{id} — punto 3 del plan (quién edita)
+### ============================================================
+
+### 4.1 [Gómez] Editar la receta que él firmó (0.10)
+### AHORA: 200. ANTES: 200 (sin cambios para el autor).
+PUT {{baseUrl}}/recetas/{{idRecetaDeGomez}}
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.1 — editada por su autor",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "750mg", "frecuencia": "cada 12 horas", "duracion": "10 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.2 [Rivas] Editar una receta firmada por Gómez
+### AHORA: 404 {"error": "Receta no encontrada."} — se responde como
+### inexistente a propósito, para no confirmarle que existe.
+### ANTES: 200 — cualquier doctor editaba la receta de cualquier colega.
+PUT {{baseUrl}}/recetas/{{idRecetaDeGomez}}
+Authorization: Bearer {{tokenRivas}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorRivas}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.2 — no debería poder",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "1g", "frecuencia": "cada 6 horas", "duracion": "30 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.3 [Admin] Editar esa misma receta de Gómez
+### AHORA: 200 — el staff no tiene restricción de autor.
+### ANTES: 403 — el PUT estaba reservado al rol doctor.
+PUT {{baseUrl}}/recetas/{{idRecetaDeGomez}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.3 — corregida por administración",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "750mg", "frecuencia": "cada 12 horas", "duracion": "10 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.4 VERIFICACIÓN DE 3.2 — [Rivas] editar la receta que Gómez creó poniendo
+### el id_doctor de Rivas en el cuerpo.
+### AHORA: 404. Si diera 200 querría decir que el id_doctor del cuerpo NO se
+### ignoró y la receta quedó a nombre de Rivas, o sea que 3.2 falló.
+PUT {{baseUrl}}/recetas/{{idRecetaConDoctorAjeno}}
+Authorization: Bearer {{tokenRivas}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorRivas}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.4 — verificación de 3.2",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 12 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.5 VERIFICACIÓN DE 3.2 (la otra mitad) — [Gómez] editar esa misma receta
+### AHORA: 200, porque quedó firmada por él. Junto con 4.4 confirma que el
+### id_doctor del cuerpo se ignoró.
+PUT {{baseUrl}}/recetas/{{idRecetaConDoctorAjeno}}
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.5 — verificación de 3.2, la firma quedó en Gómez",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 12 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.6 VERIFICACIÓN DE 3.3 — [Rivas] editar la receta que el admin emitió a su
+### nombre.
+### AHORA: 200, porque el staff sí respeta el id_doctor que mandó.
+PUT {{baseUrl}}/recetas/{{idRecetaDeRivas}}
+Authorization: Bearer {{tokenRivas}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorRivas}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.6 — verificación de 3.3, la firma quedó en Rivas",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "250mg", "frecuencia": "cada 24 horas", "duracion": "3 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.7 [Gómez] Editar una receta inexistente
+### AHORA: 404 {"error": "Receta no encontrada."} — mismo cuerpo que 4.2, que
+### es justamente la idea.
+PUT {{baseUrl}}/recetas/999999
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2026-12-31",
+  "detalles": "4.7 — receta inexistente",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### 4.8 [Duarte, paciente] Editar una receta propia
+### AHORA: 403 — el rol paciente sigue afuera del endpoint.
+PUT {{baseUrl}}/recetas/{{idRecetaDeGomez}}
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "idTurno": null,
+  "fecha": "2026-09-17",
+  "vigencia": "2027-12-31",
+  "detalles": "4.8 — paciente estirando la vigencia",
+  "medicamentos": [
+    { "idMedicamento": {{idMedicamento}}, "dosis": "500mg", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ]
+}
+
+
+### ============================================================
+### 5. PATCH /notificaciones/{id}/leer — punto 4 del plan
+### ============================================================
+### Requiere el setup 0.12 (INSERT por SQL). Si @idNotificacionDeDuarte quedó
+### en 0, esta sección entera va a dar 404 sin probar nada.
+
+### 5.1 [Salas] Marcar como leída una notificación ajena
+### AHORA: 403 Forbidden.
+### ANTES: 200 — cualquier autenticado marcaba como leída la notificación de
+### cualquiera sabiendo el id. Es el agujero que cierra este punto.
+### Se corre ANTES que 5.4 a propósito: después de marcarla, el 200 del dueño
+### ya no distinguiría nada.
+PATCH {{baseUrl}}/notificaciones/{{idNotificacionDeDuarte}}/leer
+Authorization: Bearer {{tokenSalas}}
+
+
+### 5.2 [Gómez, doctor] Marcar como leída esa misma notificación ajena
+### AHORA: 403.
+PATCH {{baseUrl}}/notificaciones/{{idNotificacionDeDuarte}}/leer
+Authorization: Bearer {{tokenGomez}}
+
+
+### 5.3 [Admin] Marcar como leída esa misma notificación ajena
+### AHORA: 403 — acá NO hay excepción para el staff, a diferencia de
+### GET /usuarios/{id}/notificaciones, que sí se la sigue dando (ver 5.5).
+### Es la asimetría buscada: el administrador puede leer la bandeja de otro,
+### pero marcar como leído es un acto del destinatario.
+PATCH {{baseUrl}}/notificaciones/{{idNotificacionDeDuarte}}/leer
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 5.4 [Duarte] Marcar como leída su propia notificación
+### AHORA: 200 {"id": ..., "leida": true}.
+PATCH {{baseUrl}}/notificaciones/{{idNotificacionDeDuarte}}/leer
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 5.5 [Admin] Listar la bandeja de Duarte, para ver la asimetría de 5.3
+### AHORA: 200 con la notificación ya en leida: true (la marcó Duarte en 5.4).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 5.6 [Duarte] Marcar como leída una notificación inexistente
+### AHORA: 404 {"error": "Notificación no encontrada."}
+PATCH {{baseUrl}}/notificaciones/999999/leer
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 6. PUT /turnos/{id} — punto 5 del plan
+### ============================================================
+### Requiere @idTurnoDeGomez y @idTurnoDeRivas de 0.13.
+### Ojo con el orden: 6.1 deja el turno de Gómez en "confirmado", así que si
+### volvés a correr la sección, releé 0.13 o ajustá los estados.
+
+### 6.1 [Gómez] Confirmar un turno propio
+### AHORA: 200 {"mensaje": "Turno actualizado correctamente."}
+### ANTES: 403 — el PUT estaba reservado a administrador y secretario, y el
+### doctor solo podía cancelar. Es el permiso que suma este punto.
+PUT {{baseUrl}}/turnos/{{idTurnoDeGomez}}
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "confirmado",
+  "observaciones": "6.1 — confirmado por el doctor dueño"
+}
+
+
+### 6.2 [Gómez] Cambiar el estado de un turno de OTRO doctor
+### AHORA: 404 {"error": "Turno no encontrado."} — mismo criterio que las
+### recetas: no se confirma que exista.
+PUT {{baseUrl}}/turnos/{{idTurnoDeRivas}}
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "confirmado",
+  "observaciones": "6.2 — no debería poder"
+}
+
+
+### 6.3 [Rivas] Confirmar ese turno suyo
+### AHORA: 200 — confirma que 6.2 falló por dueño y no porque el turno no exista.
+PUT {{baseUrl}}/turnos/{{idTurnoDeRivas}}
+Authorization: Bearer {{tokenRivas}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "confirmado",
+  "observaciones": "6.3 — confirmado por su propio doctor"
+}
+
+
+### 6.4 [Admin] Completar el turno de Gómez
+### AHORA: 200 — el staff sigue pudiendo sobre cualquier turno.
+### ANTES: 200 (sin cambios).
+PUT {{baseUrl}}/turnos/{{idTurnoDeGomez}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "completado",
+  "observaciones": "6.4 — completado por administración"
+}
+
+
+### 6.5 [Duarte, paciente] Cambiar el estado de su propio turno
+### AHORA: 403 — el rol paciente sigue afuera del endpoint.
+PUT {{baseUrl}}/turnos/{{idTurnoDeGomez}}
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "confirmado",
+  "observaciones": "6.5 — paciente confirmándose el turno"
+}
+
+
+### 6.6 [Gómez] Cambiar el estado de un turno inexistente
+### AHORA: 404 {"error": "Turno no encontrado."}
+PUT {{baseUrl}}/turnos/999999
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "fechaInicio": null,
+  "horaInicio": null,
+  "horaFin": null,
+  "estado": "confirmado",
+  "observaciones": "6.6 — turno inexistente"
+}
+
+
+### ============================================================
+### 7. Caso borde NO cubierto por este archivo: "sin perfil de paciente/doctor"
+### ============================================================
+### Los cuatro métodos que toca esta fase devuelven 404 con un mensaje explícito
+### ("Tu usuario no tiene un perfil de <paciente|doctor> asociado.") cuando el
+### caller tiene el rol pero no tiene la fila propia en Pacientes/Doctores:
+###
+###   - GET /recetas/{id}/descargar   y  GET /estudios/{id}/descargar  -> paciente
+###   - POST /recetas  y  PUT /recetas/{id}                            -> doctor
+###   - PUT /turnos/{id}                                               -> doctor
+###
+### Igual que en la Fase 1b, no hay forma de llegar a ese estado por HTTP: el
+### registro público siempre crea la fila de Paciente, y el alta de doctor crea
+### la de Doctor. Para probarlo hay que insertar a mano por SQL un Usuario con
+### Rol='paciente' (o 'doctor') sin su fila correspondiente, y loguearse con él.
+###
+### Nota sobre el rol "secretario": todas las reglas de esta fase lo tratan como
+### staff, igual que administrador, pero sigue siendo inalcanzable porque el
+### registro solo acepta paciente, doctor y administrador. No hay forma de
+### probarlo por HTTP hasta que exista un alta con ese rol.
+
+
+### ============================================================
+### 8. Limpieza (opcional)
+### ============================================================
+### No hay DELETE de recetas ni de estudios en la API, así que las recetas 3.1,
+### 3.2, 3.3, 3.6 y los dos estudios de 0.11 quedan cargados para Duarte. Si
+### querés dejar la base como estaba, por SQL:
+###
+###   DELETE FROM RecetaMedicamentos WHERE IdReceta IN
+###     (SELECT Id FROM Recetas WHERE Detalles LIKE '%Fase 1c%' OR Detalles LIKE '3.%' OR Detalles LIKE '4.%');
+###   DELETE FROM Recetas WHERE Detalles LIKE '%Fase 1c%' OR Detalles LIKE '3.%' OR Detalles LIKE '4.%';
+###   DELETE FROM Estudios WHERE Descripcion LIKE '%Fase 1c%';
+###   DELETE FROM Notificaciones WHERE Mensaje = 'Notificación de prueba Fase 1c';
+###
+### Los turnos de la Sección 6 quedan con el estado que les dejó la corrida
+### (confirmado / completado). Lo más simple para volver a empezar es correr de
+### nuevo .\seed-datos.ps1.
