@@ -4,7 +4,7 @@
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
     // asp-for agrega input-validation-error al campo con error: la variante
     // arbitraria pinta el borde con el color de error sin JavaScript.
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
     const string claseEtiqueta = "block text-sm font-medium text-ink";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
     const string claseSeccion = "text-sm font-semibold uppercase tracking-wide text-muted";
@@ -127,7 +127,7 @@
                 @* El input de archivo queda oculto y el label for="Foto" funciona
                    como botón: abrir el selector no necesita JavaScript. *@
                 <div>
-                    <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-primary-line bg-white p-4 text-center">
+                    <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-primary-line bg-field p-4 text-center">
                         <svg class="h-10 w-10 text-primary-line" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="8" r="5" />

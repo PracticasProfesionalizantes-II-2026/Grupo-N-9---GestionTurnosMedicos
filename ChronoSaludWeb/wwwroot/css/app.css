@@ -28,6 +28,12 @@
   --color-canvas: #F4EFE9;
   --color-surface: #FBF7F2;
   --color-border: #E3DAD1;
+  /* Fondo de los campos de formulario. Necesita token propio porque es la
+     única superficie cuya relación con la tarjeta se invierte entre temas:
+     en claro el campo va por encima de surface (blanco puro) y en oscuro
+     por debajo. Con canvas o surface a secas, uno de los dos temas queda
+     mal. */
+  --color-field: #FFFFFF;
   --color-ink: #1C2321;
   --color-muted: #6B7671;
   --color-status-pendiente: #B45309;
@@ -87,6 +93,11 @@
   --color-canvas: #16130F;
   --color-surface: #1F1B16;
   --color-border: #322C25;
+
+  /* El campo baja al nivel del lienzo, un escalón por debajo de la tarjeta
+     que lo contiene: es el equivalente en oscuro del blanco sobre hueso del
+     tema claro, un campo que se lee como hueco y no como relieve. */
+  --color-field: #16130F;
 
   /* Hueso cálido como tinta (12.9:1 sobre canvas) y un apagado que sigue
      pasando AA para texto normal (5.6:1), que en oscuro es donde más se
