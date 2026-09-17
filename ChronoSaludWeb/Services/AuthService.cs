@@ -82,14 +82,15 @@ public class AuthService
 
     /// <summary>
     /// PUT /turnos/{id} es el único camino para mover el estado de un turno, y la
-    /// API lo reserva a administrador y secretario (TurnoEndpoints, MapPut).
-    /// Espejamos esa regla tal cual, pero conviene saber dos cosas: "secretario"
-    /// hoy es inalcanzable, porque el registro solo acepta paciente, doctor y
-    /// administrador, así que en la práctica esto es solo-administrador; y un
-    /// doctor NO puede confirmar ni completar sus propios turnos, solo cancelarlos.
+    /// API lo acepta del doctor sobre sus propios turnos, y de administrador y
+    /// secretario sobre cualquiera (TurnoEndpoints, MapPut). Espejamos esa regla
+    /// tal cual. Ojo con dos cosas: "secretario" hoy es inalcanzable, porque el
+    /// registro solo acepta paciente, doctor y administrador; y el "sobre los
+    /// propios" del doctor no lo decide este flag, que solo mira el rol, sino la
+    /// revalidación de ámbito de TurnosController.CambiarEstado (y la API).
     /// </summary>
     public bool PuedeCambiarEstadoTurno =>
-        SesionActual?.Rol is "administrador" or "secretario";
+        SesionActual?.Rol is "doctor" or "administrador" or "secretario";
 
     /// <summary>
     /// POST /doctores solo lo acepta con este rol.

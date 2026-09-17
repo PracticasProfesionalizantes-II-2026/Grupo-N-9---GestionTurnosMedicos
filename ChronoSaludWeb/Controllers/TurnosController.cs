@@ -198,7 +198,8 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCambiarEstadoTurno)
             return SinPermiso(
                 "No podés cambiar el estado de un turno con tu rol",
-                "La API reserva PUT /turnos al administrador. Un doctor solo puede cancelar.");
+                "La API reserva PUT /turnos al personal: el doctor sobre sus propios turnos, " +
+                "y administrador o secretario sobre cualquiera.");
 
         // El estado llega del formulario y la API lo guardaría tal cual, sin
         // validarlo, así que la lista blanca la ponemos nosotros.
