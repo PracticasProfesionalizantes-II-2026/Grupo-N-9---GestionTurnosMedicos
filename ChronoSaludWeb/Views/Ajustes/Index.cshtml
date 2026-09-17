@@ -1,0 +1,73 @@
+@model AjustesViewModel
+@{
+    ViewData["Title"] = "Ajustes";
+
+    // La tarjeta entera es el label: se marca sola con has-[:checked] (CSS puro,
+    // sin JavaScript) y el radio nativo queda a la vista para que se entienda
+    // que es una opción única y siga funcionando con teclado.
+    const string claseOpcion = "flex cursor-pointer items-start gap-3 rounded-input border border-border bg-canvas px-4 py-3 transition-colors hover:border-primary-line has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-soft";
+    const string claseRadio = "mt-0.5 h-4 w-4 shrink-0 accent-primary";
+}
+
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Ajustes</h1>
+    <p class="mt-1 text-sm text-muted">
+        Cómo se ve ChronoSalud en este navegador. Se guarda en tu equipo, así que
+        se mantiene aunque cierres sesión, y no cambia nada para el resto.
+    </p>
+
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        <form asp-action="Guardar" method="post">
+            <input type="hidden" asp-for="UrlRetorno" />
+
+            <fieldset>
+                <legend class="text-sm font-semibold text-ink">Tema</legend>
+                <p class="mt-1 text-sm text-muted">El esquema de colores de toda la aplicación.</p>
+
+                <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    @foreach (var opcion in AjustesViewModel.Temas)
+                    {
+                        <label class="@claseOpcion" for="tema-@opcion.Valor">
+                            <input asp-for="Tema" type="radio" value="@opcion.Valor"
+                                   id="tema-@opcion.Valor" class="@claseRadio" />
+                            <span>
+                                <span class="block text-sm font-medium text-ink">@opcion.Titulo</span>
+                                <span class="mt-0.5 block text-xs text-muted">@opcion.Descripcion</span>
+                            </span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+
+            <fieldset class="mt-8">
+                <legend class="text-sm font-semibold text-ink">Tamaño del texto</legend>
+                <p class="mt-1 text-sm text-muted">
+                    Agranda el texto y, en la misma proporción, los espacios y los
+                    botones, para que nada quede apretado.
+                </p>
+
+                <div class="mt-3 grid gap-3">
+                    @foreach (var opcion in AjustesViewModel.Escalas)
+                    {
+                        <label class="@claseOpcion" for="escala-@opcion.Valor">
+                            <input asp-for="Escala" type="radio" value="@opcion.Valor"
+                                   id="escala-@opcion.Valor" class="@claseRadio" />
+                            <span>
+                                <span class="block text-sm font-medium text-ink">@opcion.Titulo</span>
+                                <span class="mt-0.5 block text-xs text-muted">@opcion.Descripcion</span>
+                            </span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit"
+                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    Guardar
+                </button>
+                <span class="text-xs text-muted">Los cambios se aplican al guardar.</span>
+            </div>
+        </form>
+    </div>
+</div>
