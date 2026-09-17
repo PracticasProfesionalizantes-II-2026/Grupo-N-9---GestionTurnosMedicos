@@ -35,9 +35,15 @@ public static class NotificacionEndpoints
         // PATCH /notificaciones/{id}/leer
         app.MapMethods("/notificaciones/{id:int}/leer", new[] { "PATCH" }, async (
             int id,
+            HttpContext ctx,
             INotificacionLogica logica) =>
         {
-            var (ok, error) = await logica.MarcarLeida(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var (ok, error, prohibido) = await logica.MarcarLeida(id, idUsuario);
+            if (prohibido) return Results.Forbid();
             if (!ok)
                 return error!.Contains("no encontrada")
                     ? Results.NotFound(new { error })
