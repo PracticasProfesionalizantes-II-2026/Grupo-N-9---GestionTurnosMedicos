@@ -81,19 +81,25 @@ public static class TurnoEndpoints
         .WithSummary("Crear turno");
 
         // PUT /turnos/{id}
-        grupo.MapPut("/{id:int}", async (int id, TurnoUpdateDto dto, ITurnoLogica logica) =>
+        grupo.MapPut("/{id:int}", async (int id, TurnoUpdateDto dto, HttpContext ctx, ITurnoLogica logica) =>
         {
-            var (ok, error) = await logica.Actualizar(id, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsDoctor = ctx.User.IsInRole("doctor");
+
+            var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, dto, idUsuario, callerEsDoctor);
             if (!ok)
             {
-                if (error!.Contains("no encontrado")) return Results.NotFound(new { error });
-                if (error.Contains("Conflicto"))       return Results.Conflict(new { error });
+                if (sinPerfilDoctor || error!.Contains("no encontrado")) return Results.NotFound(new { error });
+                if (error.Contains("Conflicto"))                          return Results.Conflict(new { error });
                 return Results.BadRequest(new { error });
             }
             return Results.Ok(new { mensaje = "Turno actualizado correctamente." });
         })
         .WithSummary("Modificar turno")
-        .RequireAuthorization(p => p.RequireRole("administrador", "secretario"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
 
         // DELETE /turnos/{id}
         grupo.MapDelete("/{id:int}", async (int id, ITurnoLogica logica) =>
