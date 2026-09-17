@@ -73,11 +73,18 @@ public static class RecetaEndpoints
         .RequireAuthorization(p => p.RequireRole("doctor"));
 
         // GET /recetas/{id}/descargar  (placeholder PDF)
-        grupo.MapGet("/{id:int}/descargar", async (int id, IRecetaLogica logica) =>
+        grupo.MapGet("/{id:int}/descargar", async (int id, HttpContext ctx, IRecetaLogica logica) =>
         {
-            var receta = await logica.ObtenerPorId(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (receta, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
             if (receta == null)
-                return Results.NotFound(new { error = "Receta no encontrada." });
+                return Results.NotFound(new { error });
 
             // Placeholder: devuelve metadata. En producción se generaría un PDF real.
             return Results.Ok(new

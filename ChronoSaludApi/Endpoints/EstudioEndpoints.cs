@@ -70,11 +70,18 @@ public static class EstudioEndpoints
         .RequireAuthorization(p => p.RequireRole("administrador", "doctor"));
 
         // GET /estudios/{id}/descargar  (placeholder)
-        grupo.MapGet("/{id:int}/descargar", async (int id, IEstudioLogica logica) =>
+        grupo.MapGet("/{id:int}/descargar", async (int id, HttpContext ctx, IEstudioLogica logica) =>
         {
-            var estudio = await logica.ObtenerPorId(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (estudio, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
             if (estudio == null)
-                return Results.NotFound(new { error = "Estudio no encontrado." });
+                return Results.NotFound(new { error });
 
             if (string.IsNullOrEmpty(estudio.ArchivoUrl))
                 return Results.NotFound(new { error = "El estudio aún no tiene resultado disponible." });

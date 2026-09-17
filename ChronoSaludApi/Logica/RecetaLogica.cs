@@ -33,10 +33,27 @@ public class RecetaLogica : IRecetaLogica
         return (recetas.Select(MapearDto), null, false);
     }
 
-    public async Task<RecetaDto?> ObtenerPorId(int id)
+    public async Task<(RecetaDto? receta, string? error, bool prohibido)> ObtenerPorId(
+        int id, int idUsuarioCaller, bool callerEsStaff)
     {
+        // Mismo criterio que ObtenerDePaciente: el staff ve cualquier receta y
+        // el paciente solo las propias. El perfil se resuelve antes de buscar la
+        // receta para que "no tenés perfil" no dependa de que el id exista.
+        Paciente? propio = null;
+        if (!callerEsStaff)
+        {
+            propio = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (null, "Tu usuario no tiene un perfil de paciente asociado.", false);
+        }
+
         var r = await _repo.ObtenerPorId(id);
-        return r == null ? null : MapearDto(r);
+        if (r == null) return (null, "Receta no encontrada.", false);
+
+        if (propio != null && propio.Id != r.IdPaciente)
+            return (null, null, true);
+
+        return (MapearDto(r), null, false);
     }
 
     public async Task<(int? id, string? error)> Crear(RecetaCreateDto dto)
