@@ -1,4 +1,5 @@
 using ChronoSaludApi.Logica;
+using ChronoSaludApi.Repositorios;
 
 namespace ChronoSaludApi.Endpoints;
 
@@ -43,6 +44,8 @@ public static class ReporteEndpoints
 
         // GET /reportes/pacientes
         grupo.MapGet("/pacientes", async (
+            IPacienteRepository pacienteRepo,
+            ITurnoRepository turnoRepo,
             DateTime? fecha_desde,
             DateTime? fecha_hasta,
             string? formato) =>
@@ -50,11 +53,22 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            // Placeholder: En producción consultar métricas reales del DB
+            var totalPacientes = (await pacienteRepo.ObtenerTodos(null, null, null)).Count();
+
+            var turnosPeriodo = (await turnoRepo.ObtenerTodos(null, null, null, fecha_desde, fecha_hasta)).ToList();
+            var pacientesAtendidos = turnosPeriodo
+                .Where(t => t.Estado == "completado")
+                .Select(t => t.IdPaciente)
+                .Distinct()
+                .Count();
+
             return Results.Ok(new
             {
                 mensaje = "Reporte de pacientes generado.",
-                periodo = new { desde = fecha_desde, hasta = fecha_hasta }
+                periodo = new { desde = fecha_desde, hasta = fecha_hasta },
+                total_pacientes = totalPacientes,
+                turnos_en_periodo = turnosPeriodo.Count,
+                pacientes_atendidos_en_periodo = pacientesAtendidos
             });
         })
         .WithSummary("Reporte de actividad de pacientes")
@@ -62,6 +76,8 @@ public static class ReporteEndpoints
 
         // GET /reportes/disponibilidad
         grupo.MapGet("/disponibilidad", async (
+            IDoctorRepository doctorRepo,
+            ITurnoRepository turnoRepo,
             int? doctor_id,
             DateTime? fecha_desde,
             DateTime? fecha_hasta) =>
@@ -69,12 +85,40 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            // Placeholder: En producción calcular franjas libres
+            // Nivel 2 acotado: Doctor no tiene ningún campo de horario laboral,
+            // así que se reporta ocupación real (turnos no cancelados), no huecos libres.
+            var turnosPeriodo = await turnoRepo.ObtenerTodos(null, doctor_id, null, fecha_desde, fecha_hasta);
+            var ocupadosPorDoctor = turnosPeriodo
+                .Where(t => t.Estado != "cancelado")
+                .GroupBy(t => t.IdDoctor)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            if (doctor_id.HasValue)
+            {
+                return Results.Ok(new
+                {
+                    mensaje    = "Reporte de disponibilidad generado.",
+                    doctor_id,
+                    periodo = new { desde = fecha_desde, hasta = fecha_hasta },
+                    turnos_ocupados = ocupadosPorDoctor.GetValueOrDefault(doctor_id.Value, 0)
+                });
+            }
+
+            var doctores = await doctorRepo.ObtenerTodos(null, null);
+            var porDoctor = doctores.Select(d => new
+            {
+                doctor_id     = d.Id,
+                doctor        = $"{d.Usuario?.Nombre} {d.Usuario?.Apellido}",
+                especialidad  = d.Especialidad,
+                turnos_ocupados = ocupadosPorDoctor.GetValueOrDefault(d.Id, 0)
+            });
+
             return Results.Ok(new
             {
                 mensaje    = "Reporte de disponibilidad generado.",
-                doctor_id,
-                periodo = new { desde = fecha_desde, hasta = fecha_hasta }
+                doctor_id  = (int?)null,
+                periodo = new { desde = fecha_desde, hasta = fecha_hasta },
+                turnos_ocupados_por_doctor = porDoctor
             });
         })
         .WithSummary("Reporte de disponibilidad de profesionales");

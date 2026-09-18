@@ -8,11 +8,19 @@ public class EstudioLogica : IEstudioLogica
 {
     private readonly IEstudioRepository _repo;
     private readonly IPacienteRepository _pacienteRepo;
+    private readonly INotificacionRepository _notifRepo;
+    private readonly ILogger<EstudioLogica> _logger;
 
-    public EstudioLogica(IEstudioRepository repo, IPacienteRepository pacienteRepo)
+    public EstudioLogica(
+        IEstudioRepository repo,
+        IPacienteRepository pacienteRepo,
+        INotificacionRepository notifRepo,
+        ILogger<EstudioLogica> logger)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
+        _notifRepo = notifRepo;
+        _logger = logger;
     }
 
     public async Task<(IEnumerable<EstudioDto> estudios, string? error, bool prohibido)> ObtenerDePaciente(
@@ -89,6 +97,27 @@ public class EstudioLogica : IEstudioLogica
         estudio.FechaResultado = dto.FechaResultado;
 
         await _repo.Actualizar(estudio);
+
+        // Un fallo al insertar la notificación nunca puede hacer fracasar ni
+        // parecer que fracasó la carga del resultado, que ya se guardó.
+        try
+        {
+            var paciente = await _pacienteRepo.ObtenerPorId(estudio.IdPaciente);
+            if (paciente?.Usuario != null)
+            {
+                await _notifRepo.Agregar(new Notificacion
+                {
+                    IdUsuario = paciente.Usuario.Id,
+                    Tipo      = "estudio",
+                    Mensaje   = $"El resultado de tu estudio de {estudio.Tipo} ya está disponible."
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo crear la notificación de resultado de estudio para el paciente {IdPaciente}.", estudio.IdPaciente);
+        }
+
         return (true, null);
     }
 

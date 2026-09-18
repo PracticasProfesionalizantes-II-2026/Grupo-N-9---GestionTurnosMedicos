@@ -9,12 +9,43 @@ public class TurnoLogica : ITurnoLogica
     private readonly ITurnoRepository _repo;
     private readonly IPacienteRepository _pacienteRepo;
     private readonly IDoctorRepository _doctorRepo;
+    private readonly INotificacionRepository _notifRepo;
+    private readonly ILogger<TurnoLogica> _logger;
 
-    public TurnoLogica(ITurnoRepository repo, IPacienteRepository pacienteRepo, IDoctorRepository doctorRepo)
+    public TurnoLogica(
+        ITurnoRepository repo,
+        IPacienteRepository pacienteRepo,
+        IDoctorRepository doctorRepo,
+        INotificacionRepository notifRepo,
+        ILogger<TurnoLogica> logger)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
         _doctorRepo = doctorRepo;
+        _notifRepo = notifRepo;
+        _logger = logger;
+    }
+
+    // Un fallo al insertar la notificación nunca puede hacer fracasar ni
+    // parecer que fracasó la operación principal que ya se guardó.
+    private async Task NotificarPaciente(int idPaciente, string mensaje)
+    {
+        try
+        {
+            var paciente = await _pacienteRepo.ObtenerPorId(idPaciente);
+            if (paciente?.Usuario == null) return;
+
+            await _notifRepo.Agregar(new Notificacion
+            {
+                IdUsuario = paciente.Usuario.Id,
+                Tipo      = "turno",
+                Mensaje   = mensaje
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "No se pudo crear la notificación de turno para el paciente {IdPaciente}.", idPaciente);
+        }
     }
 
     public async Task<(int total, IEnumerable<TurnoListaDto> turnos, string? error)> ObtenerTodos(
@@ -121,6 +152,10 @@ public class TurnoLogica : ITurnoLogica
         };
 
         await _repo.Agregar(turno);
+
+        await NotificarPaciente(turno.IdPaciente,
+            $"Se creó tu turno para el {turno.FechaInicio:dd/MM/yyyy} a las {dto.HoraInicio}.");
+
         return (turno.Id, null);
     }
 
@@ -140,6 +175,8 @@ public class TurnoLogica : ITurnoLogica
             if (doctor.Id != turno.IdDoctor)
                 return (false, "Turno no encontrado.", false);
         }
+
+        var estadoAnterior = turno.Estado;
 
         if (dto.FechaInicio.HasValue) turno.FechaInicio = dto.FechaInicio.Value;
 
@@ -168,6 +205,13 @@ public class TurnoLogica : ITurnoLogica
         if (!string.IsNullOrEmpty(dto.Observaciones)) turno.Observaciones = dto.Observaciones;
 
         await _repo.Actualizar(turno);
+
+        if (!string.IsNullOrEmpty(dto.Estado) && dto.Estado != estadoAnterior)
+        {
+            await NotificarPaciente(turno.IdPaciente,
+                $"El estado de tu turno del {turno.FechaInicio:dd/MM/yyyy} cambió a \"{turno.Estado}\".");
+        }
+
         return (true, null, false);
     }
 
@@ -178,6 +222,10 @@ public class TurnoLogica : ITurnoLogica
 
         turno.Estado = "cancelado";
         await _repo.Eliminar(turno);
+
+        await NotificarPaciente(turno.IdPaciente,
+            $"Tu turno del {turno.FechaInicio:dd/MM/yyyy} fue cancelado.");
+
         return (true, null);
     }
 }

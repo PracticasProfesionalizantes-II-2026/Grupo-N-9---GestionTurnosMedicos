@@ -94,5 +94,26 @@ public static class EstudioEndpoints
             });
         })
         .WithSummary("Descargar resultado de estudio");
+
+        // GET /estudios/{id}/archivo
+        grupo.MapGet("/{id:int}/archivo", async (int id, HttpContext ctx, IEstudioLogica logica) =>
+        {
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (estudio, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (estudio == null)
+                return Results.NotFound(new { error = error ?? "Estudio no encontrado." });
+
+            if (string.IsNullOrEmpty(estudio.ArchivoUrl))
+                return Results.NotFound(new { error = "El estudio aún no tiene resultado disponible." });
+
+            return Results.Redirect(estudio.ArchivoUrl);
+        })
+        .WithSummary("Descargar el archivo real del resultado de estudio");
     }
 }
