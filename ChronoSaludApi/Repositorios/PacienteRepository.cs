@@ -10,7 +10,7 @@ public class PacienteRepository : IPacienteRepository
 
     public PacienteRepository(AppDbContext db) => _db = db;
 
-    public async Task<IEnumerable<Paciente>> ObtenerTodos(string? nombre, int? coberturaId)
+    public async Task<IEnumerable<Paciente>> ObtenerTodos(string? nombre, string? dni, int? coberturaId)
     {
         var query = _db.Pacientes.Include(p => p.Usuario).AsQueryable();
 
@@ -18,6 +18,9 @@ public class PacienteRepository : IPacienteRepository
             query = query.Where(p =>
                 p.Usuario!.Nombre.Contains(nombre) ||
                 p.Usuario!.Apellido.Contains(nombre));
+
+        if (!string.IsNullOrEmpty(dni))
+            query = query.Where(p => p.Dni != null && p.Dni.Contains(dni));
 
         if (coberturaId.HasValue)
             query = query.Where(p =>
@@ -43,4 +46,7 @@ public class PacienteRepository : IPacienteRepository
         _db.Pacientes.Update(paciente);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> ExisteDniEnOtroPaciente(string dni, int idPacienteExcluir)
+        => await _db.Pacientes.AnyAsync(p => p.Dni == dni && p.Id != idPacienteExcluir);
 }

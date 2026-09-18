@@ -16,6 +16,16 @@ public class Paciente
 
     public string? Condiciones { get; set; }
 
+    public string? Dni { get; set; }
+
+    public string? Direccion { get; set; }
+
+    public string? Nacionalidad { get; set; }
+
+    public string? EstadoCivil { get; set; }
+
+    public string? FotoUrl { get; set; }
+
     // Navegación
     public Usuario? Usuario { get; set; }
 
