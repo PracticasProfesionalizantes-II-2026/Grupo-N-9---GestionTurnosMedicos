@@ -4,18 +4,6 @@
     ViewData["Title"] = Model.HaySesion ? "Inicio" : null;
 }
 
-@functions {
-    // Acento sutil por rol: cambia el tratamiento del chip, no el fondo de la
-    // página. Todo sale de los tokens del proyecto.
-    static string ClaseRol(string? rol) => rol switch
-    {
-        "paciente"      => "bg-primary-soft text-primary",
-        "doctor"        => "bg-accent-soft text-accent",
-        "administrador" => "border border-primary-line text-primary",
-        _               => "bg-canvas text-muted",
-    };
-}
-
 @if (!Model.HaySesion)
 {
     <div class="mx-auto max-w-xl py-10 text-center">
@@ -41,16 +29,7 @@
 }
 else
 {
-    <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-            <h1 class="text-3xl font-bold tracking-tight text-ink">@Model.Saludo</h1>
-            <p class="mt-1 text-sm capitalize text-muted">@Model.FechaDeHoy</p>
-        </div>
-        @if (Model.Rol is not null)
-        {
-            <span class="rounded-badge px-3 py-1 text-xs font-semibold capitalize @ClaseRol(Model.Rol)">@Model.Rol</span>
-        }
-    </div>
+    <h1 class="text-3xl font-bold tracking-tight text-ink">@Model.Saludo</h1>
 
     @if (Model.HuboError)
     {
@@ -80,70 +59,69 @@ else
                     <path d="M12 16v-4" />
                     <path d="M12 8h.01" />
                 </svg>
-                <span>@Model.Aviso</span>
+                <span>
+                    @Model.Aviso
+                    @if (Model.AvisoEnlace is { } avisoEnlace)
+                    {
+                        <a class="ml-1 font-semibold underline hover:no-underline"
+                           asp-controller="@avisoEnlace.Controlador" asp-action="@avisoEnlace.Accion"
+                           asp-all-route-data="avisoEnlace.Ruta">@avisoEnlace.Descripcion</a>
+                    }
+                </span>
             </div>
         }
 
-        <div class="mt-6 grid gap-6 lg:grid-cols-5">
-            <div class="space-y-6 lg:col-span-3">
-                @if (Model.HayMetricas)
-                {
-                    <div class="grid grid-cols-2 gap-4">
-                        @if (Model.TurnosDeHoy is not null)
-                        {
-                            <div class="rounded-card border border-border bg-surface p-5">
-                                <div class="flex items-center gap-2 text-sm text-muted">
-                                    <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none"
-                                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M8 2v4" />
-                                        <path d="M16 2v4" />
-                                        <rect width="18" height="18" x="3" y="4" rx="2" />
-                                        <path d="M3 10h18" />
-                                    </svg>
-                                    Turnos de hoy
-                                </div>
-                                <p class="mt-2 text-3xl font-bold tabular-nums text-ink">@Model.TurnosDeHoy</p>
-                            </div>
-                        }
-                        @if (Model.TotalPacientes is not null)
-                        {
-                            <div class="rounded-card border border-border bg-surface p-5">
-                                <div class="flex items-center gap-2 text-sm text-muted">
-                                    <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none"
-                                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                    </svg>
-                                    Pacientes
-                                </div>
-                                <p class="mt-2 text-3xl font-bold tabular-nums text-ink">@Model.TotalPacientes</p>
-                            </div>
-                        }
-                    </div>
-                }
+        @* Cada rol acomoda las mismas piezas distinto, según el mockup:
+           el administrativo lleva el resumen a la izquierda y la agenda al
+           costado, el doctor abre con los accesos y deja la agenda abajo a todo
+           el ancho, y el paciente pone su historial reciente al costado. *@
+        @switch (Model.Disposicion)
+        {
+            case DisposicionDashboard.PanelAbajo:
+                <div class="mt-6 space-y-6">
+                    <partial name="_GrillaAccesos" model="Model.Accesos" />
 
-                @if (Model.Accesos.Count > 0)
-                {
-                    <div>
-                        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Accesos rápidos</h2>
-                        <div class="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                            @foreach (var acceso in Model.Accesos)
-                            {
-                                <partial name="_AccesoRapido" model="acceso" />
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-
-            @if (Model.Panel is not null)
-            {
-                <div class="lg:col-span-2">
-                    <partial name="_PanelTurnos" model="Model.Panel" />
+                    @if (Model.Panel is not null)
+                    {
+                        <partial name="_PanelTurnos" model="Model.Panel" />
+                    }
                 </div>
-            }
-        </div>
+                break;
+
+            case DisposicionDashboard.ActividadDerecha:
+                <div class="mt-6 grid gap-6 lg:grid-cols-5">
+                    <div class="space-y-6 lg:col-span-3">
+                        @if (Model.Panel is not null)
+                        {
+                            <partial name="_PanelTurnos" model="Model.Panel" />
+                        }
+                        <partial name="_GrillaAccesos" model="Model.Accesos" />
+                    </div>
+
+                    @if (Model.Actividad is not null)
+                    {
+                        <div class="lg:col-span-2">
+                            <partial name="_ActividadReciente" model="Model.Actividad" />
+                        </div>
+                    }
+                </div>
+                break;
+
+            default:
+                <div class="mt-6 grid gap-6 lg:grid-cols-5">
+                    <div class="space-y-6 lg:col-span-3">
+                        <partial name="_GrillaMetricas" model="Model.Metricas" />
+                        <partial name="_GrillaAccesos" model="Model.Accesos" />
+                    </div>
+
+                    @if (Model.Panel is not null)
+                    {
+                        <div class="lg:col-span-2">
+                            <partial name="_PanelTurnos" model="Model.Panel" />
+                        </div>
+                    }
+                </div>
+                break;
+        }
     }
 }

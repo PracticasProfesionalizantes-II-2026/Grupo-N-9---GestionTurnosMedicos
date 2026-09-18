@@ -44,7 +44,7 @@
     <div class="w-full sm:w-auto sm:min-w-40">
         <label for="estado" class="block text-sm font-medium text-ink">Estado</label>
         <select id="estado" name="estado" asp-items="Model.Filtros.Opciones()"
-                class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm capitalize text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                class="mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm capitalize text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
             <option value="">Todos</option>
         </select>
     </div>
@@ -52,13 +52,13 @@
     <div>
         <label for="desde" class="block text-sm font-medium text-ink">Desde</label>
         <input id="desde" name="desde" type="date" value="@(Model.Filtros.Desde?.ToString("yyyy-MM-dd"))"
-               class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+               class="mt-1.5 rounded-input border border-primary-line bg-field px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
     </div>
 
     <div>
         <label for="hasta" class="block text-sm font-medium text-ink">Hasta</label>
         <input id="hasta" name="hasta" type="date" value="@(Model.Filtros.Hasta?.ToString("yyyy-MM-dd"))"
-               class="mt-1.5 rounded-input border border-primary-line bg-white px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+               class="mt-1.5 rounded-input border border-primary-line bg-field px-3 py-2 text-sm tabular-nums text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
     </div>
 
     <div class="flex items-center gap-2">
@@ -259,14 +259,28 @@ else
                                     @* El enlace estirado está acotado a la celda del paciente, pero
                                        el z-10 deja esto a salvo si algún día se mueve al <tr>. *@
                                     <td class="whitespace-nowrap px-5 py-4 text-right">
-                                        @if (!turno.EstaCancelado)
-                                        {
-                                            <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
-                                               class="relative z-10 rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-cancelado/10 hover:text-status-cancelado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
-                                                Cancelar
-                                                <span class="sr-only">el turno de @turno.PacienteMostrado</span>
-                                            </a>
-                                        }
+                                        <div class="flex items-center justify-end gap-1">
+                                            @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeConfirmarse)
+                                            {
+                                                <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="relative z-10">
+                                                    <input type="hidden" name="estado" value="confirmado" />
+                                                    <input type="hidden" name="volverA" value="Index" />
+                                                    <button type="submit"
+                                                            class="rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-confirmado/10 hover:text-status-confirmado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-confirmado/40">
+                                                        Confirmar
+                                                        <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (!turno.EstaCancelado)
+                                            {
+                                                <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
+                                                   class="relative z-10 rounded-badge px-2 py-1 text-sm font-medium text-muted hover:bg-status-cancelado/10 hover:text-status-cancelado focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
+                                                    Cancelar
+                                                    <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                </a>
+                                            }
+                                        </div>
                                     </td>
                                 }
                             </tr>

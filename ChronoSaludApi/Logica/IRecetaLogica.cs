@@ -5,7 +5,7 @@ namespace ChronoSaludApi.Logica;
 public interface IRecetaLogica
 {
     Task<(IEnumerable<RecetaDto> recetas, string? error, bool prohibido)> ObtenerDePaciente(int pacienteId, int idUsuarioCaller, bool callerEsStaff);
-    Task<RecetaDto?> ObtenerPorId(int id);
-    Task<(int? id, string? error)> Crear(RecetaCreateDto dto);
-    Task<(bool ok, string? error)> Actualizar(int id, RecetaCreateDto dto);
+    Task<(RecetaDto? receta, string? error, bool prohibido)> ObtenerPorId(int id, int idUsuarioCaller, bool callerEsStaff);
+    Task<(int? id, string? error, bool sinPerfilDoctor)> Crear(RecetaCreateDto dto, int idUsuarioCaller, bool callerEsDoctor);
+    Task<(bool ok, string? error, bool sinPerfilDoctor)> Actualizar(int id, RecetaCreateDto dto, int idUsuarioCaller, bool callerEsDoctor);
 }

@@ -1,4 +1,5 @@
 @model TurnoDetalleViewModel
+@inject AuthService Auth
 @{
     ViewData["Title"] = $"Turno #{Model.IdTurno}";
 }
@@ -41,7 +42,7 @@ else
     </div>
 
     <div class="mt-6 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-card border border-border bg-surface p-6">
+        <div class="rounded-card neu-elevado p-6">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Cuándo</h2>
             <dl class="mt-4 space-y-4">
                 <div>
@@ -61,7 +62,7 @@ else
             </dl>
         </div>
 
-        <div class="rounded-card border border-border bg-surface p-6">
+        <div class="rounded-card neu-elevado p-6">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Quiénes</h2>
 
             <div class="mt-4 flex items-center gap-3">
@@ -106,7 +107,7 @@ else
         </div>
     </div>
 
-    <div class="mt-4 rounded-card border border-border bg-surface p-6">
+    <div class="mt-4 rounded-card neu-elevado p-6">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Observaciones</h2>
         @if (Model.TieneObservaciones)
         {
@@ -117,4 +118,47 @@ else
             <p class="mt-3 text-sm text-muted">Este turno no tiene observaciones cargadas.</p>
         }
     </div>
+
+    @* La API reserva PUT /turnos al administrador, así que para el resto de los
+       roles esta tarjeta no se dibuja. Un turno completado o cancelado es final. *@
+    @if (Auth.PuedeCambiarEstadoTurno && !Model.EsTerminal)
+    {
+        <div class="mt-4 rounded-card border border-border bg-surface p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Cambiar estado</h2>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                @if (Model.PuedeConfirmarse)
+                {
+                    <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
+                        <input type="hidden" name="estado" value="confirmado" />
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                            Confirmar turno
+                        </button>
+                    </form>
+                }
+                @if (Model.PuedeCompletarse)
+                {
+                    <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
+                        <input type="hidden" name="estado" value="completado" />
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-input border border-primary-line px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                                <path d="m9 11 3 3L22 4" />
+                            </svg>
+                            Marcar como completado
+                        </button>
+                    </form>
+                }
+            </div>
+            <p class="mt-3 text-xs text-muted">
+                Para cancelar el turno usá la acción de cancelación, que lo da de baja en la API.
+            </p>
+        </div>
+    }
 }

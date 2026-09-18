@@ -230,8 +230,20 @@ namespace ChronoSaludApi.Migrations
                     b.Property<string>("Condiciones")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Direccion")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Dni")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("EstadoCivil")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("FechaNacimiento")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FotoUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GrupoSanguineo")
                         .HasColumnType("nvarchar(max)");
@@ -239,10 +251,17 @@ namespace ChronoSaludApi.Migrations
                     b.Property<int>("IdUsuario")
                         .HasColumnType("int");
 
+                    b.Property<string>("Nacionalidad")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Sexo")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Dni")
+                        .IsUnique()
+                        .HasFilter("[Dni] IS NOT NULL");
 
                     b.HasIndex("IdUsuario")
                         .IsUnique();

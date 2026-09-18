@@ -52,6 +52,13 @@ public class TurnoFilaViewModel
     /// <summary>Ya está cancelado: no se ofrece la acción de cancelar.</summary>
     public bool EstaCancelado =>
         string.Equals(Estado, "cancelado", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Solo un turno pendiente se puede confirmar desde el listado. El resto de
+    /// las transiciones se hacen desde el detalle, que tiene todo el contexto.
+    /// </summary>
+    public bool PuedeConfirmarse =>
+        string.Equals(Estado, "pendiente", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

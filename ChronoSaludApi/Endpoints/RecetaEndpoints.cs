@@ -30,17 +30,25 @@ public static class RecetaEndpoints
         var grupo = app.MapGroup("/recetas").WithTags("Recetas").RequireAuthorization();
 
         // POST /recetas
-        grupo.MapPost("/", async (RecetaCreateDto dto, IRecetaLogica logica) =>
+        grupo.MapPost("/", async (RecetaCreateDto dto, HttpContext ctx, IRecetaLogica logica) =>
         {
-            if (dto.IdPaciente == 0 || dto.IdDoctor == 0)
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsDoctor = ctx.User.IsInRole("doctor");
+
+            // Al doctor no se le pide id_doctor: la receta sale a su nombre salga
+            // lo que salga en el cuerpo. Al staff sí, porque firma por otro.
+            if (dto.IdPaciente == 0 || (!callerEsDoctor && dto.IdDoctor == 0))
                 return Results.BadRequest(new { error = "id_paciente e id_doctor son requeridos." });
 
             if (dto.Medicamentos == null || !dto.Medicamentos.Any())
                 return Results.BadRequest(new { error = "Debe incluir al menos un medicamento." });
 
-            var (id, error) = await logica.Crear(dto);
+            var (id, error, sinPerfilDoctor) = await logica.Crear(dto, idUsuario, callerEsDoctor);
             if (error != null)
-                return error.Contains("no encontrado")
+                return sinPerfilDoctor || error.Contains("no encontrado")
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
 
@@ -53,31 +61,44 @@ public static class RecetaEndpoints
             });
         })
         .WithSummary("Emitir receta médica")
-        .RequireAuthorization(p => p.RequireRole("doctor"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
 
         // PUT /recetas/{id}
-        grupo.MapPut("/{id:int}", async (int id, RecetaCreateDto dto, IRecetaLogica logica) =>
+        grupo.MapPut("/{id:int}", async (int id, RecetaCreateDto dto, HttpContext ctx, IRecetaLogica logica) =>
         {
             if (dto.Medicamentos == null || !dto.Medicamentos.Any())
                 return Results.BadRequest(new { error = "Debe incluir al menos un medicamento." });
 
-            var (ok, error) = await logica.Actualizar(id, dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsDoctor = ctx.User.IsInRole("doctor");
+
+            var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, dto, idUsuario, callerEsDoctor);
             if (!ok)
-                return error!.Contains("no encontrada")
+                return sinPerfilDoctor || error!.Contains("no encontrada")
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
 
             return Results.Ok(new { mensaje = "Receta modificada correctamente." });
         })
         .WithSummary("Modificar receta médica")
-        .RequireAuthorization(p => p.RequireRole("doctor"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
 
         // GET /recetas/{id}/descargar  (placeholder PDF)
-        grupo.MapGet("/{id:int}/descargar", async (int id, IRecetaLogica logica) =>
+        grupo.MapGet("/{id:int}/descargar", async (int id, HttpContext ctx, IRecetaLogica logica) =>
         {
-            var receta = await logica.ObtenerPorId(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+
+            var (receta, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
             if (receta == null)
-                return Results.NotFound(new { error = "Receta no encontrada." });
+                return Results.NotFound(new { error });
 
             // Placeholder: devuelve metadata. En producción se generaría un PDF real.
             return Results.Ok(new

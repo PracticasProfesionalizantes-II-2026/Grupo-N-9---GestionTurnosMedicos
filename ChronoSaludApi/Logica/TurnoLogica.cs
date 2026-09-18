@@ -159,10 +159,22 @@ public class TurnoLogica : ITurnoLogica
         return (turno.Id, null);
     }
 
-    public async Task<(bool ok, string? error)> Actualizar(int id, TurnoUpdateDto dto)
+    public async Task<(bool ok, string? error, bool sinPerfilDoctor)> Actualizar(
+        int id, TurnoUpdateDto dto, int idUsuarioCaller, bool callerEsDoctor)
     {
         var turno = await _repo.ObtenerPorId(id);
-        if (turno == null) return (false, "Turno no encontrado.");
+        if (turno == null) return (false, "Turno no encontrado.", false);
+
+        // El doctor solo mueve su propia agenda. Un turno de otro doctor se
+        // responde como inexistente, igual que en el resto de la fase.
+        if (callerEsDoctor)
+        {
+            var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (doctor == null)
+                return (false, "Tu usuario no tiene un perfil de doctor asociado.", true);
+            if (doctor.Id != turno.IdDoctor)
+                return (false, "Turno no encontrado.", false);
+        }
 
         var estadoAnterior = turno.Estado;
 
@@ -171,13 +183,13 @@ public class TurnoLogica : ITurnoLogica
         if (!string.IsNullOrEmpty(dto.HoraInicio))
         {
             if (!TimeSpan.TryParse(dto.HoraInicio, out var hi))
-                return (false, "Formato de hora inicio inválido.");
+                return (false, "Formato de hora inicio inválido.", false);
             turno.HoraInicio = hi;
         }
         if (!string.IsNullOrEmpty(dto.HoraFin))
         {
             if (!TimeSpan.TryParse(dto.HoraFin, out var hf))
-                return (false, "Formato de hora fin inválido.");
+                return (false, "Formato de hora fin inválido.", false);
             turno.HoraFin = hf;
         }
 
@@ -186,7 +198,7 @@ public class TurnoLogica : ITurnoLogica
         {
             var conflicto = await _repo.HayConflictoHorario(turno.IdDoctor, turno.FechaInicio, turno.HoraInicio, turno.HoraFin, id);
             if (conflicto)
-                return (false, "Conflicto de horario al reprogramar.");
+                return (false, "Conflicto de horario al reprogramar.", false);
         }
 
         if (!string.IsNullOrEmpty(dto.Estado))       turno.Estado        = dto.Estado;
@@ -200,7 +212,7 @@ public class TurnoLogica : ITurnoLogica
                 $"El estado de tu turno del {turno.FechaInicio:dd/MM/yyyy} cambió a \"{turno.Estado}\".");
         }
 
-        return (true, null);
+        return (true, null, false);
     }
 
     public async Task<(bool ok, string? error)> Cancelar(int id)

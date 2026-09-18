@@ -39,10 +39,27 @@ public class EstudioLogica : IEstudioLogica
         return (estudios.Select(MapearDto), null, false);
     }
 
-    public async Task<EstudioDto?> ObtenerPorId(int id)
+    public async Task<(EstudioDto? estudio, string? error, bool prohibido)> ObtenerPorId(
+        int id, int idUsuarioCaller, bool callerEsStaff)
     {
+        // Mismo criterio que ObtenerDePaciente: el staff ve cualquier estudio y
+        // el paciente solo los propios. El perfil se resuelve antes de buscar el
+        // estudio para que "no tenés perfil" no dependa de que el id exista.
+        Paciente? propio = null;
+        if (!callerEsStaff)
+        {
+            propio = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            if (propio == null)
+                return (null, "Tu usuario no tiene un perfil de paciente asociado.", false);
+        }
+
         var e = await _repo.ObtenerPorId(id);
-        return e == null ? null : MapearDto(e);
+        if (e == null) return (null, "Estudio no encontrado.", false);
+
+        if (propio != null && propio.Id != e.IdPaciente)
+            return (null, null, true);
+
+        return (MapearDto(e), null, false);
     }
 
     public async Task<(int? id, string? error)> Crear(EstudioCreateDto dto)

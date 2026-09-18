@@ -25,14 +25,14 @@
             <div>
                 <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
                 <input asp-for="Email" autocomplete="email" autofocus placeholder="tu@@email.com"
-                       class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+                       class="mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
                 <span asp-validation-for="Email" class="mt-1 block text-xs text-status-cancelado"></span>
             </div>
 
             <div class="mt-5">
                 <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
                 <input asp-for="Contrasena" autocomplete="current-password" placeholder="••••••••"
-                       class="mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+                       class="mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
                 <span asp-validation-for="Contrasena" class="mt-1 block text-xs text-status-cancelado"></span>
             </div>
 
@@ -44,7 +44,7 @@
     </div>
 
     <p class="mt-6 text-center text-xs text-muted">
-        La API tiene que estar levantada en <span class="font-medium text-ink">http://localhost:5001</span>.
+        La API tiene que estar levantada en <span class="font-medium text-ink">@ViewData["ApiBaseUrl"]</span>.
     </p>
 </div>
 

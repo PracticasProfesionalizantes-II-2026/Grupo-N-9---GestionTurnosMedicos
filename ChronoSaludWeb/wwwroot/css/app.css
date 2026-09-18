@@ -1,5 +1,6 @@
-/* Fuente de Tailwind. Se compila a app.build.css con tools/tailwindcss.exe
-   (ver README de estilos / el comando en tools/compilar-css.ps1).
+/* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
+   dotnet build ChronoSaludWeb -t:CompilarCss *//* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
+   dotnet build ChronoSaludWeb -t:CompilarCss *
    Este archivo se edita a mano; app.build.css es generado, no se toca. */
 
 @import "tailwindcss" source(none);
@@ -8,6 +9,13 @@
    con markup (por ejemplo Areas/), hay que sumarla acá. */
 @source "../../Views";
 @source "../js";
+
+/* La variante dark: de Tailwind por defecto mira prefers-color-scheme, que no
+   es conmutable desde la app. Acá se la redefine para que dependa de un
+   atributo en <html>, así el tema lo decide el servidor al renderizar el
+   layout (o el propio usuario desde su perfil) y no el sistema operativo.
+   El :where() mantiene la especificidad en 0, igual que la variante original. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
@@ -20,6 +28,12 @@
   --color-canvas: #F4EFE9;
   --color-surface: #FBF7F2;
   --color-border: #E3DAD1;
+  /* Fondo de los campos de formulario. Necesita token propio porque es la
+     única superficie cuya relación con la tarjeta se invierte entre temas:
+     en claro el campo va por encima de surface (blanco puro) y en oscuro
+     por debajo. Con canvas o surface a secas, uno de los dos temas queda
+     mal. */
+  --color-field: #FFFFFF;
   --color-ink: #1C2321;
   --color-muted: #6B7671;
   --color-status-pendiente: #B45309;
@@ -30,6 +44,120 @@
   --radius-input: 10px;
   --radius-card: 14px;
   --radius-modal: 18px;
+  /* Sombras del neumorfismo de la home de admin: tintadas con la propia
+     paleta (accent/terracota para la oscura, un casi-blanco cálido para
+     la clara) en vez de gris neutro, que se vería sucio sobre el hueso.
+     La clara pesa menos en opacidad que la oscura porque un tono casi
+     blanco ya es cercano al lienzo: si se lo satura tanto como al oscuro,
+     se ve más pesada de lo que aporta en contraste real. */
+  --color-neu-shadow-dark: rgba(176, 130, 104, 0.28);
+  --color-neu-shadow-light: rgba(255, 252, 245, 0.85);
+}
+
+/* Tema oscuro. Se redefinen los mismos tokens del @theme, no se agregan
+   nuevos: así todas las utilidades ya escritas en las vistas (bg-surface,
+   text-muted, border-border, etc.) cambian solas y no hace falta salpicar
+   las vistas de dark:. Las variables del @theme salen en @layer theme, y
+   este bloque va sin capa, por lo que gana el override sin subir
+   especificidad.
+
+   La paleta no se invierte sin más: el hueso cálido no se vuelve gris
+   neutro sino un marrón muy oscuro desaturado, para que el oscuro se lea
+   como la misma marca con otra luz. Se mantiene el criterio del claro: sin
+   gradientes, la separación la dan los bordes y el salto canvas/surface, y
+   ninguna sombra pasa de shadow-sm. */
+[data-theme="dark"] {
+  /* Controles nativos (scrollbars, date pickers, selects) en variante
+     oscura; es lo único que no se puede resolver con los tokens. */
+  color-scheme: dark;
+
+  /* Teal de marca. En oscuro hay una tensión que no tiene solución con un
+     único token: si se lo aclara para que se lea bien como texto sobre el
+     lienzo, empeora como fondo de botón con texto blanco, y al revés. Este
+     valor es justo el punto de equilibrio: ~4.3:1 en ambos sentidos
+     (texto primary sobre canvas, y blanco sobre primary). */
+  --color-primary: #158892;
+  --color-primary-hover: #1BA3AF;
+  --color-primary-soft: #0F2B31;
+  --color-primary-line: #1F5A62;
+
+  /* La terracota se aclara bastante más que el teal porque es decorativa
+     (bordes, iconos, detalles) y nunca fondo de texto chico: acá conviene
+     priorizar que se distinga del marrón del lienzo. 6.4:1 sobre canvas. */
+  --color-accent: #C08F73;
+  --color-accent-soft: #33241C;
+
+  /* Lienzo y superficie: marrón casi negro, con la superficie apenas por
+     encima. El salto es chico a propósito; quien separa de verdad las
+     tarjetas del fondo es el borde, igual que en el tema claro. */
+  --color-canvas: #16130F;
+  --color-surface: #1F1B16;
+  --color-border: #322C25;
+
+  /* El campo baja al nivel del lienzo, un escalón por debajo de la tarjeta
+     que lo contiene: es el equivalente en oscuro del blanco sobre hueso del
+     tema claro, un campo que se lee como hueco y no como relieve. */
+  --color-field: #16130F;
+
+  /* Hueso cálido como tinta (12.9:1 sobre canvas) y un apagado que sigue
+     pasando AA para texto normal (5.6:1), que en oscuro es donde más se
+     suele fallar. */
+  --color-ink: #F2EBE2;
+  --color-muted: #A79C90;
+
+  /* Estados: mismos hues que en claro, subidos en luminosidad hasta
+     6–7.7:1 sobre el lienzo. Se conserva el orden de saturación para que
+     un pendiente siga leyéndose más "cálido" que un completado. */
+  --color-status-pendiente: #E09B3D;
+  --color-status-confirmado: #4CAF6A;
+  --color-status-completado: #4FADE0;
+  --color-status-cancelado: #E8706B;
+
+  /* Neumorfismo de la home de admin. En oscuro se invierte la lógica de la
+     nota de arriba: ahora la sombra oscura casi no tiene con qué
+     contrastar (el lienzo ya es oscuro) así que se la lleva a negro puro y
+     se le sube la opacidad, mientras que la "luz" pasa a ser un reflejo
+     cálido muy tenue. Si se la dejara casi blanca como en el claro, la
+     tarjeta se vería con un halo recortado en vez de con volumen. */
+  --color-neu-shadow-dark: rgba(0, 0, 0, 0.55);
+  --color-neu-shadow-light: rgba(129, 111, 96, 0.22);
+}
+
+/* Prueba acotada de neumorfismo en la home de admin (ver commit de esta
+   pasada): la tarjeta comparte fondo con el lienzo en vez de diferenciarse
+   por color y borde, y dos sombras opuestas simulan el volumen que antes
+   daba ese borde. El box-shadow se arma con la misma cadena de variables
+   que usan las utilidades "shadow" y "ring" de Tailwind (confirmado en
+   app.build.css) para que un focus-visible:ring-2 en el mismo elemento se
+   siga viendo encima en vez de que uno pise al otro. */
+@layer components {
+  /* Offset chico + blur muy corto hace que la sombra clara no llegue a
+     degradarse: se ve casi opaca hasta el borde del blur y ahí "corta" en
+     vez de desvanecer. Por eso la clara lleva más blur que la oscura (se
+     nota menos su corte al ser casi del color del lienzo) y ambas bajan
+     el offset para que el volumen no se sienta cargado hacia un lado. */
+  .neu-elevado {
+    background-color: var(--color-canvas);
+    --tw-shadow: 5px 5px 16px var(--color-neu-shadow-dark),
+                 -5px -5px 22px var(--color-neu-shadow-light);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+                var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+                var(--tw-shadow);
+  }
+
+  /* Relieve hundido, sutil a propósito: para el acceso rápido deshabilitado,
+     que tiene que leerse como "espacio vacío" y no como una tarjeta rota o
+     sin terminar. Mismos tokens de color que la elevada, invertidos con
+     inset y con menor offset/blur para que no compita visualmente con las
+     tarjetas activas de al lado. */
+  .neu-hundido {
+    background-color: var(--color-canvas);
+    --tw-inset-shadow: inset 3px 3px 8px var(--color-neu-shadow-dark),
+                       inset -3px -3px 8px var(--color-neu-shadow-light);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
+                var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+                var(--tw-shadow);
+  }
 }
 
 /* Entrada escalonada de las filas de los listados. El retraso de cada fila lo
@@ -64,4 +192,18 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Escala tipográfica accesible. Se toca el font-size del elemento raíz y no
+   los tamaños uno por uno: como Tailwind expresa todo en rem (tipografía,
+   paddings, gaps, radios), el layout entero acompaña en proporción y no
+   quedan textos grandes dentro de cajas chicas. Los valores equivalen a
+   18px y 20px sobre el default de 16px del navegador, que es el rango
+   habitual de "texto grande" sin llegar a romper las tablas. */
+[data-scale="lg"] {
+  font-size: 112.5%;
+}
+
+[data-scale="xl"] {
+  font-size: 125%;
 }

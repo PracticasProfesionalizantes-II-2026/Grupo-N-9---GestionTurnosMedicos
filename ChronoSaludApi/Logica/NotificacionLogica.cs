@@ -21,13 +21,18 @@ public class NotificacionLogica : INotificacionLogica
         return (total, resultado);
     }
 
-    public async Task<(bool ok, string? error)> MarcarLeida(int id)
+    public async Task<(bool ok, string? error, bool prohibido)> MarcarLeida(int id, int idUsuarioCaller)
     {
         var notif = await _repo.ObtenerPorId(id);
-        if (notif == null) return (false, "Notificación no encontrada.");
+        if (notif == null) return (false, "Notificación no encontrada.", false);
+
+        // Marcar como leída es un acto del destinatario: acá no hay excepción
+        // para el staff, que sí puede listar las notificaciones de otro.
+        if (notif.IdUsuario != idUsuarioCaller)
+            return (false, null, true);
 
         notif.Leida = true;
         await _repo.Actualizar(notif);
-        return (true, null);
+        return (true, null, false);
     }
 }

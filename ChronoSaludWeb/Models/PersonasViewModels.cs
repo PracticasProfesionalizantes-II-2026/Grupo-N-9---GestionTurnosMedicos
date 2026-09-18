@@ -30,6 +30,13 @@ public class PacientesIndexViewModel
     public bool HayMas => Total > Pacientes.Count;
 }
 
+public class CoberturaFilaViewModel
+{
+    public string NombreCobertura { get; init; } = string.Empty;
+    public string? Plan { get; init; }
+    public string IdAfiliado { get; init; } = string.Empty;
+}
+
 public class PacienteDetalleViewModel
 {
     public int IdPaciente { get; init; }
@@ -40,9 +47,16 @@ public class PacienteDetalleViewModel
     public string? GrupoSanguineo { get; init; }
     public string? Alergias { get; init; }
     public string? Condiciones { get; init; }
+    public IReadOnlyList<CoberturaFilaViewModel> Coberturas { get; init; } = Array.Empty<CoberturaFilaViewModel>();
+
+    /// <summary>Fecha del turno más reciente del paciente, si tiene alguno.</summary>
+    public DateTime? UltimoTurno { get; init; }
 
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
+
+    public string? UltimoTurnoLargo =>
+        UltimoTurno?.ToString("d 'de' MMMM 'de' yyyy", TurnosIndexViewModel.Cultura);
 
     public string NombreCompleto =>
         string.IsNullOrWhiteSpace($"{Nombre}{Apellido}") ? "Sin datos" : $"{Nombre} {Apellido}".Trim();

@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Nuevo turno";
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
 }
 
@@ -41,13 +41,16 @@
 
         <form asp-action="Crear" method="post" novalidate>
             <div class="grid gap-5 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                    <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                        <option value="">Elegí un paciente</option>
-                    </select>
-                    <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                </div>
+                @if (Model.MostrarSelectorPaciente)
+                {
+                    <div class="sm:col-span-2">
+                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                            <option value="">Elegí un paciente</option>
+                        </select>
+                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                    </div>
+                }
 
                 <div class="sm:col-span-2">
                     <label asp-for="IdDoctor" class="block text-sm font-medium text-ink"></label>

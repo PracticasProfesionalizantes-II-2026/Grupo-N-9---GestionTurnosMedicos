@@ -1,0 +1,91 @@
+@model CompletarPerfilPacienteViewModel
+@{
+    ViewData["Title"] = "Completar mi perfil";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<div class="mx-auto max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Completar mi perfil</h1>
+    <p class="mt-1 text-sm text-muted">
+        Estos datos clínicos quedan asociados a tu perfil de paciente. Podés
+        completarlos ahora o más tarde, no son obligatorios.
+    </p>
+
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div class="mb-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                @foreach (var error in erroresGenerales)
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form asp-action="CompletarPaciente" method="post" novalidate>
+            <div class="grid gap-5 sm:grid-cols-2">
+                <div>
+                    <label asp-for="FechaNacimiento" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="FechaNacimiento" type="date" class="@claseCampo" />
+                    <span asp-validation-for="FechaNacimiento" class="@claseError"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Sexo" class="block text-sm font-medium text-ink"></label>
+                    <select asp-for="Sexo" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                        <option value="femenino">Femenino</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                    <span asp-validation-for="Sexo" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="GrupoSanguineo" class="block text-sm font-medium text-ink"></label>
+                    <select asp-for="GrupoSanguineo" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                        <option>A+</option>
+                        <option>A-</option>
+                        <option>B+</option>
+                        <option>B-</option>
+                        <option>AB+</option>
+                        <option>AB-</option>
+                        <option>0+</option>
+                        <option>0-</option>
+                    </select>
+                    <span asp-validation-for="GrupoSanguineo" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Alergias" class="block text-sm font-medium text-ink"></label>
+                    <textarea asp-for="Alergias" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                    <span asp-validation-for="Alergias" class="@claseError"></span>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Condiciones" class="block text-sm font-medium text-ink"></label>
+                    <textarea asp-for="Condiciones" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                    <span asp-validation-for="Condiciones" class="@claseError"></span>
+                </div>
+            </div>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit"
+                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    Guardar
+                </button>
+                <a asp-controller="Home" asp-action="Index"
+                   class="rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                    Completar más tarde
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

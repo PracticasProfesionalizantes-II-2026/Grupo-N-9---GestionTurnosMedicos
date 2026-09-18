@@ -10,21 +10,30 @@ public class HomeController : Controller
     // Cuántos turnos entran en el panel de contexto. La API pagina de a 20.
     private const int TurnosDelPanel = 6;
 
+    // Cuántas consultas y recetas entran en el historial reciente del paciente.
+    private const int ActividadDelPanel = 3;
+
     private readonly AuthService _auth;
     private readonly TurnoService _turnos;
     private readonly PacienteService _pacientes;
     private readonly DoctorService _doctores;
+    private readonly HistorialService _historial;
+    private readonly RecetaService _recetas;
 
     public HomeController(
         AuthService auth,
         TurnoService turnos,
         PacienteService pacientes,
-        DoctorService doctores)
+        DoctorService doctores,
+        HistorialService historial,
+        RecetaService recetas)
     {
         _auth = auth;
         _turnos = turnos;
         _pacientes = pacientes;
         _doctores = doctores;
+        _historial = historial;
+        _recetas = recetas;
     }
 
     public async Task<IActionResult> Index()
@@ -59,8 +68,8 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Dos llamadas: el perfil de paciente (para conocer el IdPaciente, que no
-    /// es el IdUsuario) y sus turnos de hoy en adelante.
+    /// El perfil de paciente (para conocer el IdPaciente, que no es el
+    /// IdUsuario), sus turnos de hoy en adelante y su historial reciente.
     /// </summary>
     private async Task<DashboardViewModel> ArmarPacienteAsync(SesionUsuario sesion)
     {
@@ -78,8 +87,24 @@ public class HomeController : Controller
         {
             Rol = sesion.Rol,
             Nombre = sesion.Nombre,
-            Aviso = perfil is null
-                ? "Tu usuario todavía no tiene un perfil de paciente asociado, así que no podemos mostrar tus turnos. Pedile a la administración que lo cree."
+            Disposicion = DisposicionDashboard.ActividadDerecha,
+            // El registro público (CuentaController.Registro) siempre crea la
+            // fila en Pacientes, así que "perfil is null" a esta altura es un
+            // caso residual: un Usuario rol paciente cargado por otra vía. Si
+            // la fila existe pero está vacía, lo que falta es la ficha clínica.
+            Aviso = perfil switch
+            {
+                null                                  => "Tu usuario todavía no tiene un perfil de paciente asociado, así que no podemos mostrar tus turnos. Pedile a la administración que lo cree.",
+                { FechaNacimiento: null }              => "Todavía no completaste tu ficha clínica.",
+                _                                      => null
+            },
+            AvisoEnlace = perfil is { FechaNacimiento: null }
+                ? new EnlaceViewModel
+                {
+                    Controlador = "MiPerfil",
+                    Accion = "CompletarPaciente",
+                    Descripcion = "Completar mi perfil"
+                }
                 : null,
             Accesos = new[]
             {
@@ -87,13 +112,14 @@ public class HomeController : Controller
                 {
                     Titulo = "Agendar turno",
                     Icono = "calendario-mas",
-                    Motivo = "Para agendar hay que elegir el paciente de una lista, y la API solo se la muestra a doctor y administrador."
+                    Controlador = "Turnos",
+                    Accion = "Crear"
                 },
                 new AccesoRapidoViewModel
                 {
-                    Titulo = "Mis turnos",
-                    Icono = "calendario",
-                    Controlador = "Turnos",
+                    Titulo = "Historial consultas",
+                    Icono = "historia",
+                    Controlador = "Historial",
                     Accion = "Index"
                 },
                 new AccesoRapidoViewModel
@@ -115,13 +141,78 @@ public class HomeController : Controller
                 Titulo = "Próximos turnos",
                 Vista = VistaPanel.Paciente,
                 Turnos = turnos,
-                TextoVacio = "No tenés turnos programados de hoy en adelante."
-            }
+                TextoVacio = "No tenés turnos programados de hoy en adelante.",
+                VerMas = new EnlaceViewModel
+                {
+                    Controlador = "Turnos",
+                    Accion = "Index",
+                    Descripcion = "Ver todos mis turnos"
+                }
+            },
+            Actividad = await ArmarActividadAsync(perfil?.IdPaciente)
         };
     }
 
     /// <summary>
-    /// Dos llamadas: el perfil de doctor (para el IdDoctor) y sus turnos de hoy.
+    /// El historial reciente del paciente: sus consultas y sus recetas en una
+    /// sola lista, de la más nueva a la más vieja.
+    /// </summary>
+    private async Task<PanelActividadViewModel> ArmarActividadAsync(int? idPaciente)
+    {
+        var panel = new PanelActividadViewModel
+        {
+            Titulo = "Historial reciente",
+            TextoVacio = "Todavía no hay consultas ni recetas registradas.",
+            VerMas = new EnlaceViewModel
+            {
+                Controlador = "Historial",
+                Accion = "Index",
+                Descripcion = "Ver toda mi historia clínica"
+            }
+        };
+
+        if (idPaciente is null) return panel;
+
+        try
+        {
+            // Van una después de la otra y no en paralelo porque el ApiClient lee
+            // el token de HttpContext.Session, que no es seguro en concurrencia.
+            var consultas = await _historial.ObtenerDePacienteAsync(idPaciente.Value);
+            var recetas = await _recetas.ObtenerDePacienteAsync(idPaciente.Value);
+
+            var entradas = consultas
+                .Select(c => new ActividadRecienteViewModel { Tipo = "Consulta", Fecha = c.Fecha })
+                .Concat(recetas.Select(r => new ActividadRecienteViewModel { Tipo = "Receta", Fecha = r.Fecha }))
+                .OrderByDescending(e => e.Fecha)
+                .ThenBy(e => e.Tipo, StringComparer.Ordinal)
+                .Take(ActividadDelPanel)
+                .ToArray();
+
+            return new PanelActividadViewModel
+            {
+                Titulo = panel.Titulo,
+                TextoVacio = panel.TextoVacio,
+                VerMas = panel.VerMas,
+                Entradas = entradas
+            };
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // Que falle el historial no tiene por qué voltear todo el tablero:
+            // los turnos y los accesos siguen sirviendo. El 401 sí se deja pasar,
+            // lo maneja ApiExceptionFilter mandando al login.
+            return new PanelActividadViewModel
+            {
+                Titulo = panel.Titulo,
+                TextoVacio = panel.TextoVacio,
+                VerMas = panel.VerMas,
+                Error = $"No se pudo cargar el historial reciente: {error.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Dos llamadas: el perfil de doctor (para el IdDoctor) y sus próximos turnos.
     /// </summary>
     private async Task<DashboardViewModel> ArmarDoctorAsync(SesionUsuario sesion)
     {
@@ -132,16 +223,22 @@ public class HomeController : Controller
             : (await _turnos.ObtenerAsync(
                     doctorId: perfil.IdDoctor,
                     desde: DateTime.Today,
-                    hasta: DateTime.Today,
                     limite: TurnosDelPanel))
                 .Turnos.Select(TurnoFilaViewModel.Desde).ToArray();
 
         var hoy = DateTime.Today.ToString("yyyy-MM-dd");
 
+        // El login solo devuelve el nombre de pila, pero /doctores/me ya nos
+        // trajo el apellido, así que el saludo sale sin pedir nada más.
+        var nombre = perfil is null
+            ? sesion.Nombre
+            : $"{perfil.Nombre} {perfil.Apellido}".Trim();
+
         return new DashboardViewModel
         {
             Rol = sesion.Rol,
-            Nombre = sesion.Nombre,
+            Nombre = nombre,
+            Disposicion = DisposicionDashboard.PanelAbajo,
             Aviso = perfil is null
                 ? "Tu usuario tiene rol doctor pero no tiene un perfil de doctor cargado (matrícula, especialidad), así que la API no puede decirnos qué turnos son tuyos. Un administrador lo crea desde POST /doctores."
                 : null,
@@ -178,10 +275,16 @@ public class HomeController : Controller
             },
             Panel = new PanelTurnosViewModel
             {
-                Titulo = "Turnos de hoy",
+                Titulo = "Próximos turnos",
                 Vista = VistaPanel.Doctor,
                 Turnos = turnos,
-                TextoVacio = "No tenés turnos agendados para hoy."
+                TextoVacio = "No tenés turnos agendados de hoy en adelante.",
+                VerMas = new EnlaceViewModel
+                {
+                    Controlador = "Turnos",
+                    Accion = "Index",
+                    Descripcion = "Ver toda mi agenda"
+                }
             }
         };
     }
@@ -200,12 +303,41 @@ public class HomeController : Controller
 
         var totalPacientes = await _pacientes.ContarAsync();
 
+        var hoy = DateTime.Today.ToString("yyyy-MM-dd");
+        var soloHoy = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy };
+
         return new DashboardViewModel
         {
             Rol = sesion.Rol,
             Nombre = sesion.Nombre,
-            TurnosDeHoy = turnosHoy.Total,
-            TotalPacientes = totalPacientes,
+            Metricas = new[]
+            {
+                new MetricaViewModel
+                {
+                    Titulo = "Turnos de hoy",
+                    Valor = turnosHoy.Total,
+                    Icono = "calendario",
+                    VerMas = new EnlaceViewModel
+                    {
+                        Controlador = "Turnos",
+                        Accion = "Index",
+                        Ruta = soloHoy,
+                        Descripcion = "Ver los turnos de hoy"
+                    }
+                },
+                new MetricaViewModel
+                {
+                    Titulo = "Pacientes",
+                    Valor = totalPacientes,
+                    Icono = "personas",
+                    VerMas = new EnlaceViewModel
+                    {
+                        Controlador = "Pacientes",
+                        Accion = "Index",
+                        Descripcion = "Ver todos los pacientes"
+                    }
+                }
+            },
             Accesos = new[]
             {
                 new AccesoRapidoViewModel
@@ -217,6 +349,16 @@ public class HomeController : Controller
                 },
                 new AccesoRapidoViewModel
                 {
+                    // Es la acción más repetitiva del admin: es quien confirma
+                    // los turnos que van quedando pendientes.
+                    Titulo = "Turnos pendientes",
+                    Icono = "calendario",
+                    Controlador = "Turnos",
+                    Accion = "Index",
+                    Ruta = new Dictionary<string, string> { ["estado"] = "pendiente" }
+                },
+                new AccesoRapidoViewModel
+                {
                     Titulo = "Pacientes",
                     Icono = "personas",
                     Controlador = "Pacientes",
@@ -224,23 +366,27 @@ public class HomeController : Controller
                 },
                 new AccesoRapidoViewModel
                 {
-                    Titulo = "Buscar",
-                    Icono = "lupa",
-                    Motivo = "La búsqueda global todavía no está implementada."
-                },
-                new AccesoRapidoViewModel
-                {
-                    Titulo = "Registrar paciente",
+                    // Hub de gestión de cuentas: reemplaza al alta directa de
+                    // doctor, que ahora vive reorganizada ahí adentro.
+                    Titulo = "Cuentas",
                     Icono = "persona-mas",
-                    Motivo = "El alta de pacientes todavía no está implementada en el front."
+                    Controlador = "Admin",
+                    Accion = "Index"
                 }
             },
             Panel = new PanelTurnosViewModel
             {
-                Titulo = "Turnos programados de hoy",
+                Titulo = "Turnos programados",
                 Vista = VistaPanel.Administrador,
                 Turnos = turnosHoy.Turnos.Select(TurnoFilaViewModel.Desde).ToArray(),
-                TextoVacio = "No hay turnos programados para hoy."
+                TextoVacio = "No hay turnos programados para hoy.",
+                VerMas = new EnlaceViewModel
+                {
+                    Controlador = "Turnos",
+                    Accion = "Index",
+                    Ruta = soloHoy,
+                    Descripcion = "Ver todos los turnos de hoy"
+                }
             }
         };
     }

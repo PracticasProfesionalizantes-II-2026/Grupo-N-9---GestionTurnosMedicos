@@ -97,4 +97,27 @@ public class PacienteService
         var pagina = await _api.GetAsync<PacientesPagina>("/pacientes", parametros);
         return pagina?.Total ?? 0;
     }
+
+    /// <summary>
+    /// PUT /pacientes/{id}: carga la ficha clínica. Solo pide estar
+    /// autenticado (sin rol específico ni chequeo de dueño), así que el mismo
+    /// paciente puede completarla con su propio token.
+    /// </summary>
+    public Task ActualizarAsync(
+        int idPaciente,
+        DateTime? fechaNacimiento,
+        string? sexo,
+        string? grupoSanguineo,
+        string? alergias,
+        string? condiciones)
+        => _api.PutAsync(
+            $"/pacientes/{idPaciente}",
+            new
+            {
+                fechaNacimiento,
+                sexo,
+                grupoSanguineo,
+                alergias,
+                condiciones
+            });
 }

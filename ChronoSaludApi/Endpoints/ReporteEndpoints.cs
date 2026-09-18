@@ -53,7 +53,7 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            var totalPacientes = (await pacienteRepo.ObtenerTodos(null, null)).Count();
+            var totalPacientes = (await pacienteRepo.ObtenerTodos(null, null, null)).Count();
 
             var turnosPeriodo = (await turnoRepo.ObtenerTodos(null, null, null, fecha_desde, fecha_hasta)).ToList();
             var pacientesAtendidos = turnosPeriodo

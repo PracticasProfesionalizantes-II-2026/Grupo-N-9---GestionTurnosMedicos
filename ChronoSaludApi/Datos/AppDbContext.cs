@@ -32,6 +32,12 @@ public class AppDbContext : DbContext
             .HasIndex(d => d.Matricula)
             .IsUnique();
 
+        // Paciente - DNI único (filtrado: SQL Server no admite varios NULL en un índice único común)
+        modelBuilder.Entity<Paciente>()
+            .HasIndex(p => p.Dni)
+            .IsUnique()
+            .HasFilter("[Dni] IS NOT NULL");
+
         // Usuario -> Paciente (1 a 1)
         modelBuilder.Entity<Paciente>()
             .HasOne(p => p.Usuario)
