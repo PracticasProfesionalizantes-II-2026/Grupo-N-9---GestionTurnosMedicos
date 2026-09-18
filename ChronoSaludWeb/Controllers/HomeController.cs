@@ -270,7 +270,8 @@ public class HomeController : Controller
                 {
                     Titulo = "Coberturas",
                     Icono = "escudo",
-                    Motivo = "La sección de coberturas todavía no está implementada."
+                    Controlador = "Coberturas",
+                    Accion = "Index"
                 }
             },
             Panel = new PanelTurnosViewModel

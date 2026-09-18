@@ -1,0 +1,108 @@
+@model CoberturasIndexViewModel
+@{
+    ViewData["Title"] = "Coberturas";
+}
+
+<div>
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Coberturas</h1>
+    <p class="mt-1 text-sm text-muted">Obras sociales y prepagas dadas de alta en el sistema.</p>
+</div>
+
+@* Buscador por GET: la API resuelve el nombre como "contiene". *@
+<form method="get" asp-action="Index"
+      class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+    <div class="w-full flex-1 sm:min-w-64">
+        <label for="nombre" class="block text-sm font-medium text-ink">Buscar por nombre</label>
+        <input id="nombre" name="nombre" type="search" value="@Model.Nombre" placeholder="Por ejemplo: OSDE"
+               class="mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft" />
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button type="submit"
+                class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+            Buscar
+        </button>
+        @if (Model.HayFiltro)
+        {
+            <a asp-action="Index"
+               class="rounded-input border border-border px-4 py-2 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                Limpiar
+            </a>
+        }
+    </div>
+</form>
+
+@if (Model.HuboError)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No se pudieron cargar las coberturas</h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
+        <a asp-action="Index"
+           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+            Reintentar
+        </a>
+    </div>
+}
+else if (Model.Coberturas.Count == 0)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+            <path d="m9 12 2 2 4-4" />
+        </svg>
+        @if (Model.SinResultados)
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">Ninguna cobertura coincide con la búsqueda</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Probá con otro nombre, o con una parte más corta.
+            </p>
+            <a asp-action="Index"
+               class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+                Limpiar búsqueda
+            </a>
+        }
+        else
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">No hay coberturas cargadas</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Cuando se den de alta coberturas van a aparecer en esta lista.
+            </p>
+        }
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-card neu-elevado">
+        <ul>
+            @{ var fila = 0; }
+            @foreach (var cobertura in Model.Coberturas)
+            {
+                <li class="fila-animada flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                    <span aria-hidden="true"
+                          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                            <path d="m9 12 2 2 4-4" />
+                        </svg>
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate font-medium text-ink">@cobertura.Nombre</span>
+                        @if (!string.IsNullOrWhiteSpace(cobertura.Plan))
+                        {
+                            <span class="block truncate text-sm text-muted">Plan @cobertura.Plan</span>
+                        }
+                    </span>
+                </li>
+            }
+        </ul>
+    </div>
+}
