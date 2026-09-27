@@ -97,5 +97,5 @@ app.MapRecetaEndpoints();
 app.MapEstudioEndpoints();
 app.MapReporteEndpoints();
 app.MapNotificacionEndpoints();
-
+app.MapGet("/", () => "ChronoSalud API está funcionando ✅");
 app.Run();
