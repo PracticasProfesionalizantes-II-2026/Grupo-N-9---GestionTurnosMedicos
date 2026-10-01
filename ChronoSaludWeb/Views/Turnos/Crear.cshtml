@@ -18,7 +18,7 @@
 
 <div class="mt-6 max-w-2xl">
     <h1 class="text-2xl font-bold tracking-tight text-ink">Nuevo turno</h1>
-    <p class="mt-1 text-sm text-muted">Cargá los datos del turno. El estado inicial siempre es pendiente.</p>
+    <p class="mt-1 text-sm text-muted">Elegí especialidad, doctor y fecha, y tocá un horario libre. El estado inicial siempre es pendiente.</p>
 
     <div class="mt-6 rounded-card border border-border bg-surface p-8">
         @if (erroresGenerales is { Count: > 0 })
@@ -39,63 +39,167 @@
             </div>
         }
 
-        <form asp-action="Crear" method="post" novalidate>
+        @* Pasos 1 a 3. Es un GET: cada envío recarga la pantalla con la elección
+           en la query string (especialidad, idDoctor, fecha), sin JavaScript. *@
+        <form asp-action="Crear" method="get">
+            @if (Model.MostrarSelectorPaciente && Model.IdPaciente is not null)
+            {
+                @* Conserva el paciente ya elegido (o el que vino desde su ficha). *@
+                <input type="hidden" name="paciente" value="@Model.IdPaciente" />
+            }
+
             <div class="grid gap-5 sm:grid-cols-2">
-                @if (Model.MostrarSelectorPaciente)
+                <div class="sm:col-span-2">
+                    <label for="especialidad" class="block text-sm font-medium text-ink">Especialidad</label>
+                    <select id="especialidad" name="especialidad" asp-items="Model.Especialidades"
+                            class="@claseCampo capitalize">
+                        <option value="">Elegí una especialidad</option>
+                    </select>
+                </div>
+
+                @if (Model.HayEspecialidad)
                 {
-                    <div class="sm:col-span-2">
-                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                            <option value="">Elegí un paciente</option>
+                    <div>
+                        <label for="idDoctor" class="block text-sm font-medium text-ink">Doctor</label>
+                        <select id="idDoctor" name="idDoctor" asp-items="Model.Doctores" class="@claseCampo">
+                            <option value="">Cualquiera</option>
                         </select>
-                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                    </div>
+
+                    <div>
+                        <label for="fecha" class="block text-sm font-medium text-ink">Fecha</label>
+                        <input id="fecha" name="fecha" type="date" required
+                               value="@Model.FechaIso" min="@Model.FechaMinima"
+                               class="@claseCampo tabular-nums" />
                     </div>
                 }
-
-                <div class="sm:col-span-2">
-                    <label asp-for="IdDoctor" class="block text-sm font-medium text-ink"></label>
-                    <select asp-for="IdDoctor" asp-items="Model.Doctores" class="@claseCampo">
-                        <option value="">Elegí un doctor</option>
-                    </select>
-                    <span asp-validation-for="IdDoctor" class="@claseError"></span>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label asp-for="FechaInicio" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="FechaInicio" type="date" class="@claseCampo" />
-                    <span asp-validation-for="FechaInicio" class="@claseError"></span>
-                </div>
-
-                <div>
-                    <label asp-for="HoraInicio" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="HoraInicio" type="time" class="@claseCampo tabular-nums" />
-                    <span asp-validation-for="HoraInicio" class="@claseError"></span>
-                </div>
-
-                <div>
-                    <label asp-for="HoraFin" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="HoraFin" type="time" class="@claseCampo tabular-nums" />
-                    <span asp-validation-for="HoraFin" class="@claseError"></span>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
-                    <textarea asp-for="Observaciones" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
-                    <span asp-validation-for="Observaciones" class="@claseError"></span>
-                </div>
             </div>
 
-            <div class="mt-7 flex flex-wrap items-center gap-3">
+            <div class="mt-5">
                 <button type="submit"
-                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
-                    Crear turno
+                        class="rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    @(Model.HayEspecialidad ? "Ver horarios" : "Continuar")
                 </button>
-                <a asp-action="Index"
-                   class="rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
-                    Cancelar
-                </a>
             </div>
         </form>
+
+        @if (Model.HorarioDoctor is not null)
+        {
+            var nombreDoctor = Model.Doctores.FirstOrDefault(d => d.Selected)?.Text;
+
+            <section class="mt-6 rounded-input border border-border px-4 py-3" aria-labelledby="titulo-horario">
+                <h2 id="titulo-horario" class="mb-1 text-sm font-semibold text-ink">
+                    @(nombreDoctor is null ? "Horario de atención" : $"Horario de atención de {nombreDoctor}")
+                </h2>
+                <partial name="_HorarioSemanal" model="Model.HorarioDoctor" />
+            </section>
+        }
+
+        @if (Model.HayEspecialidad)
+        {
+            @* Paso 4. Cada franja es un botón submit: el doctor y las horas viajan
+               en su value. Paciente y observaciones van en este mismo formulario
+               para que se envíen junto con el horario elegido. *@
+            <form asp-action="Crear" method="post" novalidate class="mt-8 border-t border-border pt-6">
+                <input type="hidden" name="Especialidad" value="@Model.Especialidad" />
+                <input type="hidden" name="DoctorElegido" value="@Model.DoctorElegido" />
+                <input type="hidden" name="FechaInicio" value="@Model.FechaIso" />
+
+                <div class="grid gap-5">
+                    @if (Model.MostrarSelectorPaciente)
+                    {
+                        <div>
+                            <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                            <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                                <option value="">Elegí un paciente</option>
+                            </select>
+                            <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                        </div>
+                    }
+
+                    <div>
+                        <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
+                        <textarea asp-for="Observaciones" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                        <span class="mt-1 block text-xs text-muted">Se envían junto con el horario que elijas.</span>
+                        <span asp-validation-for="Observaciones" class="@claseError"></span>
+                    </div>
+
+                    <fieldset>
+                        <legend class="text-sm font-medium text-ink">
+                            Horarios libres del @Model.FechaLarga
+                        </legend>
+
+                        @if (Model.AvisoFranjas is not null)
+                        {
+                            <p class="mt-3 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                                    <path d="M12 9v4" />
+                                    <path d="M12 17h.01" />
+                                </svg>
+                                <span>@Model.AvisoFranjas</span>
+                            </p>
+                        }
+                        else if (Model.Doctores.Count == 0)
+                        {
+                            <div class="mt-3 rounded-input border border-border bg-canvas px-4 py-5 text-center">
+                                <p class="text-sm font-semibold text-ink">No hay doctores activos en esa especialidad</p>
+                                <p class="mt-1 text-sm text-muted">Probá con otra especialidad.</p>
+                            </div>
+                        }
+                        else if (Model.Franjas.Count == 0)
+                        {
+                            <div class="mt-3 rounded-input border border-border bg-canvas px-4 py-5 text-center">
+                                <p class="text-sm font-semibold text-ink">No hay horarios libres ese día</p>
+                                <p class="mt-1 text-sm text-muted">
+                                    @(Model.BuscaCualquiera
+                                        ? "Probá con otra fecha."
+                                        : "Probá con otra fecha u otro doctor (o con \"Cualquiera\").")
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="mt-1 text-sm text-muted">
+                                <span class="tabular-nums">@Model.Franjas.Count</span>
+                                @(Model.Franjas.Count == 1 ? "horario disponible" : "horarios disponibles").
+                                Tocá uno para reservarlo.
+                            </p>
+
+                            <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                @foreach (var franja in Model.Franjas)
+                                {
+                                    <button type="submit" name="Franja" value="@franja.Valor"
+                                            class="flex min-w-0 flex-col items-start rounded-input border border-primary-line bg-field px-3 py-2.5 text-left transition-colors hover:border-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                        <span class="text-sm font-semibold tabular-nums text-ink">
+                                            <span class="sr-only">Reservar de</span>
+                                            @franja.HoraInicio
+                                            <span aria-hidden="true">–</span><span class="sr-only">a</span>
+                                            @franja.HoraFin
+                                        </span>
+                                        @if (franja.DoctorNombre is not null)
+                                        {
+                                            <span class="mt-0.5 block w-full truncate text-xs text-muted">
+                                                <span class="sr-only">con</span>
+                                                @franja.DoctorNombre
+                                            </span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </fieldset>
+                </div>
+            </form>
+        }
+
+        <div class="mt-7">
+            <a asp-action="Index"
+               class="inline-block rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                Cancelar
+            </a>
+        </div>
     </div>
 </div>
 

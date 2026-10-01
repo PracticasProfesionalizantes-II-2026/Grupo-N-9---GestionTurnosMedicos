@@ -1,0 +1,25 @@
+@model HorarioSemanalViewModel
+
+@if (!Model.TieneHorario)
+{
+    <p class="text-sm text-muted">Este doctor todavía no tiene horario de atención cargado.</p>
+}
+else
+{
+    <dl class="divide-y divide-border text-sm">
+        @foreach (var dia in Model.Dias)
+        {
+            <div class="flex items-baseline justify-between gap-4 py-1.5">
+                <dt class="text-muted">@dia.Dia</dt>
+                @if (dia.Rango is null)
+                {
+                    <dd class="text-muted">No atiende</dd>
+                }
+                else
+                {
+                    <dd class="font-medium tabular-nums text-ink">@dia.Rango</dd>
+                }
+            </div>
+        }
+    </dl>
+}
