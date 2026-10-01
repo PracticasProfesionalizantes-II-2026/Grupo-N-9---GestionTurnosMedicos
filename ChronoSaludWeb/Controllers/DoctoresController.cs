@@ -39,21 +39,15 @@ public class DoctoresController : ControladorBase
 
         try
         {
-            // La API no expone un endpoint de especialidades, así que las
-            // opciones del select salen de la lista completa de doctores.
-            var todos = await _doctores.BuscarAsync(limite: 200);
-
-            // Sin filtro no hace falta un segundo pedido: sirve la misma lista.
-            var pagina = filtro is null
-                ? todos
-                : await _doctores.BuscarAsync(filtro, Limite);
+            var especialidades = await _doctores.ObtenerEspecialidadesAsync();
+            var pagina = await _doctores.BuscarAsync(filtro, Limite);
 
             return View(new DoctoresIndexViewModel
             {
                 Especialidad = filtro,
                 Total = pagina.Total,
                 Doctores = pagina.Doctores.Select(Mapear).ToList(),
-                Especialidades = OpcionesDeEspecialidad(todos.Doctores, filtro)
+                Especialidades = OpcionesDeEspecialidad(especialidades, filtro)
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -77,6 +71,20 @@ public class DoctoresController : ControladorBase
             if (doctor is null)
                 return NoEncontrado(id, "Doctor no encontrado", "doctor");
 
+            // El horario va aparte: si falla, la ficha se muestra igual con
+            // el aviso en su tarjeta en vez de perder todos los datos.
+            HorarioSemanalViewModel? horario = null;
+            string? errorHorario = null;
+            try
+            {
+                var horarios = await _doctores.ObtenerHorariosAsync(id);
+                horario = HorarioSemanalViewModel.Desde(horarios ?? Array.Empty<HorarioLaboral>());
+            }
+            catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+            {
+                errorHorario = error.Message;
+            }
+
             return View(new DoctorDetalleViewModel
             {
                 IdDoctor = doctor.IdDoctor,
@@ -84,7 +92,10 @@ public class DoctoresController : ControladorBase
                 Apellido = doctor.Apellido,
                 Especialidad = doctor.Especialidad,
                 Matricula = doctor.Matricula,
-                Consultorio = doctor.Consultorio
+                Consultorio = doctor.Consultorio,
+                Horario = horario,
+                ErrorHorario = errorHorario,
+                PuedePedirTurno = _auth.PuedeCargarTurnos
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -101,13 +112,13 @@ public class DoctoresController : ControladorBase
         Matricula = doctor.Matricula
     };
 
+    /// <summary>
+    /// Opciones del select, desde GET /doctores/especialidades (ya vienen sin
+    /// repetir y ordenadas por la API).
+    /// </summary>
     private static IReadOnlyList<SelectListItem> OpcionesDeEspecialidad(
-        IReadOnlyList<DoctorLista> doctores, string? seleccionada) =>
-        doctores
-            .Select(d => d.Especialidad?.Trim())
-            .Where(e => !string.IsNullOrEmpty(e))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(e => e, StringComparer.CurrentCultureIgnoreCase)
+        IEnumerable<string> especialidades, string? seleccionada) =>
+        especialidades
             .Select(e => new SelectListItem(e, e, string.Equals(e, seleccionada, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 }

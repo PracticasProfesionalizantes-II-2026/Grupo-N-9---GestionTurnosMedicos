@@ -7,7 +7,7 @@ internal sealed record Persona(string Alias, string Nombre, string Apellido, str
 
 internal sealed record Doctor(Persona Persona, string Especialidad, string Matricula, string Consultorio);
 
-/// <summary>Turno de la demo. Dia es el desplazamiento en dias desde hoy.</summary>
+/// <summary>Turno de la demo. Dia es el desplazamiento en dias habiles desde hoy.</summary>
 internal sealed record TurnoDemo(
     string Doctor,
     string Paciente,
@@ -53,18 +53,18 @@ internal static class DatosDemo
     [
         new("gomez",   "duarte", 0, "08:00", "08:30", "completado", "Control anual"),
         new("gomez",   "salas",  0, "08:30", "09:00", "completado", "Renovacion de receta"),
-        new("rivas",   "ponce",  0, "09:00", "09:30", "completado", "Lectura de electrocardiograma"),
+        new("rivas",   "ponce",  0, "14:00", "14:30", "completado", "Lectura de electrocardiograma"),
         new("ferrari", "ruiz",   0, "10:00", "10:30", "confirmado", "Dolor lumbar"),
-        new("cabrera", "molina", 1, "09:00", "09:30", "confirmado", "Control de crecimiento"),
+        new("cabrera", "molina", 1, "15:00", "15:30", "confirmado", "Control de crecimiento"),
         new("gomez",   "ortiz",  1, "11:00", "11:30", "confirmado", "Chequeo general"),
         new("rivas",   "duarte", 1, "15:00", "15:30", "cancelado",  "Reprogramar a pedido del paciente"),
         new("ferrari", "salas",  2, "08:30", "09:00", "confirmado", "Post operatorio de rodilla"),
-        new("cabrera", "ponce",  2, "12:00", "12:30", "pendiente",  "Primera consulta"),
+        new("cabrera", "ponce",  2, "16:00", "16:30", "pendiente",  "Primera consulta"),
         new("gomez",   "ruiz",   3, "09:30", "10:00", "pendiente",  "Resultados de laboratorio"),
         new("rivas",   "molina", 3, "16:00", "16:30", "confirmado", "Seguimiento de presion arterial"),
         new("ferrari", "ortiz",  4, "10:30", "11:00", "cancelado",  "Cancelado por el consultorio"),
-        new("cabrera", "duarte", 5, "08:00", "08:30", "pendiente",  "Consulta por alergia"),
-        new("gomez",   "salas",  6, "14:00", "14:30", "pendiente",  "Certificado laboral"),
+        new("cabrera", "duarte", 5, "14:00", "14:30", "pendiente",  "Consulta por alergia"),
+        new("gomez",   "salas",  6, "13:00", "13:30", "pendiente",  "Certificado laboral"),
         new("rivas",   "ponce",  7, "17:00", "17:30", "cancelado",  "El paciente no confirmo")
     ];
 }

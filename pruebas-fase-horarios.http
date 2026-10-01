@@ -1,0 +1,299 @@
+### ChronoSaludApi — Pruebas manuales Fase A (horarios laborales)
+###
+### Cubre el horario semanal por doctor (GET/PUT /doctores/{id}/horarios),
+### la disponibilidad en franjas de 30 minutos
+### (GET /doctores/{id}/disponibilidad), el listado de especialidades
+### (GET /doctores/especialidades) y la validación nueva de POST /turnos
+### contra el horario laboral.
+###
+### Requisitos:
+###   1. La API corriendo en http://localhost:5001 (perfil "http" de launchSettings)
+###      con la migración de HorarioLaboral aplicada.
+###   2. Extensión "REST Client" (humao.rest-client) en VS Code para poder
+###      ejecutar cada bloque con "Send Request" y encadenar variables entre
+###      requests ({{nombre.response.body.$.campo}}).
+###   3. Correr antes el seeder: dotnet run --project tools/Seed
+###      (contraseña por defecto: Chrono2026!). Este archivo asume esas
+###      cuentas: administrador, doctora laura.gomez, paciente ana.duarte.
+###
+### Fechas fijas usadas (futuras, para no chocar con los turnos del seed):
+###   2027-01-18 -> lunes   (Gómez atiende de 08:00 a 14:00)
+###   2027-01-17 -> domingo (Gómez no atiende)
+###   2025-01-06 -> lunes ya pasado
+###
+### Convención de cada bloque de prueba:
+###   ESPERADO -> lo que tiene que devolver con este cambio aplicado.
+###
+### El paso 0.x es setup (login + resolver ids). Las secciones 1 a 4 son las
+### pruebas en sí: 1) Horarios, 2) Disponibilidad, 3) Creación de turnos,
+### 4) Especialidades. La sección 5 limpia lo creado para poder repetir.
+
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+@lunes = 2027-01-18
+@domingo = 2027-01-17
+@lunesPasado = 2025-01-06
+
+
+### ============================================================
+### 0. SETUP — login y resolución de ids
+### ============================================================
+
+### 0.1 Login administrador
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenAdmin = {{loginAdmin.response.body.$.token}}
+
+
+### 0.2 Login Doctora Gómez (Clínica)
+# @name loginGomez
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "laura.gomez@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenGomez = {{loginGomez.response.body.$.token}}
+
+
+### 0.3 Login Paciente Duarte
+# @name loginDuarte
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "ana.duarte@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenDuarte = {{loginDuarte.response.body.$.token}}
+
+
+### 0.4 Id de paciente de Duarte (Paciente.Id, no el de usuario)
+# @name meDuarte
+GET {{baseUrl}}/pacientes/me
+Authorization: Bearer {{tokenDuarte}}
+
+###
+
+@idPacienteDuarte = {{meDuarte.response.body.$.idPaciente}}
+
+
+### 0.5 Id de doctor de Gómez
+# @name meGomez
+GET {{baseUrl}}/doctores/me
+Authorization: Bearer {{tokenGomez}}
+
+###
+
+@idDoctorGomez = {{meGomez.response.body.$.idDoctor}}
+
+
+### ============================================================
+### 1. Horarios — GET/PUT /doctores/{id}/horarios
+### ============================================================
+
+### 1.1 [Duarte] Horario semanal de Gómez antes de cargarlo
+### ESPERADO: 200 con la lista de días (lunes a viernes 08:00-14:00 si ya
+### corrió el seeder; [] si nunca se cargó). Cualquier autenticado puede verlo.
+GET {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 1.2 [Admin] Cargar horario de Gómez: lunes a viernes de 08:00 a 14:00
+### ESPERADO: 200 { mensaje: "Horario actualizado correctamente." }.
+### Reemplaza el horario completo (los días que no viajan quedan sin horario).
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "horarios": [
+    { "diaSemana": 1, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 2, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 3, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 4, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 5, "horaInicio": "08:00", "horaFin": "14:00" }
+  ]
+}
+
+
+### 1.3 [Admin] Horario inválido: hora fin anterior a hora inicio
+### ESPERADO: 400 "La hora de fin debe ser posterior a la hora de inicio."
+### (no se guarda nada: el horario de 1.2 sigue vigente).
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "horarios": [
+    { "diaSemana": 1, "horaInicio": "14:00", "horaFin": "08:00" }
+  ]
+}
+
+
+### 1.4 [Duarte] Un paciente intenta cambiar el horario
+### ESPERADO: 403 (solo administrador y secretario).
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "horarios": []
+}
+
+
+### 1.5 [Duarte] Horario semanal de Gómez después de cargarlo
+### ESPERADO: 200 con 5 elementos (diaSemana 1 a 5, 08:00 a 14:00).
+GET {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 2. Disponibilidad — GET /doctores/{id}/disponibilidad
+### ============================================================
+
+### 2.1 [Duarte] Disponibilidad de Gómez el lunes
+### ESPERADO: 200 con 12 franjas de 30 minutos, de 08:00-08:30 a 13:30-14:00.
+GET {{baseUrl}}/doctores/{{idDoctorGomez}}/disponibilidad?fecha={{lunes}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 2.2 [Duarte] Disponibilidad de Gómez el domingo (no atiende)
+### ESPERADO: 200 con [].
+GET {{baseUrl}}/doctores/{{idDoctorGomez}}/disponibilidad?fecha={{domingo}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 3. Creación de turnos — validación contra el horario laboral
+### ============================================================
+
+### 3.1 [Admin] Turno válido: lunes de 09:00 a 09:30
+### ESPERADO: 201 con id_turno.
+# @name crearTurno
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "{{lunes}}",
+  "horaInicio": "09:00",
+  "horaFin": "09:30",
+  "observaciones": "Turno de prueba Fase A"
+}
+
+###
+
+@idTurnoPrueba = {{crearTurno.response.body.$.id_turno}}
+
+
+### 3.2 [Duarte] Disponibilidad del lunes después de reservar
+### ESPERADO: 200 con 11 franjas; ya no aparece 09:00-09:30.
+GET {{baseUrl}}/doctores/{{idDoctorGomez}}/disponibilidad?fecha={{lunes}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 3.3 [Admin] Turno fuera de horario: lunes de 15:00 a 15:30
+### ESPERADO: 400 "El turno debe estar dentro del horario del doctor (08:00 a 14:00)."
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "{{lunes}}",
+  "horaInicio": "15:00",
+  "horaFin": "15:30",
+  "observaciones": "Fuera de horario"
+}
+
+
+### 3.4 [Admin] Turno en un día que no atiende: domingo de 09:00 a 09:30
+### ESPERADO: 400 "El doctor no atiende los domingos."
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "{{domingo}}",
+  "horaInicio": "09:00",
+  "horaFin": "09:30",
+  "observaciones": "Día sin atención"
+}
+
+
+### 3.5 [Admin] Turno en franja ocupada: lunes de 09:00 a 09:30 otra vez
+### ESPERADO: 409 "Conflicto de horario: el doctor ya tiene un turno en ese rango."
+### (pasa la validación de horario y lo frena el control de conflicto existente).
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "{{lunes}}",
+  "horaInicio": "09:00",
+  "horaFin": "09:30",
+  "observaciones": "Franja ocupada"
+}
+
+
+### 3.6 [Admin] Turno en una fecha pasada
+### ESPERADO: 400 "No se pueden crear turnos en fechas pasadas."
+POST {{baseUrl}}/turnos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idPaciente": {{idPacienteDuarte}},
+  "idDoctor": {{idDoctorGomez}},
+  "fechaInicio": "{{lunesPasado}}",
+  "horaInicio": "09:00",
+  "horaFin": "09:30",
+  "observaciones": "Fecha pasada"
+}
+
+
+### ============================================================
+### 4. Especialidades — GET /doctores/especialidades
+### ============================================================
+
+### 4.1 [Duarte] Especialidades distintas de doctores activos
+### ESPERADO: 200 con ["Cardiología", "Clínica", "Pediatría", "Traumatología"]
+### (con los datos del seed). El filtro por especialidad ya existía:
+### GET /doctores?especialidad=...
+GET {{baseUrl}}/doctores/especialidades
+Authorization: Bearer {{tokenDuarte}}
+
+
+### ============================================================
+### 5. Limpieza — para poder volver a correr el archivo
+### ============================================================
+
+### 5.1 [Admin] Cancelar el turno creado en 3.1
+### ESPERADO: 204. Al quedar "cancelado", la franja 09:00-09:30 del lunes
+### vuelve a aparecer en la disponibilidad y 3.1 se puede repetir.
+DELETE {{baseUrl}}/turnos/{{idTurnoPrueba}}
+Authorization: Bearer {{tokenAdmin}}

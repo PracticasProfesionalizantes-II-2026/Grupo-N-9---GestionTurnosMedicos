@@ -11,19 +11,22 @@ public class TurnoLogica : ITurnoLogica
     private readonly IDoctorRepository _doctorRepo;
     private readonly INotificacionRepository _notifRepo;
     private readonly ILogger<TurnoLogica> _logger;
+    private readonly IHorarioLaboralLogica _horarioLogica;
 
     public TurnoLogica(
         ITurnoRepository repo,
         IPacienteRepository pacienteRepo,
         IDoctorRepository doctorRepo,
         INotificacionRepository notifRepo,
-        ILogger<TurnoLogica> logger)
+        ILogger<TurnoLogica> logger,
+        IHorarioLaboralLogica horarioLogica)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
         _doctorRepo = doctorRepo;
         _notifRepo = notifRepo;
         _logger = logger;
+        _horarioLogica = horarioLogica;
     }
 
     // Un fallo al insertar la notificación nunca puede hacer fracasar ni
@@ -135,6 +138,10 @@ public class TurnoLogica : ITurnoLogica
             return (null, "Formato de hora inicio inválido. Use HH:MM.");
         if (!TimeSpan.TryParse(dto.HoraFin, out var horaFin))
             return (null, "Formato de hora fin inválido. Use HH:MM.");
+
+        var (horarioOk, errorHorario) = await _horarioLogica.ValidarHorarioLaboral(dto.IdDoctor, dto.FechaInicio, horaInicio, horaFin);
+        if (!horarioOk)
+            return (null, errorHorario);
 
         var conflicto = await _repo.HayConflictoHorario(dto.IdDoctor, dto.FechaInicio, horaInicio, horaFin);
         if (conflicto)

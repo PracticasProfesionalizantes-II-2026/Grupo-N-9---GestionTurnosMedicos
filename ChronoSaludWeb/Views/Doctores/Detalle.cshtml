@@ -67,4 +67,29 @@ else
         </dl>
 
     </div>
+
+    <section class="mt-6 max-w-2xl rounded-card border border-border bg-surface p-6" aria-labelledby="titulo-horario">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="titulo-horario" class="text-sm font-semibold uppercase tracking-wide text-muted">Horario de atención</h2>
+            @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
+            {
+                <a asp-controller="Turnos" asp-action="Crear"
+                   asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
+                   class="rounded-input border border-primary-line px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    Pedir turno con este doctor
+                </a>
+            }
+        </div>
+
+        <div class="mt-4">
+            @if (Model.Horario is not null)
+            {
+                <partial name="_HorarioSemanal" model="Model.Horario" />
+            }
+            else
+            {
+                <p class="text-sm text-status-cancelado">No se pudo cargar el horario: @Model.ErrorHorario</p>
+            }
+        </div>
+    </section>
 }

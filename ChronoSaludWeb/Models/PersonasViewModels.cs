@@ -108,10 +108,7 @@ public class DoctoresIndexViewModel
 
     public string? Especialidad { get; init; }
 
-    /// <summary>
-    /// Opciones del select. La API no expone un endpoint de especialidades, así
-    /// que salen de la propia lista de doctores.
-    /// </summary>
+    /// <summary>Opciones del select, desde GET /doctores/especialidades.</summary>
     public IReadOnlyList<SelectListItem> Especialidades { get; init; } = Array.Empty<SelectListItem>();
 
     public string? Error { get; init; }
@@ -130,6 +127,13 @@ public class DoctorDetalleViewModel
     public string Especialidad { get; init; } = string.Empty;
     public string Matricula { get; init; } = string.Empty;
     public string? Consultorio { get; init; }
+
+    /// <summary>Horario semanal; null si no se pudo cargar (ver ErrorHorario).</summary>
+    public HorarioSemanalViewModel? Horario { get; init; }
+    public string? ErrorHorario { get; init; }
+
+    /// <summary>Muestra el atajo a pedir turno con este doctor.</summary>
+    public bool PuedePedirTurno { get; init; }
 
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
