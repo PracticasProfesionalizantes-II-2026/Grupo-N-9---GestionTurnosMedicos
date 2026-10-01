@@ -20,4 +20,6 @@ public class Doctor
     public ICollection<Turno> Turnos { get; set; } = new List<Turno>();
 
     public ICollection<Receta> Recetas { get; set; } = new List<Receta>();
+
+    public ICollection<HorarioLaboral> HorariosLaborales { get; set; } = new List<HorarioLaboral>();
 }

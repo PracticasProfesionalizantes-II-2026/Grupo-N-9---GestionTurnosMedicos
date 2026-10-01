@@ -6,15 +6,17 @@ using ChronoSalud.Seed;
 // ---------------------------------------------------------------------------
 //  Carga datos de prueba en la API de ChronoSalud para la demo.
 //
-//  Crea un administrador, 4 doctores (con su perfil y especialidad), 6 pacientes
-//  y 15 turnos repartidos entre hoy y los proximos 7 dias, y despues acomoda los
-//  estados (pendiente / confirmado / completado / cancelado) con el token del
-//  administrador.
+//  Crea un administrador, 4 doctores (con su perfil y especialidad), horarios
+//  laborales de lunes a viernes (manana 08-14 o tarde 14-20) para los doctores
+//  activos que no tengan, 6 pacientes y 15 turnos repartidos entre hoy y los
+//  proximos 7 dias habiles, y despues acomoda los estados (pendiente /
+//  confirmado / completado / cancelado) con el token del administrador.
 //
 //  Es idempotente: se apoya en lo que ya existe en la API en vez de crear a
 //  ciegas, asi que se puede correr dos veces sin duplicar nada.
 //    - Usuarios  -> el registro devuelve 409 si el email ya existe; ahi hace login.
 //    - Doctores  -> consulta GET /doctores/me con el token del propio doctor.
+//    - Horarios  -> consulta GET /doctores/{id}/horarios y solo carga si esta vacio.
 //    - Pacientes -> consulta GET /pacientes/me (la API crea la ficha al registrar).
 //    - Turnos    -> lista GET /turnos y compara por doctor + paciente + fecha.
 //
@@ -105,6 +107,88 @@ foreach (var doctor in DatosDemo.Doctores)
     Alta($"perfil de {doctor.Especialidad}, matricula {doctor.Matricula} (id_doctor {idsDoctor[doctor.Persona.Alias]})");
 }
 
+// --- 2b. Horarios laborales: lunes a viernes, manana o tarde ---------------
+
+Paso("Horarios");
+
+// Los doctores demo alternan manana/tarde segun su orden en DatosDemo (los
+// turnos demo estan armados para eso). El resto alterna en orden de listado.
+var turnoManiana = new Dictionary<int, bool>();
+for (var i = 0; i < DatosDemo.Doctores.Length; i++)
+{
+    turnoManiana[idsDoctor[DatosDemo.Doctores[i].Persona.Alias]] = i % 2 == 0;
+}
+
+var doctoresActivos = new List<(int Id, string Nombre)>();
+var paginaDoctores = 1;
+
+while (true)
+{
+    var listado = await api.GetAsync($"/doctores?pagina={paginaDoctores}&limite=200", tokenAdmin);
+    if (!listado.Ok)
+    {
+        Morir($"No se pudieron listar los doctores (HTTP {listado.Estado}): {listado.Error}");
+    }
+
+    var total = Json.Entero(listado.Datos, "total");
+    var cantidad = 0;
+
+    if (Json.Buscar(listado.Datos, out var lote, "doctores") && lote.ValueKind == JsonValueKind.Array)
+    {
+        foreach (var item in lote.EnumerateArray())
+        {
+            cantidad++;
+            doctoresActivos.Add((Json.Entero(item, "idDoctor", "id_doctor"), Json.Texto(item, "nombre")));
+        }
+    }
+
+    if (cantidad == 0 || paginaDoctores * 200 >= total)
+    {
+        break;
+    }
+
+    paginaDoctores++;
+}
+
+var otrosDoctores = 0;
+
+foreach (var (idDoctor, nombre) in doctoresActivos)
+{
+    var actual = await api.GetAsync($"/doctores/{idDoctor}/horarios", tokenAdmin);
+    if (!actual.Ok)
+    {
+        Morir($"No se pudo consultar el horario de {nombre} (HTTP {actual.Estado}): {actual.Error}");
+    }
+
+    if (actual.Datos.ValueKind == JsonValueKind.Array && actual.Datos.GetArrayLength() > 0)
+    {
+        Ya($"{nombre} ya tenia horario cargado");
+        continue;
+    }
+
+    if (!turnoManiana.TryGetValue(idDoctor, out var maniana))
+    {
+        maniana = otrosDoctores % 2 == 0;
+        otrosDoctores++;
+    }
+
+    var horaDesde = maniana ? "08:00" : "14:00";
+    var horaHasta = maniana ? "14:00" : "20:00";
+
+    // DiaSemana: 1 = lunes ... 5 = viernes.
+    var semana = Enumerable.Range(1, 5)
+        .Select(dia => new { DiaSemana = dia, HoraInicio = horaDesde, HoraFin = horaHasta })
+        .ToArray();
+
+    var carga = await api.PutAsync($"/doctores/{idDoctor}/horarios", new { Horarios = semana }, tokenAdmin);
+    if (!carga.Ok)
+    {
+        Morir($"No se pudo cargar el horario de {nombre} (HTTP {carga.Estado}): {carga.Error}");
+    }
+
+    Alta($"{nombre}: lunes a viernes de {horaDesde} a {horaHasta}");
+}
+
 // --- 3. Pacientes: la API crea la ficha sola al registrar el usuario -------
 
 Paso("Pacientes");
@@ -186,7 +270,7 @@ var aRevisar = new List<(int Id, string EstadoActual, string EstadoDeseado)>();
 
 foreach (var turno in DatosDemo.Turnos)
 {
-    var fecha = hoy.AddDays(turno.Dia);
+    var fecha = SumarDiasHabiles(hoy, turno.Dia);
     var clave = Clave(nombreDoctor[turno.Doctor], nombrePaciente[turno.Paciente], fecha);
 
     if (existentes.TryGetValue(clave, out var ya))
@@ -299,6 +383,28 @@ return 0;
 // Clave de comparacion de un turno: quien lo atiende, quien lo recibe y que dia.
 static string Clave(string doctor, string paciente, DateTime fecha)
     => $"{doctor}|{paciente}|{fecha:yyyy-MM-dd}";
+
+// Los doctores atienden de lunes a viernes: el dia 0 es hoy (o el lunes
+// siguiente si hoy es fin de semana) y cada dia extra saltea sabado y domingo.
+static DateTime SumarDiasHabiles(DateTime desde, int dias)
+{
+    var fecha = desde;
+    while (fecha.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+    {
+        fecha = fecha.AddDays(1);
+    }
+
+    for (var i = 0; i < dias; i++)
+    {
+        do
+        {
+            fecha = fecha.AddDays(1);
+        }
+        while (fecha.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday);
+    }
+
+    return fecha;
+}
 
 void Escribir(string texto, ConsoleColor color)
 {

@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<RecetaMedicamento> RecetaMedicamentos => Set<RecetaMedicamento>();
     public DbSet<Estudio> Estudios => Set<Estudio>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
+    public DbSet<HorarioLaboral> HorariosLaborales => Set<HorarioLaboral>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -144,5 +145,23 @@ public class AppDbContext : DbContext
             .HasOne(n => n.Usuario)
             .WithMany(u => u.Notificaciones)
             .HasForeignKey(n => n.IdUsuario);
+
+        // HorarioLaboral -> Doctor (un horario por día de la semana)
+        modelBuilder.Entity<HorarioLaboral>(e =>
+        {
+            e.HasOne(h => h.Doctor)
+                .WithMany(d => d.HorariosLaborales)
+                .HasForeignKey(h => h.IdDoctor)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(h => new { h.IdDoctor, h.DiaSemana })
+                .IsUnique();
+
+            e.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_HorarioLaboral_Horas", "[HoraFin] > [HoraInicio]");
+                t.HasCheckConstraint("CK_HorarioLaboral_DiaSemana", "[DiaSemana] BETWEEN 0 AND 6");
+            });
+        });
     }
 }

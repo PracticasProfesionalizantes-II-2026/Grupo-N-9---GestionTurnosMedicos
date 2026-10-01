@@ -48,6 +48,7 @@ builder.Services.AddScoped<IMedicamentoRepository,    MedicamentoRepository>();
 builder.Services.AddScoped<IRecetaRepository,         RecetaRepository>();
 builder.Services.AddScoped<IEstudioRepository,        EstudioRepository>();
 builder.Services.AddScoped<INotificacionRepository,   NotificacionRepository>();
+builder.Services.AddScoped<IHorarioLaboralRepository, HorarioLaboralRepository>();
 
 // ── 5. Lógica de negocio (Scoped) ─────────────────────────────────────────
 builder.Services.AddScoped<IUsuarioLogica,         UsuarioLogica>();
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IMedicamentoLogica,     MedicamentoLogica>();
 builder.Services.AddScoped<IRecetaLogica,          RecetaLogica>();
 builder.Services.AddScoped<IEstudioLogica,         EstudioLogica>();
 builder.Services.AddScoped<INotificacionLogica,    NotificacionLogica>();
+builder.Services.AddScoped<IHorarioLaboralLogica,  HorarioLaboralLogica>();
 
 // ── 6. CORS (opcional para desarrollo) ────────────────────────────────────
 builder.Services.AddCors(options =>
@@ -97,5 +99,6 @@ app.MapRecetaEndpoints();
 app.MapEstudioEndpoints();
 app.MapReporteEndpoints();
 app.MapNotificacionEndpoints();
+app.MapHorarioLaboralEndpoints();
 app.MapGet("/", () => "ChronoSalud API está funcionando ✅");
 app.Run();
