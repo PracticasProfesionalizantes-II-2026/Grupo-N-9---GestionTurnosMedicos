@@ -47,13 +47,6 @@ for (var i = 0; i < args.Length; i++)
     }
 }
 
-var carpeta = Path.Combine(AppContext.BaseDirectory, "data");
-var medicamentos = Seed.MedicamentoCsvReader.LeerCarpeta(carpeta);
-Console.WriteLine($"Medicamentos leídos: {medicamentos.Count}");
-foreach (var m in medicamentos.Take(5))
-    Console.WriteLine($"{m.NombreComercial} ({m.NombreGenerico}) {m.Concentracion} - {m.FormaFarmaceutica}");
-return 0;
-
 using var api = new ApiCliente(baseUrl);
 
 Escribir("ChronoSalud - datos de prueba", ConsoleColor.White);
