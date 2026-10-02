@@ -25,3 +25,15 @@ semanal y atajo "Pedir turno". Doctores/Index usa
 choque 409 con dos pestañas, teclado). Revisar el CSS generado.
 **Pendiente:** pantalla de admin para editar horarios
 (PUT /doctores/{id}/horarios).
+## 2026-10-02 — medicamentos del vademécum
+**Hecho:** `Medicamento` suma genérico, concentración, forma farmacéutica
+y laboratorio (migración AgregarDatosVademecumAMedicamento). El seeder
+carga los CSV de tools/Seed/data por POST /medicamentos, con
+`--solo-medicamentos` y `--email` para Azure. Recetas/Crear arma la
+etiqueta "COMERCIAL (genérico) concentración". Compila todo.
+**A medias:** sin probar de punta a punta: no había una base con la
+migración aplicada a la que conectarse.
+**Sigue:** aplicar la migración (en Azure, con el script idempotente),
+correr el seeder dos veces y revisar el desplegable.
+**Ojo:** los user-secrets de la API apuntan a la base de Azure, así que
+`dotnet run` y `dotnet ef database update` locales pegan ahí.

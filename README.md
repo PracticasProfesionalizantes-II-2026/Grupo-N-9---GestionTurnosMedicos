@@ -95,7 +95,20 @@ Crea un administrador, 4 doctores, 6 pacientes y 15 turnos repartidos entre hoy 
 próximos 7 días. La contraseña de todos es `Chrono2026!` y el admin es
 `admin@chronosalud.demo`.
 
+También carga los medicamentos del Vademécum Nacional que están en los CSV de
+[`tools/Seed/data/`](tools/Seed/data/): son los que aparecen en el desplegable de
+"Nueva receta".
+
 Es idempotente: se puede correr las veces que haga falta sin duplicar nada.
+
+Para cargar **solo los medicamentos** contra otra API (por ejemplo la de Azure), sin
+usuarios ni turnos de demo, entrando con una cuenta administrador o doctor que ya exista:
+
+```
+dotnet run --project tools/Seed -- --url https://<api> --solo-medicamentos --email <cuenta>
+```
+
+La contraseña la pide por consola, así no queda escrita en la terminal.
 ## Ver la base desde SQL Server Management Studio
 
 Abrir SSMS y conectarse con:

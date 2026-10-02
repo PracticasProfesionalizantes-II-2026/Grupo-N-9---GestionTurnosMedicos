@@ -74,7 +74,7 @@
                 {
                     <div class="mt-4 rounded-input border border-border p-4">
                         <div class="grid gap-4 sm:grid-cols-3">
-                            <div>
+                            <div class="sm:col-span-3">
                                 <label asp-for="Medicamentos[i].IdMedicamento" class="block text-sm font-medium text-ink"></label>
                                 <select asp-for="Medicamentos[i].IdMedicamento" asp-items="Model.Vademecum" class="@claseCampo">
                                     <option value="">Ninguno</option>
@@ -96,7 +96,7 @@
                                 <input asp-for="Medicamentos[i].Duracion" placeholder="7 días" class="@claseCampo" />
                                 <span asp-validation-for="Medicamentos[i].Duracion" class="@claseError"></span>
                             </div>
-                            <div class="sm:col-span-2">
+                            <div class="sm:col-span-3">
                                 <label asp-for="Medicamentos[i].Indicaciones" class="block text-sm font-medium text-ink"></label>
                                 <input asp-for="Medicamentos[i].Indicaciones" placeholder="Opcional" class="@claseCampo" />
                                 <span asp-validation-for="Medicamentos[i].Indicaciones" class="@claseError"></span>

@@ -11,10 +11,13 @@ using ChronoSalud.Seed;
 //  activos que no tengan, 6 pacientes y 15 turnos repartidos entre hoy y los
 //  proximos 7 dias habiles, y despues acomoda los estados (pendiente /
 //  confirmado / completado / cancelado) con el token del administrador.
+//  Tambien carga los medicamentos del Vademecum Nacional que estan en data/.
 //
 //  Es idempotente: se apoya en lo que ya existe en la API en vez de crear a
 //  ciegas, asi que se puede correr dos veces sin duplicar nada.
 //    - Usuarios  -> el registro devuelve 409 si el email ya existe; ahi hace login.
+//    - Medicamentos -> lista GET /medicamentos y compara por nombre comercial +
+//                      generico + concentracion + forma farmaceutica.
 //    - Doctores  -> consulta GET /doctores/me con el token del propio doctor.
 //    - Horarios  -> consulta GET /doctores/{id}/horarios y solo carga si esta vacio.
 //    - Pacientes -> consulta GET /pacientes/me (la API crea la ficha al registrar).
@@ -23,12 +26,20 @@ using ChronoSalud.Seed;
 //  Uso:
 //    dotnet run --project tools/Seed
 //    dotnet run --project tools/Seed -- --url http://localhost:5001 --contrasena "Chrono2026!"
+//
+//  Solo los medicamentos, sin usuarios ni turnos de demo (pensado para Azure).
+//  Con --email entra con una cuenta administrador o doctor que ya exista en vez
+//  de registrar al administrador de la demo; si no va --contrasena, la pide.
+//    dotnet run --project tools/Seed -- --url <api> --solo-medicamentos --email <cuenta>
 // ---------------------------------------------------------------------------
 
 Console.OutputEncoding = Encoding.UTF8;
 
 var baseUrl = "http://localhost:5001";
 var contrasena = "Chrono2026!";
+var contrasenaIndicada = false;
+var soloMedicamentos = false;
+string? cuentaPropia = null;
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -39,12 +50,31 @@ for (var i = 0; i < args.Length; i++)
             break;
         case "--contrasena" when i + 1 < args.Length:
             contrasena = args[++i];
+            contrasenaIndicada = true;
+            break;
+        case "--email" when i + 1 < args.Length:
+            cuentaPropia = args[++i];
+            break;
+        case "--solo-medicamentos":
+            soloMedicamentos = true;
             break;
         case "--help":
         case "-h":
-            Console.WriteLine("Uso: dotnet run --project tools/Seed -- [--url <api>] [--contrasena <clave>]");
+            Console.WriteLine("Uso: dotnet run --project tools/Seed -- [--url <api>] [--contrasena <clave>] " +
+                              "[--solo-medicamentos [--email <cuenta>]]");
             return 0;
     }
+}
+
+if (cuentaPropia is not null && !soloMedicamentos)
+{
+    // El resto de la carga necesita al administrador de la demo y sus doctores.
+    Morir("--email solo se puede usar junto con --solo-medicamentos.");
+}
+
+if (cuentaPropia is not null && !contrasenaIndicada)
+{
+    contrasena = LeerContrasena(cuentaPropia);
 }
 
 using var api = new ApiCliente(baseUrl);
@@ -55,8 +85,127 @@ Escribir($"API: {baseUrl}", ConsoleColor.DarkGray);
 // --- 1. Administrador ------------------------------------------------------
 
 Paso("Administrador");
-var cuentaAdmin = await ResolverUsuarioAsync(DatosDemo.Administrador, "administrador");
-var tokenAdmin = cuentaAdmin.Token;
+string tokenAdmin;
+
+if (cuentaPropia is null)
+{
+    var cuentaAdmin = await ResolverUsuarioAsync(DatosDemo.Administrador, "administrador");
+    tokenAdmin = cuentaAdmin.Token;
+}
+else
+{
+    tokenAdmin = await IniciarSesionAsync(cuentaPropia);
+}
+
+// --- 1b. Medicamentos: el vademecum de los CSV de data/ --------------------
+
+Paso("Medicamentos");
+
+List<Seed.MedicamentoCsv> vademecum;
+try
+{
+    vademecum = Seed.MedicamentoCsvReader.LeerCarpeta(Path.Combine(AppContext.BaseDirectory, "data"));
+}
+catch (Exception ex) when (ex is IOException or InvalidDataException)
+{
+    Morir($"No se pudieron leer los CSV de medicamentos: {ex.Message}");
+    return 1;
+}
+
+var listadoMedicamentos = await api.GetAsync("/medicamentos", tokenAdmin);
+if (!listadoMedicamentos.Ok)
+{
+    Morir($"No se pudieron listar los medicamentos existentes (HTTP {listadoMedicamentos.Estado}): " +
+          $"{listadoMedicamentos.Error}");
+}
+
+// Lo que ya hay en la API, con la misma clave que usa el lector de CSV.
+var medicamentosCargados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+if (Json.Buscar(listadoMedicamentos.Datos, out var loteMedicamentos, "medicamentos")
+    && loteMedicamentos.ValueKind == JsonValueKind.Array)
+{
+    foreach (var item in loteMedicamentos.EnumerateArray())
+    {
+        medicamentosCargados.Add(ClaveMedicamento(
+            Json.Texto(item, "nombre"),
+            Json.Texto(item, "nombreGenerico", "nombre_generico"),
+            Json.Texto(item, "concentracion"),
+            Json.Texto(item, "formaFarmaceutica", "forma_farmaceutica")));
+    }
+}
+
+var medicamentosNuevos = 0;
+var medicamentosSaltados = 0;
+
+foreach (var med in vademecum)
+{
+    var clave = ClaveMedicamento(med.NombreComercial, med.NombreGenerico, med.Concentracion, med.FormaFarmaceutica);
+
+    // Add devuelve false si la clave ya estaba, asi que tampoco se repite
+    // dentro de la misma corrida.
+    if (!medicamentosCargados.Add(clave))
+    {
+        medicamentosSaltados++;
+        continue;
+    }
+
+    var alta = await api.PostAsync("/medicamentos", new
+    {
+        Nombre = med.NombreComercial,
+        med.NombreGenerico,
+        med.Concentracion,
+        med.FormaFarmaceutica,
+        med.Laboratorio
+    }, tokenAdmin);
+
+    if (!alta.Ok)
+    {
+        Morir($"No se pudo cargar el medicamento {med.NombreComercial} {med.Concentracion} " +
+              $"(HTTP {alta.Estado}): {alta.Error}" +
+              (alta.Estado == 403 ? ". La cuenta tiene que ser administrador o doctor." : ""));
+    }
+
+    // Resguardo, solo con el primero: una API anterior a los campos del
+    // vademecum acepta el POST pero guarda nada mas que el nombre. Esas filas
+    // no coincidirian con la clave en la proxima corrida y se duplicarian.
+    if (medicamentosNuevos == 0)
+    {
+        var idNuevo = Json.Entero(alta.Datos, "id_medicamento", "idMedicamento");
+        var releido = await api.GetAsync($"/medicamentos/{idNuevo}", tokenAdmin);
+
+        if (!releido.Ok || !string.Equals(
+                Json.Texto(releido.Datos, "nombreGenerico", "nombre_generico"),
+                med.NombreGenerico,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Morir($"La API en {baseUrl} todavia no guarda los datos del vademecum (falta desplegar " +
+                  $"la version nueva o aplicar la migracion). Quedo cargado el medicamento {idNuevo} " +
+                  "sin esos datos: borralo antes de volver a correr el seeder.");
+        }
+    }
+
+    medicamentosNuevos++;
+}
+
+if (medicamentosNuevos > 0)
+{
+    Alta($"{medicamentosNuevos} medicamento(s) cargado(s)");
+}
+
+if (medicamentosSaltados > 0)
+{
+    Ya($"{medicamentosSaltados} medicamento(s) ya estaban cargados");
+}
+
+if (soloMedicamentos)
+{
+    Console.WriteLine();
+    Escribir($"Medicamentos: {medicamentosNuevos} nuevo(s), {medicamentosSaltados} ya existente(s).",
+        ConsoleColor.White);
+    Escribir("El seeder es idempotente: podes volver a correrlo sin duplicar nada.\n", ConsoleColor.DarkGray);
+    return 0;
+}
 
 // --- 2. Doctores: usuario + perfil con especialidad ------------------------
 
@@ -374,6 +523,8 @@ Console.WriteLine();
 Escribir($"Contrasena de todos los usuarios: {contrasena}", ConsoleColor.White);
 Escribir($"Turnos: {creados} nuevo(s), {saltados} ya existente(s), " +
          $"{DatosDemo.Turnos.Length} en total para la demo.", ConsoleColor.White);
+Escribir($"Medicamentos: {medicamentosNuevos} nuevo(s), {medicamentosSaltados} ya existente(s).",
+    ConsoleColor.White);
 Escribir("El seeder es idempotente: podes volver a correrlo sin duplicar nada.\n", ConsoleColor.DarkGray);
 
 return 0;
@@ -383,6 +534,53 @@ return 0;
 // Clave de comparacion de un turno: quien lo atiende, quien lo recibe y que dia.
 static string Clave(string doctor, string paciente, DateTime fecha)
     => $"{doctor}|{paciente}|{fecha:yyyy-MM-dd}";
+
+// Clave de comparacion de un medicamento, la misma con la que MedicamentoCsvReader
+// saca los repetidos. El nombre comercial solo no alcanza: se repite entre
+// concentraciones (LENALINOVA 5 MG y LENALINOVA 15 MG son dos medicamentos).
+static string ClaveMedicamento(string nombre, string generico, string concentracion, string forma)
+    => $"{nombre.Trim()}|{generico.Trim()}|{concentracion.Trim()}|{forma.Trim()}";
+
+// Pide la contrasena sin mostrarla, para que no quede escrita en la terminal.
+static string LeerContrasena(string cuenta)
+{
+    Console.Write($"Contrasena de {cuenta}: ");
+
+    if (Console.IsInputRedirected)
+    {
+        return Console.ReadLine() ?? string.Empty;
+    }
+
+    var texto = new StringBuilder();
+
+    while (true)
+    {
+        var tecla = Console.ReadKey(intercept: true);
+
+        if (tecla.Key == ConsoleKey.Enter)
+        {
+            break;
+        }
+
+        if (tecla.Key == ConsoleKey.Backspace)
+        {
+            if (texto.Length > 0)
+            {
+                texto.Length--;
+            }
+
+            continue;
+        }
+
+        if (!char.IsControl(tecla.KeyChar))
+        {
+            texto.Append(tecla.KeyChar);
+        }
+    }
+
+    Console.WriteLine();
+    return texto.ToString();
+}
 
 // Los doctores atienden de lunes a viernes: el dia 0 es hoy (o el lunes
 // siguiente si hoy es fin de semana) y cada dia extra saltea sabado y domingo.
@@ -429,6 +627,29 @@ void Morir(string texto)
     Console.WriteLine();
     Escribir($"ERROR: {texto}", ConsoleColor.Red);
     Environment.Exit(1);
+}
+
+// Entra con una cuenta que ya existe, sin registrar nada.
+async Task<string> IniciarSesionAsync(string cuenta)
+{
+    var login = await api.PostAsync("/usuarios/login", new
+    {
+        Email = cuenta,
+        Contrasena = contrasena
+    });
+
+    if (!login.Ok)
+    {
+        if (login.Estado == 0)
+        {
+            Morir($"No se pudo contactar la API en {baseUrl}. Detalle: {login.Error}");
+        }
+
+        Morir($"No se pudo iniciar sesion con {cuenta} (HTTP {login.Estado}). Revisa el email y la contrasena.");
+    }
+
+    Ya($"sesion iniciada como {cuenta}");
+    return Json.Texto(login.Datos, "token");
 }
 
 // Registra el usuario o, si el email ya estaba, hace login.
