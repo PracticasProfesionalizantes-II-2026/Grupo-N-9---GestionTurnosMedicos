@@ -11,6 +11,8 @@ public class RecetasController : ControladorBase
         "Tu usuario no tiene un perfil de paciente asociado, así que no podemos " +
         "mostrar tus recetas. Pedile a la administración que lo cree.";
 
+    private const int LargoMaximoDeGenerico = 40;
+
     private readonly RecetaService _recetas;
     private readonly MedicamentoService _medicamentos;
     private readonly PacienteService _pacientes;
@@ -250,17 +252,64 @@ public class RecetasController : ControladorBase
         {
             modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
 
-            var vademecum = await _medicamentos.ObtenerTodosAsync();
-            modelo.Vademecum = vademecum
-                .OrderBy(m => m.Nombre, StringComparer.CurrentCultureIgnoreCase)
-                .Select(m => new SelectListItem(m.Nombre, m.IdMedicamento.ToString()))
-                .ToList();
+            modelo.Vademecum = OpcionesDeVademecum(await _medicamentos.ObtenerTodosAsync());
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             // Las listas quedan vacías, pero no se pierde lo que el usuario cargó.
             ModelState.AddModelError(string.Empty, $"No se pudieron cargar las listas: {error.Message}");
         }
+    }
+
+    /// <summary>
+    /// Opciones del desplegable de medicamentos. Si dos quedan con la misma
+    /// etiqueta, a esas se les agrega la forma farmacéutica para distinguirlas.
+    /// </summary>
+    private static IReadOnlyList<SelectListItem> OpcionesDeVademecum(IReadOnlyList<Medicamento> vademecum)
+    {
+        var opciones = vademecum
+            .OrderBy(m => m.Nombre, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(m => m.Concentracion, StringComparer.CurrentCultureIgnoreCase)
+            .Select(m => (Medicamento: m, Etiqueta: EtiquetaDeMedicamento(m)))
+            .ToList();
+
+        var repetidas = opciones
+            .GroupBy(o => o.Etiqueta, StringComparer.CurrentCultureIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToHashSet(StringComparer.CurrentCultureIgnoreCase);
+
+        return opciones
+            .Select(o => new SelectListItem(
+                repetidas.Contains(o.Etiqueta) && !string.IsNullOrWhiteSpace(o.Medicamento.FormaFarmaceutica)
+                    ? $"{o.Etiqueta} - {o.Medicamento.FormaFarmaceutica.Trim().ToLower(TurnosIndexViewModel.Cultura)}"
+                    : o.Etiqueta,
+                o.Medicamento.IdMedicamento.ToString()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// "NOMBRE COMERCIAL (nombre genérico) concentración". El genérico se corta
+    /// porque las combinaciones de drogas no entran en el desplegable; lo que
+    /// falte (medicamentos cargados a mano) se omite.
+    /// </summary>
+    private static string EtiquetaDeMedicamento(Medicamento m)
+    {
+        var etiqueta = m.Nombre.Trim();
+
+        if (!string.IsNullOrWhiteSpace(m.NombreGenerico))
+        {
+            var generico = m.NombreGenerico.Trim().ToLower(TurnosIndexViewModel.Cultura);
+            if (generico.Length > LargoMaximoDeGenerico)
+                generico = generico[..LargoMaximoDeGenerico].TrimEnd() + "…";
+
+            etiqueta += $" ({generico})";
+        }
+
+        if (!string.IsNullOrWhiteSpace(m.Concentracion))
+            etiqueta += $" {m.Concentracion.Trim()}";
+
+        return etiqueta;
     }
 
     private IActionResult SinPermisoDeEmision() => SinPermiso(

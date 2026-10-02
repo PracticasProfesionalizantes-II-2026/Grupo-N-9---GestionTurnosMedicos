@@ -125,6 +125,16 @@ public class AppDbContext : DbContext
             .WithMany(m => m.RecetaMedicamentos)
             .HasForeignKey(rm => rm.IdMedicamento);
 
+        // Medicamento - longitudes de los datos del Vademécum (el genérico puede
+        // ser largo: las combinaciones listan todas las drogas)
+        modelBuilder.Entity<Medicamento>(e =>
+        {
+            e.Property(m => m.NombreGenerico).HasMaxLength(500);
+            e.Property(m => m.Concentracion).HasMaxLength(200);
+            e.Property(m => m.FormaFarmaceutica).HasMaxLength(150);
+            e.Property(m => m.Laboratorio).HasMaxLength(150);
+        });
+
         // Estudio -> Paciente
         modelBuilder.Entity<Estudio>()
             .HasOne(e => e.Paciente)

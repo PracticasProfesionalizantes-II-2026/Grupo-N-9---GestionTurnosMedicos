@@ -1,9 +1,17 @@
 namespace ChronoSaludWeb.Services;
 
 /// <summary>
-/// Espeja MedicamentoDto de la API.
+/// Espeja MedicamentoDto de la API. Nombre es el nombre comercial; el resto de
+/// los datos del vademécum puede faltar en medicamentos cargados a mano.
 /// </summary>
-public record Medicamento(int IdMedicamento, string Nombre, string? Descripcion);
+public record Medicamento(
+    int IdMedicamento,
+    string Nombre,
+    string? Descripcion,
+    string? NombreGenerico = null,
+    string? Concentracion = null,
+    string? FormaFarmaceutica = null,
+    string? Laboratorio = null);
 
 /// <summary>
 /// Respuesta de GET /medicamentos: { medicamentos }.
