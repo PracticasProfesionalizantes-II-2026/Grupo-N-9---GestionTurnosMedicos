@@ -3,6 +3,43 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ChronoSaludWeb.Models;
 
+/// <summary>
+/// Formato con el que una fila "Otro..." guarda el nombre escrito a mano dentro
+/// de Indicaciones: la primera línea es "Medicamento: nombre" y, si hay
+/// indicaciones, van debajo.
+/// </summary>
+public static class IndicacionesDeOtro
+{
+    public const string Prefijo = "Medicamento: ";
+
+    public static string Componer(string? nombre, string? indicaciones)
+    {
+        var primeraLinea = Prefijo + Normalizar(nombre);
+        return string.IsNullOrWhiteSpace(indicaciones)
+            ? primeraLinea
+            : $"{primeraLinea}\n{indicaciones.Trim()}";
+    }
+
+    /// <summary>Lo inverso de Componer. Nombre es null si el texto no respeta el formato.</summary>
+    public static (string? Nombre, string? Indicaciones) Separar(string? texto)
+    {
+        if (texto is null || !texto.StartsWith(Prefijo, StringComparison.Ordinal))
+            return (null, texto);
+
+        var corte = texto.IndexOf('\n');
+        var nombre = (corte < 0 ? texto[Prefijo.Length..] : texto[Prefijo.Length..corte]).Trim();
+        if (nombre.Length == 0)
+            return (null, texto);
+
+        var resto = corte < 0 ? string.Empty : texto[(corte + 1)..].Trim();
+        return (nombre, resto.Length == 0 ? null : resto);
+    }
+
+    // El nombre va en una sola línea: es lo que permite volver a separarlo.
+    private static string Normalizar(string? nombre) =>
+        string.Join(' ', (nombre ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+}
+
 public class RecetaMedicamentoViewModel
 {
     public int IdMedicamento { get; init; }
@@ -12,13 +49,56 @@ public class RecetaMedicamentoViewModel
     /// </summary>
     public string? Nombre { get; init; }
 
+    public string? NombreGenerico { get; init; }
+    public string? Concentracion { get; init; }
+    public string? FormaFarmaceutica { get; init; }
+
+    /// <summary>La fila apunta al marcador "Otro...": el nombre está en Indicaciones.</summary>
+    public bool EsOtro { get; init; }
+
     public string Dosis { get; init; } = string.Empty;
     public string Frecuencia { get; init; } = string.Empty;
     public string? Duracion { get; init; }
     public string? Indicaciones { get; init; }
 
-    public string NombreMostrado =>
-        string.IsNullOrWhiteSpace(Nombre) ? $"Medicamento #{IdMedicamento}" : Nombre.Trim();
+    public string NombreMostrado
+    {
+        get
+        {
+            if (EsOtro)
+                return IndicacionesDeOtro.Separar(Indicaciones).Nombre ?? "Otro medicamento";
+
+            return string.IsNullOrWhiteSpace(Nombre) ? $"Medicamento #{IdMedicamento}" : Nombre.Trim();
+        }
+    }
+
+    /// <summary>
+    /// "NOMBRE COMERCIAL (nombre genérico) concentración · forma farmacéutica".
+    /// Lo que falte se omite.
+    /// </summary>
+    public string DescripcionCompleta
+    {
+        get
+        {
+            var descripcion = NombreMostrado;
+            if (EsOtro) return descripcion;
+
+            if (!string.IsNullOrWhiteSpace(NombreGenerico))
+                descripcion += $" ({NombreGenerico.Trim().ToLower(TurnosIndexViewModel.Cultura)})";
+
+            if (!string.IsNullOrWhiteSpace(Concentracion))
+                descripcion += $" {Concentracion.Trim()}";
+
+            if (!string.IsNullOrWhiteSpace(FormaFarmaceutica))
+                descripcion += $" · {FormaFarmaceutica.Trim().ToLower(TurnosIndexViewModel.Cultura)}";
+
+            return descripcion;
+        }
+    }
+
+    /// <summary>Las indicaciones sin la línea del nombre en las filas "Otro...".</summary>
+    public string? IndicacionesMostradas =>
+        EsOtro ? IndicacionesDeOtro.Separar(Indicaciones).Indicaciones : Indicaciones;
 }
 
 public class RecetaFilaViewModel
@@ -80,8 +160,17 @@ public class RecetaDetalleViewModel
 /// </summary>
 public class RecetaMedicamentoCampoViewModel
 {
+    public const int LargoMaximoDeIndicaciones = 300;
+
     [Display(Name = "Medicamento")]
     public int? IdMedicamento { get; set; }
+
+    /// <summary>Solo cuenta si se eligió "Otro..."; si no, se ignora.</summary>
+    [StringLength(150, ErrorMessage = "El nombre del medicamento no puede superar los 150 caracteres.")]
+    [Display(Name = "Nombre del medicamento")]
+    public string? NombreOtro { get; set; }
+
+    public bool EsOtro => IdMedicamento == RecetaCrearViewModel.IdOtro;
 
     [StringLength(100, ErrorMessage = "La dosis no puede superar los 100 caracteres.")]
     [Display(Name = "Dosis")]
@@ -95,7 +184,7 @@ public class RecetaMedicamentoCampoViewModel
     [Display(Name = "Duración")]
     public string? Duracion { get; set; }
 
-    [StringLength(300, ErrorMessage = "Las indicaciones no pueden superar los 300 caracteres.")]
+    [StringLength(LargoMaximoDeIndicaciones, ErrorMessage = "Las indicaciones no pueden superar los 300 caracteres.")]
     [Display(Name = "Indicaciones")]
     public string? Indicaciones { get; set; }
 
@@ -109,8 +198,15 @@ public class RecetaMedicamentoCampoViewModel
 
 public class RecetaCrearViewModel : IValidatableObject
 {
-    /// <summary>Cuántas filas de medicamento muestra el formulario.</summary>
-    public const int FilasDeMedicamentos = 3;
+    /// <summary>El formulario arranca con una fila; se agregan y quitan con "+" y "-".</summary>
+    public const int MinimoDeFilas = 1;
+    public const int MaximoDeFilas = 10;
+
+    /// <summary>
+    /// Valor de la opción "Otro..." en el desplegable. No es un id de la API:
+    /// el controlador lo cambia por el del medicamento marcador al emitir.
+    /// </summary>
+    public const int IdOtro = -1;
 
     [Required(ErrorMessage = "Elegí un paciente.")]
     [Display(Name = "Paciente")]
@@ -135,6 +231,9 @@ public class RecetaCrearViewModel : IValidatableObject
     // Opciones de los selects. No se postean: el controlador las recarga.
     public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
     public IReadOnlyList<SelectListItem> Vademecum { get; set; } = Array.Empty<SelectListItem>();
+
+    /// <summary>El marcador existe en la API: se puede ofrecer "Otro...".</summary>
+    public bool OtroDisponible { get; set; }
 
     /// <summary>Filas efectivamente cargadas, en el orden del formulario.</summary>
     public IEnumerable<RecetaMedicamentoCampoViewModel> MedicamentosCargados =>
@@ -185,9 +284,27 @@ public class RecetaCrearViewModel : IValidatableObject
                     "La frecuencia es obligatoria.",
                     new[] { $"{nameof(Medicamentos)}[{i}].{nameof(RecetaMedicamentoCampoViewModel.Frecuencia)}" });
             }
+
+            if (!fila.EsOtro) continue;
+
+            if (string.IsNullOrWhiteSpace(fila.NombreOtro))
+            {
+                yield return new ValidationResult(
+                    "Escribí el nombre del medicamento.",
+                    new[] { $"{nameof(Medicamentos)}[{i}].{nameof(RecetaMedicamentoCampoViewModel.NombreOtro)}" });
+            }
+            else if (IndicacionesDeOtro.Componer(fila.NombreOtro, fila.Indicaciones).Length
+                     > RecetaMedicamentoCampoViewModel.LargoMaximoDeIndicaciones)
+            {
+                // El nombre se guarda dentro de las indicaciones: comparten el límite.
+                yield return new ValidationResult(
+                    "El nombre del medicamento y las indicaciones juntos no pueden superar los 300 caracteres.",
+                    new[] { $"{nameof(Medicamentos)}[{i}].{nameof(RecetaMedicamentoCampoViewModel.NombreOtro)}" });
+            }
         }
 
-        if (cargados.Where(m => m.IdMedicamento is not null)
+        // Las filas "Otro..." comparten el valor del desplegable sin ser el mismo medicamento.
+        if (cargados.Where(m => m.IdMedicamento is not null && !m.EsOtro)
                     .GroupBy(m => m.IdMedicamento)
                     .Any(g => g.Count() > 1))
         {

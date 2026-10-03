@@ -11,7 +11,8 @@ using ChronoSalud.Seed;
 //  activos que no tengan, 6 pacientes y 15 turnos repartidos entre hoy y los
 //  proximos 7 dias habiles, y despues acomoda los estados (pendiente /
 //  confirmado / completado / cancelado) con el token del administrador.
-//  Tambien carga los medicamentos del Vademecum Nacional que estan en data/.
+//  Tambien carga los medicamentos del Vademecum Nacional que estan en data/ y
+//  el marcador "Otro (ver indicaciones)" que usa la opcion "Otro..." de la receta.
 //
 //  Es idempotente: se apoya en lo que ya existe en la API en vez de crear a
 //  ciegas, asi que se puede correr dos veces sin duplicar nada.
@@ -186,6 +187,34 @@ foreach (var med in vademecum)
     }
 
     medicamentosNuevos++;
+}
+
+// Marcador de la opcion "Otro..." de la receta: la unica fila de catalogo a la
+// que apuntan los medicamentos escritos a mano (el nombre real va en las
+// indicaciones). El front lo reconoce por este nombre exacto. Va despues del
+// vademecum para no ser nunca el primer alta, que es la que usa el resguardo
+// de arriba.
+const string nombreMarcadorOtro = "Otro (ver indicaciones)";
+
+if (medicamentosCargados.Add(ClaveMedicamento(nombreMarcadorOtro, "", "", "")))
+{
+    var altaMarcador = await api.PostAsync("/medicamentos", new
+    {
+        Nombre = nombreMarcadorOtro,
+        Descripcion = "Marcador de la opcion \"Otro...\" de las recetas. No borrar ni renombrar."
+    }, tokenAdmin);
+
+    if (!altaMarcador.Ok)
+    {
+        Morir($"No se pudo cargar el marcador \"{nombreMarcadorOtro}\" (HTTP {altaMarcador.Estado}): " +
+              $"{altaMarcador.Error}");
+    }
+
+    medicamentosNuevos++;
+}
+else
+{
+    medicamentosSaltados++;
 }
 
 if (medicamentosNuevos > 0)

@@ -20,9 +20,20 @@ public record MedicamentosRespuesta(IReadOnlyList<Medicamento> Medicamentos);
 
 public class MedicamentoService
 {
+    /// <summary>
+    /// Nombre de la fila de catálogo a la que apuntan los medicamentos escritos
+    /// a mano ("Otro..."): la API exige un IdMedicamento, y el nombre real va en
+    /// las indicaciones. La carga el seeder con este mismo texto.
+    /// </summary>
+    public const string NombreMarcadorOtro = "Otro (ver indicaciones)";
+
     private readonly ApiClient _api;
 
     public MedicamentoService(ApiClient api) => _api = api;
+
+    public static bool EsMarcadorOtro(Medicamento medicamento) =>
+        string.Equals(medicamento.Nombre?.Trim(), NombreMarcadorOtro, StringComparison.OrdinalIgnoreCase) &&
+        string.IsNullOrWhiteSpace(medicamento.NombreGenerico);
 
     /// <summary>
     /// GET /medicamentos. No pagina: devuelve el vademécum completo.
@@ -32,6 +43,12 @@ public class MedicamentoService
         var respuesta = await _api.GetAsync<MedicamentosRespuesta>("/medicamentos");
         return respuesta?.Medicamentos ?? Array.Empty<Medicamento>();
     }
+
+    /// <summary>
+    /// Id del marcador de "Otro...", o null si todavía no se cargó en la API.
+    /// </summary>
+    public async Task<int?> ObtenerIdMarcadorOtroAsync()
+        => (await ObtenerTodosAsync()).FirstOrDefault(EsMarcadorOtro)?.IdMedicamento;
 
     /// <summary>
     /// Diccionario id -> nombre, para resolver los medicamentos de una receta:
