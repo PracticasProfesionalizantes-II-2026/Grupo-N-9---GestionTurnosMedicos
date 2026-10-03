@@ -173,6 +173,21 @@ public class RecetasController : ControladorBase
 
         try
         {
+            // "Otro..." viaja como RecetaCrearViewModel.IdOtro; la API necesita
+            // el id del medicamento marcador.
+            int? idMarcador = null;
+            if (modelo.MedicamentosCargados.Any(m => m.EsOtro))
+            {
+                idMarcador = await _medicamentos.ObtenerIdMarcadorOtroAsync();
+                if (idMarcador is null)
+                {
+                    ModelState.AddModelError(string.Empty,
+                        "La opción \"Otro...\" no está disponible: falta cargar el medicamento marcador en la API.");
+                    await CargarFormularioAsync(modelo);
+                    return View(modelo);
+                }
+            }
+
             var creada = await _recetas.CrearAsync(new RecetaNueva(
                 modelo.IdPaciente!.Value,
                 idDoctor.Value,
@@ -183,11 +198,13 @@ public class RecetasController : ControladorBase
                 string.IsNullOrWhiteSpace(modelo.Detalles) ? null : modelo.Detalles.Trim(),
                 modelo.MedicamentosCargados
                     .Select(m => new Services.RecetaMedicamento(
-                        m.IdMedicamento!.Value,
+                        m.EsOtro ? idMarcador!.Value : m.IdMedicamento!.Value,
                         m.Dosis!.Trim(),
                         m.Frecuencia!.Trim(),
                         string.IsNullOrWhiteSpace(m.Duracion) ? null : m.Duracion.Trim(),
-                        string.IsNullOrWhiteSpace(m.Indicaciones) ? null : m.Indicaciones.Trim()))
+                        m.EsOtro
+                            ? IndicacionesDeOtro.Componer(m.NombreOtro, m.Indicaciones)
+                            : string.IsNullOrWhiteSpace(m.Indicaciones) ? null : m.Indicaciones.Trim()))
                     .ToList()));
 
             TempData["Exito"] = creada is null
@@ -202,6 +219,64 @@ public class RecetasController : ControladorBase
             await CargarFormularioAsync(modelo);
             return View(modelo);
         }
+    }
+
+    /// <summary>
+    /// Botón "+" de una fila: agrega una vacía debajo y vuelve a mostrar el
+    /// formulario con todo lo cargado. No valida ni emite nada.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AgregarFila(RecetaCrearViewModel modelo, int indice)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Crear)));
+
+        if (!_auth.PuedeEmitirRecetas)
+            return SinPermisoDeEmision();
+
+        if (modelo.Medicamentos.Count < RecetaCrearViewModel.MaximoDeFilas)
+        {
+            modelo.Medicamentos.Insert(
+                Math.Clamp(indice + 1, 0, modelo.Medicamentos.Count),
+                new RecetaMedicamentoCampoViewModel());
+        }
+
+        return await RepintarFormularioAsync(modelo);
+    }
+
+    /// <summary>
+    /// Botón "-" de una fila: la quita, salvo que sea la única.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuitarFila(RecetaCrearViewModel modelo, int indice)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Crear)));
+
+        if (!_auth.PuedeEmitirRecetas)
+            return SinPermisoDeEmision();
+
+        if (modelo.Medicamentos.Count > RecetaCrearViewModel.MinimoDeFilas &&
+            indice >= 0 && indice < modelo.Medicamentos.Count)
+        {
+            modelo.Medicamentos.RemoveAt(indice);
+        }
+
+        return await RepintarFormularioAsync(modelo);
+    }
+
+    private async Task<IActionResult> RepintarFormularioAsync(RecetaCrearViewModel modelo)
+    {
+        // Los tag helpers prefieren el valor posteado al del modelo, y lo buscan
+        // por índice: sin esto, al quitar una fila del medio las siguientes
+        // mostrarían los datos de la fila que ocupaba antes su lugar. De paso
+        // se van los errores de validación, que acá no corresponden.
+        ModelState.Clear();
+
+        await CargarFormularioAsync(modelo);
+        return View(nameof(Crear), modelo);
     }
 
     /// <summary>
@@ -245,14 +320,26 @@ public class RecetasController : ControladorBase
 
     private async Task CargarFormularioAsync(RecetaCrearViewModel modelo)
     {
-        while (modelo.Medicamentos.Count < RecetaCrearViewModel.FilasDeMedicamentos)
+        while (modelo.Medicamentos.Count < RecetaCrearViewModel.MinimoDeFilas)
             modelo.Medicamentos.Add(new RecetaMedicamentoCampoViewModel());
+
+        if (modelo.Medicamentos.Count > RecetaCrearViewModel.MaximoDeFilas)
+        {
+            modelo.Medicamentos.RemoveRange(
+                RecetaCrearViewModel.MaximoDeFilas,
+                modelo.Medicamentos.Count - RecetaCrearViewModel.MaximoDeFilas);
+        }
 
         try
         {
             modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
 
-            modelo.Vademecum = OpcionesDeVademecum(await _medicamentos.ObtenerTodosAsync());
+            // El marcador de "Otro..." no es un medicamento elegible: sale de la
+            // lista y, si existe, habilita la opción propia del desplegable.
+            var vademecum = await _medicamentos.ObtenerTodosAsync();
+            modelo.OtroDisponible = vademecum.Any(MedicamentoService.EsMarcadorOtro);
+            modelo.Vademecum = OpcionesDeVademecum(
+                vademecum.Where(m => !MedicamentoService.EsMarcadorOtro(m)).ToList());
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
@@ -325,14 +412,23 @@ public class RecetasController : ControladorBase
         Vigencia = receta.Vigencia,
         Detalles = receta.Detalles,
         Medicamentos = receta.Medicamentos
-            .Select(m => new RecetaMedicamentoViewModel
+            .Select(m =>
             {
-                IdMedicamento = m.IdMedicamento,
-                Nombre = vademecum.TryGetValue(m.IdMedicamento, out var med) ? med.Nombre : null,
-                Dosis = m.Dosis,
-                Frecuencia = m.Frecuencia,
-                Duracion = m.Duracion,
-                Indicaciones = m.Indicaciones
+                vademecum.TryGetValue(m.IdMedicamento, out var med);
+
+                return new RecetaMedicamentoViewModel
+                {
+                    IdMedicamento = m.IdMedicamento,
+                    Nombre = med?.Nombre,
+                    NombreGenerico = med?.NombreGenerico,
+                    Concentracion = med?.Concentracion,
+                    FormaFarmaceutica = med?.FormaFarmaceutica,
+                    EsOtro = med is not null && MedicamentoService.EsMarcadorOtro(med),
+                    Dosis = m.Dosis,
+                    Frecuencia = m.Frecuencia,
+                    Duracion = m.Duracion,
+                    Indicaciones = m.Indicaciones
+                };
             })
             .ToList()
     };

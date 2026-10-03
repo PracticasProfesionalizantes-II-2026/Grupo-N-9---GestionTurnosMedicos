@@ -37,3 +37,19 @@ migración aplicada a la que conectarse.
 correr el seeder dos veces y revisar el desplegable.
 **Ojo:** los user-secrets de la API apuntan a la base de Azure, así que
 `dotnet run` y `dotnet ef database update` locales pegan ahí.
+## 2026-10-03 — receta: filas dinámicas, "Otro..." y detalle
+**Hecho:** la migración AgregarDatosVademecumAMedicamento ya está aplicada
+y desplegada en Azure. Recetas/Crear arranca con 1 fila y suma/quita con
+"+"/"−" sin JS (POST a AgregarFila/QuitarFila, hasta 10, vuelve anclado a
+la fila). Opción "Otro..." con cuadro de texto por CSS `:has()`: la fila
+apunta al medicamento marcador "Otro (ver indicaciones)" y el nombre se
+guarda en Indicaciones como `Medicamento: <nombre>` + salto de línea +
+indicaciones (tope 300 entre los dos). El detalle muestra genérico,
+concentración y forma. La API no se tocó; el seeder carga el marcador.
+Compilan Web y Seed, CSS recompilado.
+**Sigue:** desplegar la Web, después correr el seeder con
+`--solo-medicamentos` contra Azure (crea el marcador; hasta entonces
+"Otro..." no aparece) y probar a mano.
+**Ojo:** no borrar ni renombrar el marcador: la FK borra en cascada los
+renglones de receta que lo usan. La Web no tiene pantalla para hacerlo,
+pero la API sí lo permite (PUT/DELETE /medicamentos).

@@ -4,6 +4,7 @@
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
     const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
+    const string claseBotonFila = "flex h-9 w-9 items-center justify-center rounded-input border border-border text-lg font-semibold leading-none text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft";
 }
 
 <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
@@ -42,6 +43,10 @@
         }
 
         <form asp-action="Crear" method="post" novalidate>
+            @* Enter en un campo de texto dispara el primer submit del formulario:
+               sin este, sería el "+" de la primera fila en vez de emitir. *@
+            <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">Emitir receta</button>
+
             <div class="grid gap-5 sm:grid-cols-3">
                 <div class="sm:col-span-3">
                     <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
@@ -67,19 +72,36 @@
             <fieldset class="mt-8">
                 <legend class="text-sm font-semibold uppercase tracking-wide text-muted">Medicamentos</legend>
                 <p class="mt-1 text-xs text-muted">
-                    Hace falta al menos uno. Dejá vacías las filas que no uses.
+                    Hace falta al menos uno. Con «+» agregás una fila debajo y con «−» la quitás
+                    (hasta @RecetaCrearViewModel.MaximoDeFilas); las que queden vacías se ignoran.
                 </p>
 
                 @for (var i = 0; i < Model.Medicamentos.Count; i++)
                 {
-                    <div class="mt-4 rounded-input border border-border p-4">
-                        <div class="grid gap-4 sm:grid-cols-3">
+                    <div id="fila-@i" class="group/fila mt-4 flex scroll-mt-6 items-start gap-3 rounded-input border border-border p-4">
+                        <div class="grid min-w-0 flex-1 gap-4 sm:grid-cols-3">
                             <div class="sm:col-span-3">
                                 <label asp-for="Medicamentos[i].IdMedicamento" class="block text-sm font-medium text-ink"></label>
                                 <select asp-for="Medicamentos[i].IdMedicamento" asp-items="Model.Vademecum" class="@claseCampo">
                                     <option value="">Ninguno</option>
+                                    @if (Model.OtroDisponible)
+                                    {
+                                        <option value="@RecetaCrearViewModel.IdOtro">Otro...</option>
+                                    }
                                 </select>
                                 <span asp-validation-for="Medicamentos[i].IdMedicamento" class="@claseError"></span>
+
+                                @if (Model.OtroDisponible)
+                                {
+                                    @* Sin JavaScript: el cuadro aparece mientras la opción
+                                       "Otro..." (value -1) esté elegida en esta fila. *@
+                                    <div class="mt-3 hidden group-has-[option[value='-1']:checked]/fila:block">
+                                        <label asp-for="Medicamentos[i].NombreOtro" class="block text-sm font-medium text-ink"></label>
+                                        <input asp-for="Medicamentos[i].NombreOtro" maxlength="150"
+                                               placeholder="Nombre, concentración y presentación" class="@claseCampo" />
+                                        <span asp-validation-for="Medicamentos[i].NombreOtro" class="@claseError"></span>
+                                    </div>
+                                }
                             </div>
                             <div>
                                 <label asp-for="Medicamentos[i].Dosis" class="block text-sm font-medium text-ink"></label>
@@ -101,6 +123,29 @@
                                 <input asp-for="Medicamentos[i].Indicaciones" placeholder="Opcional" class="@claseCampo" />
                                 <span asp-validation-for="Medicamentos[i].Indicaciones" class="@claseError"></span>
                             </div>
+                        </div>
+
+                        @* Cada botón postea el formulario entero a su acción y vuelve
+                           a esta pantalla, anclado en la fila que resulta. *@
+                        <div class="flex shrink-0 flex-col gap-2">
+                            @if (Model.Medicamentos.Count < RecetaCrearViewModel.MaximoDeFilas)
+                            {
+                                <button type="submit" formnovalidate
+                                        asp-action="AgregarFila" asp-route-indice="@i" asp-fragment="fila-@(i + 1)"
+                                        title="Agregar una fila debajo" aria-label="Agregar una fila debajo de la fila @(i + 1)"
+                                        class="@claseBotonFila">
+                                    +
+                                </button>
+                            }
+                            @if (Model.Medicamentos.Count > RecetaCrearViewModel.MinimoDeFilas)
+                            {
+                                <button type="submit" formnovalidate
+                                        asp-action="QuitarFila" asp-route-indice="@i" asp-fragment="fila-@(Math.Max(i - 1, 0))"
+                                        title="Quitar esta fila" aria-label="Quitar la fila @(i + 1)"
+                                        class="@claseBotonFila">
+                                    −
+                                </button>
+                            }
                         </div>
                     </div>
                 }
