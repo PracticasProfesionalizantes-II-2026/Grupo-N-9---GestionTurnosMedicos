@@ -34,10 +34,8 @@
 else
 {
     <div class="mt-6 flex items-center gap-4">
-        <span aria-hidden="true"
-              class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-soft text-lg font-semibold text-primary">
-            @Model.Iniciales
-        </span>
+        <partial name="_Avatar"
+         model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", Tamano = TamanoAvatar.Grande }' />
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
             <p class="mt-0.5 text-sm text-muted">Paciente #@Model.IdPaciente</p>
