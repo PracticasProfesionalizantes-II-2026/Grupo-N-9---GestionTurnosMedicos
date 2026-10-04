@@ -65,6 +65,44 @@ public class UsuarioFotoLogica : IUsuarioFotoLogica
         return (true, null);
     }
 
+    // Fecha de la foto si existe y quien pide puede verla. Null en cualquier
+    // otro caso: no se distingue "no tiene foto" de "no tiene permiso".
+    public async Task<DateTime?> ObtenerAcceso(int idUsuario, int idQuienPide, string? rolQuienPide)
+    {
+        var acceso = await _repo.ObtenerAcceso(idUsuario);
+        if (acceso == null) return null;
+
+        return PuedeVer(acceso.RolDueno, idUsuario, idQuienPide, rolQuienPide)
+            ? acceso.ActualizadaEn
+            : null;
+    }
+
+    public async Task<FotosDisponiblesDto> ConsultarDisponibles(
+        IEnumerable<int> idsPaciente, IEnumerable<int> idsDoctor, IEnumerable<int> idsTurno,
+        int idQuienPide, string? rolQuienPide)
+    {
+        IEnumerable<FotoDisponibleDto> Visibles(IEnumerable<FotoDueno> fotos) => fotos
+            .Where(f => PuedeVer(f.RolDueno, f.IdUsuario, idQuienPide, rolQuienPide))
+            .Select(f => new FotoDisponibleDto(f.Id, f.IdUsuario))
+            .ToList();
+
+        return new FotosDisponiblesDto(
+            Visibles(await _repo.ObtenerDePacientes(idsPaciente)),
+            Visibles(await _repo.ObtenerDeDoctores(idsDoctor)),
+            Visibles(await _repo.ObtenerDeTurnos(idsTurno)));
+    }
+
+    // Única regla de quién ve una foto. Si el dueño es doctor o administrador,
+    // cualquier usuario autenticado. Si es paciente (o cualquier otro rol),
+    // solo administrador, doctor o el propio dueño.
+    private static bool PuedeVer(string rolDueno, int idDueno, int idQuienPide, string? rolQuienPide)
+    {
+        if (rolDueno == "doctor" || rolDueno == "administrador")
+            return true;
+
+        return rolQuienPide == "administrador" || rolQuienPide == "doctor" || idDueno == idQuienPide;
+    }
+
     // Reconoce el formato por los primeros bytes. Todo lo que no sea JPEG, PNG
     // o WebP (SVG, GIF, PDF, texto, etc.) devuelve null.
     private static string? DetectarTipo(byte[] b)

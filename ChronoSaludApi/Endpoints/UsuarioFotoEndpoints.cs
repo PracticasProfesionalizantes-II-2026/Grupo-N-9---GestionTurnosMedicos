@@ -47,12 +47,12 @@ public static class UsuarioFotoEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var puedeVer = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("doctor") || idUsuario == id;
-            if (!puedeVer) return Results.Forbid();
-
-            var fecha = await logica.ObtenerFechaActualizacion(id);
+            // Quién puede verla depende del rol del dueño. Sin foto y sin
+            // permiso contestan lo mismo, para no revelar cuál de los dos es.
+            var rol = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            var fecha = await logica.ObtenerAcceso(id, idUsuario, rol);
             if (fecha == null)
-                return Results.NotFound(new { error = "El usuario no tiene foto." });
+                return Results.NotFound(new { error = "Foto no encontrada." });
 
             // La foto es privada: se puede guardar en el navegador pero hay que
             // revalidarla siempre. Si no cambió, se contesta 304 sin el contenido.
@@ -66,10 +66,10 @@ public static class UsuarioFotoEndpoints
 
             var foto = await logica.Obtener(id);
             return foto == null
-                ? Results.NotFound(new { error = "El usuario no tiene foto." })
+                ? Results.NotFound(new { error = "Foto no encontrada." })
                 : Results.File(foto.Contenido, foto.TipoContenido);
         })
-        .WithSummary("Obtener la foto de un usuario (administrador, doctor o el propio usuario)");
+        .WithSummary("Obtener la foto de un usuario (la de un doctor o administrador, cualquiera; la de un paciente, solo administrador, doctor o el propio paciente)");
 
         // DELETE /usuarios/{id}/foto
         grupo.MapDelete("/{id:int}/foto", async (int id, IUsuarioFotoLogica logica) =>
@@ -82,5 +82,49 @@ public static class UsuarioFotoEndpoints
         })
         .WithSummary("Quitar la foto de un usuario")
         .RequireAuthorization(policy => policy.RequireRole("administrador"));
+
+        // GET /usuarios/fotos?pacientes=1,2&doctores=3&turnos=7,8
+        grupo.MapGet("/fotos", async (
+            HttpContext ctx,
+            IUsuarioFotoLogica logica,
+            string? pacientes,
+            string? doctores,
+            string? turnos) =>
+        {
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            if (!LeerIds(pacientes, out var idsPaciente) ||
+                !LeerIds(doctores, out var idsDoctor) ||
+                !LeerIds(turnos, out var idsTurno))
+                return Results.BadRequest(new
+                {
+                    error = $"Cada lista acepta hasta {MaximoIdsPorLista} ids numéricos separados por coma."
+                });
+
+            var rol = ctx.User.FindFirst(ClaimTypes.Role)?.Value;
+            var disponibles = await logica.ConsultarDisponibles(idsPaciente, idsDoctor, idsTurno, idUsuario, rol);
+            return Results.Ok(disponibles);
+        })
+        .WithSummary("Consultar qué pacientes, doctores o turnos (por su paciente) tienen una foto visible para quien pregunta");
+    }
+
+    private const int MaximoIdsPorLista = 100;
+
+    // "1,2,3" -> [1, 2, 3], sin repetidos. Vacío o ausente es una lista vacía.
+    // False si algún valor no es un número positivo o si hay más de 100.
+    private static bool LeerIds(string? texto, out List<int> ids)
+    {
+        ids = new List<int>();
+        if (string.IsNullOrWhiteSpace(texto)) return true;
+
+        foreach (var parte in texto.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!int.TryParse(parte, out var id) || id <= 0) return false;
+            if (!ids.Contains(id)) ids.Add(id);
+        }
+
+        return ids.Count <= MaximoIdsPorLista;
     }
 }
