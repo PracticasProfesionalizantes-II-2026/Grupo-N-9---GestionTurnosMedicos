@@ -81,3 +81,18 @@ GET /usuarios; fase 4 (foto) cuando existan sus endpoints.
 **Ojo:** vaciar un campo no borra el dato (la API ignora vacíos); la
 pantalla lo avisa. Usuarios/Index todavía solo redirige a Cuentas.
 PUT /usuarios/{id} sigue sin chequeo de dueño en la API.
+## 2026-10-04 — perfiles del admin, etapa A: buscador de usuarios
+**Hecho:** API (autorizado por el grupo, solo agregados): GET /usuarios
+?buscar=&rol=&pagina=&limite= para administrador, con `UsuarioListaDto`
+y `Buscar` en repositorio y lógica. Solo activos, orden por apellido y
+nombre, paginado en SQL, rol inválido = 400, `TieneFoto` en false fijo.
+Web: Usuarios/Index (buscador con filtro por rol y paginación de a 20),
+tarjeta "Perfil de doctor" en Usuarios/Editar (PUT /doctores/{id}) y
+tarjeta "Buscar y editar usuarios" en Cuentas. Editar ya resuelve solo
+el IdPaciente y el IdDoctor con la fila del buscador. Compilan API y Web.
+**A medias:** sin probar a mano (ni Scalar ni pantallas).
+**Sigue:** etapa B (foto: tabla UsuarioFotos, endpoints y pantalla),
+con migración que corre Francis. Etapa C queda como propuesta.
+**Ojo:** la API no aplica migraciones al arrancar. Hay que desplegar la
+API antes que la Web: sin GET /usuarios el buscador muestra error.
+Pacientes/Detalle sigue con el círculo viejo en vez de `_Avatar`.

@@ -141,6 +141,14 @@ public class DoctorService
         => _api.PostAsync<DoctorAlta>(
             "/doctores",
             new { idUsuario, especialidad, matricula, consultorio });
+
+    /// <summary>
+    /// PUT /doctores/{id}: especialidad y consultorio (la matrícula no se puede
+    /// cambiar). Reservado a administrador. La API ignora los campos vacíos,
+    /// así que un consultorio en blanco no borra el que ya estaba.
+    /// </summary>
+    public Task ActualizarAsync(int idDoctor, string especialidad, string? consultorio)
+        => _api.PutAsync($"/doctores/{idDoctor}", new { especialidad, consultorio });
 }
 
 /// <summary>

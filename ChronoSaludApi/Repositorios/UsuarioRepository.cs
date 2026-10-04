@@ -36,4 +36,37 @@ public class UsuarioRepository : IUsuarioRepository
         _db.Usuarios.Update(usuario);
         await _db.SaveChangesAsync();
     }
+
+    // Solo usuarios activos. El total y la página se resuelven en SQL; se
+    // incluyen Paciente y Doctor para poder informar sus ids.
+    public async Task<(int total, IEnumerable<Usuario> usuarios)> Buscar(
+        string? buscar, string? rol, int pagina, int limite)
+    {
+        var query = _db.Usuarios
+            .AsNoTracking()
+            .Include(u => u.Paciente)
+            .Include(u => u.Doctor)
+            .Where(u => u.Activo);
+
+        if (!string.IsNullOrEmpty(buscar))
+            query = query.Where(u =>
+                u.Nombre.Contains(buscar) ||
+                u.Apellido.Contains(buscar) ||
+                u.Email.Contains(buscar));
+
+        if (!string.IsNullOrEmpty(rol))
+            query = query.Where(u => u.Rol == rol);
+
+        var total = await query.CountAsync();
+
+        var usuarios = await query
+            .OrderBy(u => u.Apellido)
+            .ThenBy(u => u.Nombre)
+            .ThenBy(u => u.Id)
+            .Skip((pagina - 1) * limite)
+            .Take(limite)
+            .ToListAsync();
+
+        return (total, usuarios);
+    }
 }

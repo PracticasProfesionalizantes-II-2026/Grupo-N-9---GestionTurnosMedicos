@@ -99,6 +99,32 @@ public class UsuarioLogica : IUsuarioLogica
         return (true, null);
     }
 
+    public async Task<(int total, IEnumerable<UsuarioListaDto> usuarios, string? error)> Buscar(
+        string? buscar, string? rol, int pagina, int limite)
+    {
+        var rolesValidos = new[] { "paciente", "doctor", "administrador" };
+        if (!string.IsNullOrEmpty(rol) && !rolesValidos.Contains(rol))
+            return (0, Enumerable.Empty<UsuarioListaDto>(),
+                "Rol inválido. Valores válidos: paciente, doctor, administrador.");
+
+        var (total, usuarios) = await _repo.Buscar(buscar?.Trim(), rol, pagina, limite);
+
+        var resultado = usuarios.Select(u => new UsuarioListaDto(
+            u.Id,
+            u.Nombre,
+            u.Apellido,
+            u.Email,
+            u.Telefono,
+            u.Rol,
+            u.Activo,
+            u.Paciente?.Id,
+            u.Doctor?.Id,
+            false // TieneFoto: todavía no hay dónde guardar fotos
+        ));
+
+        return (total, resultado, null);
+    }
+
     private string GenerarToken(Usuario usuario)
     {
         var key    = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));

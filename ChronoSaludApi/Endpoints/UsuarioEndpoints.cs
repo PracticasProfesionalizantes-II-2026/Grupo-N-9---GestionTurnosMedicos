@@ -82,5 +82,25 @@ public static class UsuarioEndpoints
         })
         .WithSummary("Baja lógica de usuario")
         .RequireAuthorization(policy => policy.RequireRole("administrador"));
+
+        // GET /usuarios
+        grupo.MapGet("/", async (
+            IUsuarioLogica logica,
+            string? buscar,
+            string? rol,
+            int pagina = 1,
+            int limite = 20) =>
+        {
+            pagina = Math.Max(pagina, 1);
+            limite = Math.Clamp(limite, 1, 100);
+
+            var (total, usuarios, error) = await logica.Buscar(buscar, rol, pagina, limite);
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { total, pagina, usuarios });
+        })
+        .WithSummary("Buscar usuarios activos por nombre, apellido o email")
+        .RequireAuthorization(policy => policy.RequireRole("administrador"));
     }
 }

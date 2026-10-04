@@ -1,0 +1,164 @@
+@model UsuariosIndexViewModel
+@{
+    ViewData["Title"] = "Usuarios";
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string clasePaso = "rounded-input border border-primary-line px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+    const string clasePasoInactivo = "rounded-input border border-border px-3 py-1.5 text-sm font-semibold text-muted";
+}
+
+<a asp-controller="Admin" asp-action="Index"
+   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver a Cuentas
+</a>
+
+<div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Usuarios</h1>
+        <p class="mt-1 text-sm text-muted">Pacientes, doctores y administradores con la cuenta activa.</p>
+    </div>
+    @if (!Model.HuboError)
+    {
+        <p class="text-sm text-muted">
+            <span class="font-semibold tabular-nums text-ink">@Model.Total</span>
+            @(Model.Total == 1 ? "usuario" : "usuarios")
+        </p>
+    }
+</div>
+
+@* Buscador por GET: la API resuelve el texto como "contiene" sobre nombre,
+   apellido o email. Buscar siempre vuelve a la primera página. *@
+<form method="get" asp-action="Index"
+      class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+    <div class="w-full flex-1 sm:min-w-64">
+        <label for="buscar" class="block text-sm font-medium text-ink">Buscar por nombre, apellido o email</label>
+        <input id="buscar" name="buscar" type="search" value="@Model.Buscar" placeholder="Por ejemplo: Gomez o @@gmail"
+               class="@claseCampo" />
+    </div>
+
+    <div class="w-full sm:w-48">
+        <label for="rol" class="block text-sm font-medium text-ink">Rol</label>
+        <select id="rol" name="rol" asp-items="Model.Roles" class="@claseCampo">
+            <option value="">Todos</option>
+        </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button type="submit"
+                class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+            Buscar
+        </button>
+        @if (Model.HayFiltro)
+        {
+            <a asp-action="Index"
+               class="rounded-input border border-border px-4 py-2 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                Limpiar
+            </a>
+        }
+    </div>
+</form>
+
+@if (Model.HuboError)
+{
+    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+        <h2 class="mt-4 text-base font-semibold text-ink">No se pudieron cargar los usuarios</h2>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
+        <a asp-action="Index" asp-route-buscar="@Model.Buscar" asp-route-rol="@Model.Rol"
+           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+            Reintentar
+        </a>
+    </div>
+}
+else if (Model.Usuarios.Count == 0)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
+        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        @if (Model.SinResultados)
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">Ningún usuario coincide con la búsqueda</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Probá con otro nombre o email, con una parte más corta o con otro rol.
+            </p>
+            <a asp-action="Index"
+               class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
+                Limpiar búsqueda
+            </a>
+        }
+        else
+        {
+            <h2 class="mt-4 text-base font-semibold text-ink">No hay usuarios activos</h2>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
+                Cuando se den de alta cuentas van a aparecer en esta lista.
+            </p>
+        }
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-card neu-elevado">
+        <ul>
+            @{ var fila = 0; }
+            @foreach (var usuario in Model.Usuarios)
+            {
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                    <partial name="_Avatar"
+                             model="new AvatarViewModel { Nombre = usuario.NombreCrudo, Tamano = TamanoAvatar.Chico }" />
+                    <span class="min-w-0 flex-1">
+                        <a asp-action="Editar" asp-route-id="@usuario.IdUsuario"
+                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                            @usuario.NombreCompleto
+                            <span class="sr-only">— editar perfil</span>
+                        </a>
+                        <span class="block truncate text-sm text-muted">@usuario.Email</span>
+                    </span>
+                    <span class="shrink-0 rounded-badge bg-canvas px-2 py-1 text-xs font-semibold capitalize text-muted">@usuario.Rol</span>
+                </li>
+            }
+        </ul>
+    </div>
+
+    @* Paginación con enlaces: conservan el texto y el rol de la búsqueda. *@
+    <nav aria-label="Páginas de resultados" class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-muted">
+            Página <span class="font-semibold tabular-nums text-ink">@Model.Pagina</span>
+            de <span class="font-semibold tabular-nums text-ink">@Model.TotalPaginas</span>
+        </p>
+        <div class="flex items-center gap-2">
+            @if (Model.HayAnterior)
+            {
+                <a asp-action="Index" asp-route-buscar="@Model.Buscar" asp-route-rol="@Model.Rol" asp-route-pagina="@(Model.Pagina - 1)"
+                   rel="prev" class="@clasePaso">Anterior</a>
+            }
+            else
+            {
+                <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
+            }
+            @if (Model.HaySiguiente)
+            {
+                <a asp-action="Index" asp-route-buscar="@Model.Buscar" asp-route-rol="@Model.Rol" asp-route-pagina="@(Model.Pagina + 1)"
+                   rel="next" class="@clasePaso">Siguiente</a>
+            }
+            else
+            {
+                <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
+            }
+        </div>
+    </nav>
+}
