@@ -7,13 +7,8 @@ namespace ChronoSaludWeb.Controllers;
 public class CuentaController : Controller
 {
     private readonly AuthService _auth;
-    private readonly string? _apiBaseUrl;
 
-    public CuentaController(AuthService auth, IConfiguration configuration)
-    {
-        _auth = auth;
-        _apiBaseUrl = configuration["Api:BaseUrl"];
-    }
+    public CuentaController(AuthService auth) => _auth = auth;
 
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -22,7 +17,6 @@ public class CuentaController : Controller
         if (_auth.HaySesion)
             return RedirigirA(returnUrl);
 
-        ViewData["ApiBaseUrl"] = _apiBaseUrl;
         return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
@@ -30,8 +24,6 @@ public class CuentaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel modelo)
     {
-        ViewData["ApiBaseUrl"] = _apiBaseUrl;
-
         if (!ModelState.IsValid)
             return View(modelo);
 

@@ -42,7 +42,7 @@
                     @if (Model.IdUsuarioCreado is { } idUsuarioCreado)
                     {
                         <span class="mt-2 block">
-                            <a asp-controller="Admin" asp-action="CompletarDoctor" asp-route-idUsuario="@idUsuarioCreado"
+                            <a asp-controller="Usuarios" asp-action="Editar" asp-route-id="@idUsuarioCreado"
                                class="font-semibold underline hover:no-underline">
                                 Completar el perfil de doctor del usuario Id @idUsuarioCreado
                             </a>
