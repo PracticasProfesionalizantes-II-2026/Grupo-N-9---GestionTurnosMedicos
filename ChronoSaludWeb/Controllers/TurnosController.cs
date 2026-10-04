@@ -16,19 +16,22 @@ public class TurnosController : ControladorBase
     private readonly DoctorService _doctores;
     private readonly AuthService _auth;
     private readonly PerfilService _perfil;
+    private readonly UsuarioService _usuarios;
 
     public TurnosController(
         TurnoService turnos,
         PacienteService pacientes,
         DoctorService doctores,
         AuthService auth,
-        PerfilService perfil)
+        PerfilService perfil,
+        UsuarioService usuarios)
     {
         _turnos = turnos;
         _pacientes = pacientes;
         _doctores = doctores;
         _auth = auth;
         _perfil = perfil;
+        _usuarios = usuarios;
     }
 
     public async Task<IActionResult> Index(string? estado, DateTime? desde, DateTime? hasta)
@@ -72,11 +75,17 @@ public class TurnosController : ControladorBase
                 hasta:      filtros.Hasta,
                 limite:     Limite);
 
+            // El listado no trae ids de persona, así que se pregunta por turno:
+            // un solo pedido dice qué turnos tienen un paciente con foto.
+            var fotos = await _usuarios.ObtenerFotosAsync(turnos: pagina.Turnos.Select(t => t.IdTurno));
+
             return View(new TurnosIndexViewModel
             {
                 Rol     = rol,
                 Total   = pagina.Total,
-                Turnos  = pagina.Turnos.Select(TurnoFilaViewModel.Desde).ToList(),
+                Turnos  = pagina.Turnos
+                    .Select(t => TurnoFilaViewModel.DesdeConFoto(t, UrlDeFoto(fotos.Turnos, t.IdTurno)))
+                    .ToList(),
                 Filtros = filtros
             });
         }
@@ -281,9 +290,11 @@ public class TurnosController : ControladorBase
         // el token de HttpContext.Session, que no es seguro en concurrencia.
         var paciente = await _pacientes.ObtenerPorIdAsync(turno.IdPaciente);
         var doctor   = await _doctores.ObtenerPorIdAsync(turno.IdDoctor);
+        var fotos    = await _usuarios.ObtenerFotosAsync(pacientes: new[] { turno.IdPaciente });
 
         return new TurnoDetalleViewModel
         {
+            PacienteFotoUrl = UrlDeFoto(fotos.Pacientes, turno.IdPaciente),
             IdTurno       = turno.IdTurno,
             FechaInicio   = turno.FechaInicio,
             HoraInicio    = turno.HoraInicio,
@@ -300,6 +311,15 @@ public class TurnosController : ControladorBase
             Consultorio    = doctor?.Consultorio
         };
     }
+
+    /// <summary>
+    /// /Usuarios/Foto/{idUsuario} si la API informó una foto visible para ese
+    /// id; null si no, así el avatar no pide una imagen que no existe.
+    /// </summary>
+    private string? UrlDeFoto(IReadOnlyDictionary<int, int> fotos, int id) =>
+        fotos.TryGetValue(id, out var idUsuario)
+            ? Url.Action("Foto", "Usuarios", new { id = idUsuario })
+            : null;
 
     /// <summary>
     /// Pantalla de pedir turno. Cada paso (especialidad, doctor, fecha) es un

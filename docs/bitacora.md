@@ -158,3 +158,29 @@ doctor. Compila, CSS recompilado. La API no se tocó.
 **Sigue:** fotos en Pacientes, Turnos y Doctores (fases 2 a 4 del plan
 de fotos), pendientes.
 **Ojo:** la ruta vieja de la pantalla ya no existe (da 404).
+
+## 2026-10-04 — fotos en toda la app, fase 2: Web base y Pacientes
+**Hecho:** `UsuarioService.ObtenerFotosAsync` consulta GET /usuarios/fotos
+(en tandas de 100 ids; si falla devuelve vacío y deja un Warning en el
+log). La acción Usuarios/Foto ya no exige administrador: pide solo sesión
+y decide la API. `_Avatar` carga la imagen con `loading="lazy"`.
+Pacientes/Index y Pacientes/Detalle muestran la foto de quien la tiene,
+con un solo pedido de consulta por pantalla. Compila. La API no se tocó.
+**A medias:** sin probar a mano.
+**Sigue:** fase 3 (Turnos) y fase 4 (Doctores).
+**Ojo:** se trabajó en la rama `limpieza-login-doctor` por decisión de
+Francis. SubirFoto y QuitarFoto siguen siendo solo de administrador.
+
+## 2026-10-04 — fotos en toda la app, fases 3 y 4: Turnos y Doctores
+**Hecho:** Turnos/Index consulta las fotos por `IdTurno` (el listado no
+trae ids de persona); Turnos/Detalle y Cancelar, por el `IdPaciente` del
+turno. Doctores/Index y Doctores/Detalle consultan por `IdDoctor` y
+pasan a usar `_Avatar`, que suma el tono terracota y el tamaño 12 para
+que las iniciales de los doctores se vean igual que antes. Un solo
+pedido de consulta por pantalla. Compila, CSS recompilado. La API no se
+tocó. Con esto queda completo el plan de fotos.
+**A medias:** fases 2, 3 y 4 sin probar a mano.
+**Sigue:** probar las tres fases; etapa C (chequeo de dueño en
+PUT /usuarios/{id}) sigue como propuesta sin implementar.
+**Ojo:** en Turnos el avatar es siempre el del paciente; la foto del
+doctor no se muestra ahí. La home no tiene avatares.

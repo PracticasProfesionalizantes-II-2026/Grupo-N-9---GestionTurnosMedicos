@@ -67,7 +67,7 @@ else
 
             <div class="mt-4 flex items-center gap-3">
                 <partial name="_Avatar"
-                         model="new AvatarViewModel { Nombre = Model.PacienteNombre, Tamano = TamanoAvatar.Mediano }" />
+                         model="new AvatarViewModel { Nombre = Model.PacienteNombre, FotoUrl = Model.PacienteFotoUrl, Tamano = TamanoAvatar.Mediano }" />
                 <span>
                     <span class="block font-medium text-ink">@Model.PacienteMostrado</span>
                     <span class="block text-sm text-muted">Paciente</span>

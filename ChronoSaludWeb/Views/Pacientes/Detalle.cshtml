@@ -35,7 +35,7 @@ else
 {
     <div class="mt-6 flex items-center gap-4">
         <partial name="_Avatar"
-         model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", Tamano = TamanoAvatar.Grande }' />
+         model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", FotoUrl = Model.FotoUrl, Tamano = TamanoAvatar.Grande }' />
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
             <p class="mt-0.5 text-sm text-muted">Paciente #@Model.IdPaciente</p>

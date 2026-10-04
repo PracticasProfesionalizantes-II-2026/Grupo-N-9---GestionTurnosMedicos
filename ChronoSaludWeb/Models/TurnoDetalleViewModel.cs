@@ -15,6 +15,10 @@ public class TurnoDetalleViewModel
     // Datos que el controlador resuelve contra /pacientes/{id} y /doctores/{id},
     // porque TurnoDto solo manda los IDs. Quedan en null si la API no los encontró.
     public string? PacienteNombre { get; init; }
+
+    /// <summary>Foto del paciente. Null si no tiene: el avatar muestra las iniciales.</summary>
+    public string? PacienteFotoUrl { get; init; }
+
     public string? DoctorNombre { get; init; }
     public string? Especialidad { get; init; }
     public string? Matricula { get; init; }
