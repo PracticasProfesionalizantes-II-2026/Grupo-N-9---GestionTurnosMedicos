@@ -131,3 +131,18 @@ vive en `UsuarioFotoLogica.PuedeVer`. Compila. Sin migración.
 y Pacientes), después Turnos y Doctores.
 **Ojo:** cualquier doctor ve la foto de cualquier paciente, y el
 registro abierto deja que cualquiera se registre como doctor por la API.
+
+## 2026-10-04 — limpieza: nota del login y perfil de doctor (etapas 1 y 2)
+**Hecho:** `CuentaController` ya no lee `Api:BaseUrl` (la nota del login
+se había borrado en `23ed6d0`; quedaban el campo, el parámetro del
+constructor y dos `ViewData`). Usuarios/Editar suma la tarjeta
+"Completar perfil de doctor" (POST Usuarios/CrearPerfilDoctor ->
+POST /doctores), visible solo si el usuario tiene rol doctor y la API
+confirma que no tiene perfil. El enlace del alta de doctor fallida ahora
+lleva a Usuarios/Editar. Compila, CSS recompilado. La API no se tocó.
+**A medias:** sin probar a mano. Todavía NO se borró lo viejo: la
+tarjeta de Cuentas, Admin/CompletarDoctor y su view model siguen ahí.
+**Sigue:** etapa 3, borrar lo viejo, cuando Francis apruebe la etapa 2.
+**Ojo:** si la búsqueda de usuarios falla, Editar no ofrece completar
+el perfil (no puede confirmar que falte). `ApiClient` sigue mostrando la
+URL de la API cuando no responde: se decidió no tocarlo.

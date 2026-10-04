@@ -18,6 +18,7 @@ public class UsuariosController : ControladorBase
     private const string PrefijoCuenta = nameof(UsuarioEditarViewModel.Cuenta);
     private const string PrefijoPaciente = nameof(UsuarioEditarViewModel.Paciente);
     private const string PrefijoDoctor = nameof(UsuarioEditarViewModel.Doctor);
+    private const string PrefijoDoctorNuevo = nameof(UsuarioEditarViewModel.DoctorNuevo);
 
     // La tarjeta de foto no tiene sub-modelo (es un solo archivo): sus errores
     // van bajo esta clave.
@@ -238,6 +239,79 @@ public class UsuariosController : ControladorBase
         return RedirectToAction(nameof(Editar), new { id, idPaciente });
     }
 
+    /// <summary>
+    /// Completa el perfil de un usuario con rol doctor que quedó sin fila en
+    /// Doctores. Del formulario solo salen especialidad, matrícula y
+    /// consultorio: el rol y si le falta el perfil se vuelven a leer de la API.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CrearPerfilDoctor(
+        int id, int? idPaciente, [Bind(Prefix = PrefijoDoctorNuevo)] DoctorNuevoViewModel doctorNuevo)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Editar), new { id, idPaciente }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        var (modelo, salida) = await CargarAsync(id, idPaciente);
+        if (salida is not null) return salida;
+
+        // Estado recién leído de la API. Si no corresponde crear el perfil, no
+        // se llama a POST /doctores: la API no revisa ni el rol ni si ya existe.
+        if (!modelo!.FaltaPerfilDoctor)
+        {
+            TempData["Error"] = modelo switch
+            {
+                { TienePerfilDoctor: true } => "Este usuario ya tiene perfil de doctor.",
+                { Rol: not "doctor" } => "Solo se puede completar el perfil de un usuario con rol doctor.",
+                _ => "No se pudo verificar si este usuario ya tiene perfil de doctor. Probá de nuevo en un momento."
+            };
+            return RedirectToAction(nameof(Editar), new { id, idPaciente });
+        }
+
+        modelo.DoctorNuevo = doctorNuevo;
+
+        if (!ModelState.IsValid)
+            return View(nameof(Editar), modelo);
+
+        try
+        {
+            await _doctores.CrearAsync(
+                id, doctorNuevo.Especialidad, doctorNuevo.Matricula, doctorNuevo.Consultorio);
+        }
+        catch (ApiException error) when (error.Status == StatusCodes.Status409Conflict)
+        {
+            // El único 409 de POST /doctores es la matrícula repetida.
+            ModelState.AddModelError(
+                $"{PrefijoDoctorNuevo}.{nameof(DoctorNuevoViewModel.Matricula)}", error.Message);
+            return View(nameof(Editar), modelo);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // No se sabe si el perfil llegó a crearse (por ejemplo, un doble
+            // envío: el segundo pedido choca con la clave única de Doctores y
+            // la API contesta 500). Se vuelve a leer el estado antes de decidir.
+            var (actual, _) = await CargarAsync(id, idPaciente);
+            if (actual is { TienePerfilDoctor: true })
+            {
+                TempData["Error"] = "Este usuario ya tiene perfil de doctor.";
+                return RedirectToAction(nameof(Editar), new { id, idPaciente });
+            }
+
+            ModelState.AddModelError(
+                PrefijoDoctorNuevo,
+                error.Status >= StatusCodes.Status500InternalServerError
+                    ? "La API no pudo crear el perfil de doctor. Revisá los datos y volvé a intentarlo."
+                    : MensajeDe(error));
+            return View(nameof(Editar), modelo);
+        }
+
+        TempData["Exito"] = "Perfil de doctor completado.";
+        return RedirectToAction(nameof(Editar), new { id, idPaciente });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(TopeDuroSubida)]
@@ -412,6 +486,10 @@ public class UsuariosController : ControladorBase
                 },
             IdDoctor = doctor?.IdDoctor,
             Matricula = doctor?.Matricula,
+            TienePerfilDoctor = idDoctor is not null,
+            // Solo con la fila del buscador leída se sabe que no hay perfil:
+            // si no se pudo leer (fila null), no se ofrece crear uno.
+            FaltaPerfilDoctor = usuario.Rol == "doctor" && fila is not null && idDoctor is null,
             Doctor = doctor is null
                 ? null
                 : new DoctorEditarViewModel

@@ -286,3 +286,46 @@
         </form>
     </div>
 }
+
+@* Solo para un usuario con rol doctor al que le falta el perfil (por ejemplo,
+   un alta que quedó a mitad de camino). La condición la calcula el servidor. *@
+@if (Model.FaltaPerfilDoctor)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        <h2 class="@claseSeccion">Completar perfil de doctor</h2>
+        <p class="mt-2 text-sm text-muted">
+            Este usuario tiene rol doctor pero todavía no tiene especialidad ni
+            matrícula cargadas. Hasta completarlas no aparece en Doctores ni
+            puede recibir turnos.
+        </p>
+        @{ ErrorTarjeta("DoctorNuevo"); }
+
+        <form asp-action="CrearPerfilDoctor" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+              method="post" novalidate>
+            <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <label asp-for="DoctorNuevo.Especialidad" class="@claseEtiqueta"></label>
+                    <input asp-for="DoctorNuevo.Especialidad" autocomplete="off" class="@claseCampo" />
+                    @{ ErrorCampo("DoctorNuevo.Especialidad"); }
+                </div>
+
+                <div>
+                    <label asp-for="DoctorNuevo.Matricula" class="@claseEtiqueta"></label>
+                    <input asp-for="DoctorNuevo.Matricula" autocomplete="off" aria-describedby="ayuda-matricula" class="@claseCampo" />
+                    <p id="ayuda-matricula" class="@claseAyuda">Después de guardarla no se puede cambiar.</p>
+                    @{ ErrorCampo("DoctorNuevo.Matricula"); }
+                </div>
+
+                <div>
+                    <label asp-for="DoctorNuevo.Consultorio" class="@claseEtiqueta"></label>
+                    <input asp-for="DoctorNuevo.Consultorio" autocomplete="off" placeholder="Opcional" class="@claseCampo" />
+                    @{ ErrorCampo("DoctorNuevo.Consultorio"); }
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button type="submit" class="@claseBoton">Completar perfil</button>
+            </div>
+        </form>
+    </div>
+}

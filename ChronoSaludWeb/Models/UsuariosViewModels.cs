@@ -37,6 +37,41 @@ public class UsuarioEditarViewModel
     public string? Matricula { get; init; }
 
     public DoctorEditarViewModel? Doctor { get; set; }
+
+    /// <summary>
+    /// La API informó un perfil de doctor para este usuario. Puede ser true
+    /// aunque Doctor quede en null (si el perfil existe pero no se pudo traer).
+    /// </summary>
+    public bool TienePerfilDoctor { get; init; }
+
+    /// <summary>
+    /// Usuario con rol doctor al que le falta la fila de Doctores (por ejemplo,
+    /// un alta que quedó a mitad de camino). Lo calcula el servidor y solo es
+    /// true si se pudo confirmar contra la API que no tiene perfil: ante la
+    /// duda queda en false, para no ofrecer crear un segundo perfil.
+    /// </summary>
+    public bool FaltaPerfilDoctor { get; init; }
+
+    public DoctorNuevoViewModel DoctorNuevo { get; set; } = new();
+}
+
+/// <summary>
+/// Paso 2 del alta de doctor para un usuario que ya existe: completa su fila
+/// de Doctores (POST /doctores). Mismas validaciones y mensajes que
+/// CompletarDoctorViewModel, sin el IdUsuario: acá el usuario ya está elegido.
+/// </summary>
+public class DoctorNuevoViewModel
+{
+    [Required(ErrorMessage = "La especialidad es obligatoria.")]
+    [Display(Name = "Especialidad")]
+    public string Especialidad { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La matrícula es obligatoria.")]
+    [Display(Name = "Matrícula")]
+    public string Matricula { get; set; } = string.Empty;
+
+    [Display(Name = "Consultorio")]
+    public string? Consultorio { get; set; }
 }
 
 /// <summary>
