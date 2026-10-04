@@ -43,3 +43,18 @@ public record RegistroResponseDto(
     string Rol,
     string Token
 );
+
+// Una fila del buscador de usuarios. IdPaciente e IdDoctor vienen cargados
+// solo si el usuario tiene ese perfil.
+public record UsuarioListaDto(
+    int IdUsuario,
+    string Nombre,
+    string Apellido,
+    string Email,
+    string? Telefono,
+    string Rol,
+    bool Activo,
+    int? IdPaciente,
+    int? IdDoctor,
+    bool TieneFoto
+);

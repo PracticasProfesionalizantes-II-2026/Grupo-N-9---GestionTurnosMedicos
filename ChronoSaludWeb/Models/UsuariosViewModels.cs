@@ -26,6 +26,76 @@ public class UsuarioEditarViewModel
     public CuentaEditarViewModel Cuenta { get; set; } = new();
 
     public PacienteEditarViewModel? Paciente { get; set; }
+
+    /// <summary>Null si el usuario no tiene perfil de doctor.</summary>
+    public int? IdDoctor { get; init; }
+
+    /// <summary>Solo se muestra: la API no deja cambiar la matrícula.</summary>
+    public string? Matricula { get; init; }
+
+    public DoctorEditarViewModel? Doctor { get; set; }
+}
+
+/// <summary>
+/// Perfil de doctor. Espeja DoctorUpdateDto de la API.
+/// </summary>
+public class DoctorEditarViewModel
+{
+    [Required(ErrorMessage = "La especialidad es obligatoria.")]
+    [MaxLength(80, ErrorMessage = "La especialidad no puede superar los 80 caracteres.")]
+    [Display(Name = "Especialidad")]
+    public string Especialidad { get; set; } = string.Empty;
+
+    [MaxLength(60, ErrorMessage = "El consultorio no puede superar los 60 caracteres.")]
+    [Display(Name = "Consultorio")]
+    public string? Consultorio { get; set; }
+}
+
+public class UsuarioFilaViewModel
+{
+    public int IdUsuario { get; init; }
+    public string Nombre { get; init; } = string.Empty;
+    public string Apellido { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string Rol { get; init; } = string.Empty;
+
+    /// <summary>Nombre crudo para el avatar: vacío si la API no mandó ninguno.</summary>
+    public string NombreCrudo => $"{Nombre} {Apellido}".Trim();
+
+    public string NombreCompleto =>
+        string.IsNullOrWhiteSpace(NombreCrudo) ? "Sin datos" : NombreCrudo;
+}
+
+public class UsuariosIndexViewModel
+{
+    public const int PorPagina = 20;
+
+    /// <summary>Roles por los que se puede filtrar, en minúscula como en la API.</summary>
+    public static readonly string[] RolesFiltrables = { "paciente", "doctor", "administrador" };
+
+    public IReadOnlyList<UsuarioFilaViewModel> Usuarios { get; init; } = Array.Empty<UsuarioFilaViewModel>();
+    public int Total { get; init; }
+    public int Pagina { get; init; } = 1;
+
+    /// <summary>Texto del buscador. La API lo resuelve como "contiene".</summary>
+    public string? Buscar { get; init; }
+
+    /// <summary>Null es "todos los roles".</summary>
+    public string? Rol { get; init; }
+
+    public string? Error { get; init; }
+    public bool HuboError => Error is not null;
+
+    public bool HayFiltro => !string.IsNullOrWhiteSpace(Buscar) || Rol is not null;
+    public bool SinResultados => Usuarios.Count == 0 && HayFiltro;
+
+    public int TotalPaginas => Math.Max(1, (int)Math.Ceiling(Total / (double)PorPagina));
+    public bool HayAnterior => Pagina > 1;
+    public bool HaySiguiente => Pagina < TotalPaginas;
+
+    public IEnumerable<SelectListItem> Roles => RolesFiltrables
+        .Select(rol => new SelectListItem(char.ToUpperInvariant(rol[0]) + rol[1..], rol, rol == Rol))
+        .ToList();
 }
 
 /// <summary>
