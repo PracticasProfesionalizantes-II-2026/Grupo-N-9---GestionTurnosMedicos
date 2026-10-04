@@ -46,32 +46,9 @@ public class NuevoDoctorViewModel
     /// <summary>
     /// Se completa solo cuando el paso 1 (crear Usuario) tuvo éxito pero el
     /// paso 2 (POST /doctores) falló: le da al admin el link para retomar
-    /// desde CompletarDoctor sin recrear el usuario.
+    /// desde Usuarios/Editar sin recrear el usuario.
     /// </summary>
     public int? IdUsuarioCreado { get; set; }
-}
-
-/// <summary>
-/// Paso 2 del alta de doctor, aislado: completa la fila de Doctores de un
-/// Usuario que ya existe. Sirve tanto para retomar un alta que falló a mitad
-/// de camino como para cualquier Usuario rol doctor sin perfil todavía.
-/// </summary>
-public class CompletarDoctorViewModel
-{
-    [Required(ErrorMessage = "El IdUsuario es obligatorio.")]
-    [Display(Name = "Id de usuario")]
-    public int? IdUsuario { get; set; }
-
-    [Required(ErrorMessage = "La especialidad es obligatoria.")]
-    [Display(Name = "Especialidad")]
-    public string Especialidad { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "La matrícula es obligatoria.")]
-    [Display(Name = "Matrícula")]
-    public string Matricula { get; set; } = string.Empty;
-
-    [Display(Name = "Consultorio")]
-    public string? Consultorio { get; set; }
 }
 
 public class NuevoAdministradorViewModel
