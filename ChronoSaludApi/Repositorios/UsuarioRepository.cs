@@ -69,4 +69,15 @@ public class UsuarioRepository : IUsuarioRepository
 
         return (total, usuarios);
     }
+
+    // De los usuarios pedidos, los que tienen foto. Solo consulta los ids:
+    // no trae el contenido de ninguna.
+    public async Task<IEnumerable<int>> ObtenerIdsConFoto(IEnumerable<int> idsUsuario)
+    {
+        var ids = idsUsuario.ToList();
+        return await _db.UsuarioFotos
+            .Where(f => ids.Contains(f.IdUsuario))
+            .Select(f => f.IdUsuario)
+            .ToListAsync();
+    }
 }

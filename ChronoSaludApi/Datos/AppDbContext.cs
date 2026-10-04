@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Estudio> Estudios => Set<Estudio>();
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<HorarioLaboral> HorariosLaborales => Set<HorarioLaboral>();
+    public DbSet<UsuarioFoto> UsuarioFotos => Set<UsuarioFoto>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -172,6 +173,20 @@ public class AppDbContext : DbContext
                 t.HasCheckConstraint("CK_HorarioLaboral_Horas", "[HoraFin] > [HoraInicio]");
                 t.HasCheckConstraint("CK_HorarioLaboral_DiaSemana", "[DiaSemana] BETWEEN 0 AND 6");
             });
+        });
+
+        // UsuarioFoto -> Usuario (1 a 1, la clave es el propio IdUsuario). Sin
+        // navegación en Usuario, para que la foto no se cargue con el usuario.
+        modelBuilder.Entity<UsuarioFoto>(e =>
+        {
+            e.HasKey(f => f.IdUsuario);
+            e.Property(f => f.IdUsuario).ValueGeneratedNever();
+            e.Property(f => f.TipoContenido).HasMaxLength(50);
+
+            e.HasOne<Usuario>()
+                .WithOne()
+                .HasForeignKey<UsuarioFoto>(f => f.IdUsuario)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

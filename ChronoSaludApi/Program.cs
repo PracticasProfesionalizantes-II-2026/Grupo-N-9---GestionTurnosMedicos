@@ -49,6 +49,7 @@ builder.Services.AddScoped<IRecetaRepository,         RecetaRepository>();
 builder.Services.AddScoped<IEstudioRepository,        EstudioRepository>();
 builder.Services.AddScoped<INotificacionRepository,   NotificacionRepository>();
 builder.Services.AddScoped<IHorarioLaboralRepository, HorarioLaboralRepository>();
+builder.Services.AddScoped<IUsuarioFotoRepository,    UsuarioFotoRepository>();
 
 // ── 5. Lógica de negocio (Scoped) ─────────────────────────────────────────
 builder.Services.AddScoped<IUsuarioLogica,         UsuarioLogica>();
@@ -62,6 +63,7 @@ builder.Services.AddScoped<IRecetaLogica,          RecetaLogica>();
 builder.Services.AddScoped<IEstudioLogica,         EstudioLogica>();
 builder.Services.AddScoped<INotificacionLogica,    NotificacionLogica>();
 builder.Services.AddScoped<IHorarioLaboralLogica,  HorarioLaboralLogica>();
+builder.Services.AddScoped<IUsuarioFotoLogica,     UsuarioFotoLogica>();
 
 // ── 6. CORS (opcional para desarrollo) ────────────────────────────────────
 builder.Services.AddCors(options =>
@@ -89,6 +91,7 @@ app.UseAuthorization();
 
 // ── 8. Registrar todos los endpoints ──────────────────────────────────────
 app.MapUsuarioEndpoints();
+app.MapUsuarioFotoEndpoints();
 app.MapPacienteEndpoints();
 app.MapDoctorEndpoints();
 app.MapTurnoEndpoints();

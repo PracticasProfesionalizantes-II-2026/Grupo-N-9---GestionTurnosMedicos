@@ -19,6 +19,17 @@ public class UsuariosController : ControladorBase
     private const string PrefijoPaciente = nameof(UsuarioEditarViewModel.Paciente);
     private const string PrefijoDoctor = nameof(UsuarioEditarViewModel.Doctor);
 
+    // La tarjeta de foto no tiene sub-modelo (es un solo archivo): sus errores
+    // van bajo esta clave.
+    private const string ClaveFoto = "Foto";
+
+    // Tope duro del pedido de subida. Es mayor a los 2 MB que admite la foto a
+    // propósito: así un archivo algo pasado llega al controlador y recibe su
+    // mensaje, en vez de que el servidor corte el pedido sin explicación.
+    private const long TopeDuroSubida = 5 * 1024 * 1024;
+
+    private static readonly string[] TiposDeFoto = { "image/jpeg", "image/png", "image/webp" };
+
     private readonly UsuarioService _usuarios;
     private readonly PacienteService _pacientes;
     private readonly DoctorService _doctores;
@@ -73,7 +84,8 @@ public class UsuariosController : ControladorBase
                         Nombre = u.Nombre,
                         Apellido = u.Apellido,
                         Email = u.Email,
-                        Rol = u.Rol
+                        Rol = u.Rol,
+                        TieneFoto = u.TieneFoto
                     })
                     .ToList()
             });
@@ -226,6 +238,118 @@ public class UsuariosController : ControladorBase
         return RedirectToAction(nameof(Editar), new { id, idPaciente });
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(TopeDuroSubida)]
+    [RequestFormLimits(MultipartBodyLengthLimit = TopeDuroSubida)]
+    public async Task<IActionResult> SubirFoto(int id, int? idPaciente, IFormFile? archivo)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Editar), new { id, idPaciente }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        var (modelo, salida) = await CargarAsync(id, idPaciente);
+        if (salida is not null) return salida;
+
+        var (imagen, errorImagen) = await ValidadorDeImagen.ValidarAsync(archivo);
+        if (imagen is null)
+        {
+            ModelState.AddModelError(ClaveFoto, errorImagen!);
+            return View(nameof(Editar), modelo);
+        }
+
+        try
+        {
+            await _usuarios.SubirFotoAsync(id, imagen);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(ClaveFoto, MensajeDe(error));
+            return View(nameof(Editar), modelo);
+        }
+
+        TempData["Exito"] = "Foto actualizada.";
+        return RedirectToAction(nameof(Editar), new { id, idPaciente });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuitarFoto(int id, int? idPaciente)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Editar), new { id, idPaciente }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        var (modelo, salida) = await CargarAsync(id, idPaciente);
+        if (salida is not null) return salida;
+
+        try
+        {
+            await _usuarios.QuitarFotoAsync(id);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(ClaveFoto, MensajeDe(error));
+            return View(nameof(Editar), modelo);
+        }
+
+        TempData["Exito"] = "Foto quitada.";
+        return RedirectToAction(nameof(Editar), new { id, idPaciente });
+    }
+
+    /// <summary>
+    /// Sirve la foto al navegador. Hace falta porque el token de la API vive en
+    /// la sesión del servidor: un &lt;img&gt; no puede apuntar directo a la API.
+    /// Al ser el destino de un &lt;img&gt;, los rechazos van como código de
+    /// estado pelado y no como página.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Foto(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Foto), new { id }));
+
+        if (!_auth.EsAdministrador)
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        ArchivoApi? foto;
+        try
+        {
+            // Se le pasa a la API el ETag que mandó el navegador: si la foto no
+            // cambió, contesta 304 y no viaja el contenido.
+            foto = await _usuarios.ObtenerFotoAsync(id, Request.Headers.IfNoneMatch.ToString());
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            return StatusCode(error.Status == StatusCodes.Status403Forbidden
+                ? StatusCodes.Status403Forbidden
+                : StatusCodes.Status502BadGateway);
+        }
+
+        if (foto is null)
+            return NotFound();
+
+        // Privada y siempre revalidada: después de cambiarla o quitarla, el
+        // navegador no sigue mostrando la copia vieja.
+        Response.Headers.CacheControl = "private, no-cache";
+        Response.Headers.XContentTypeOptions = "nosniff";
+        if (!string.IsNullOrEmpty(foto.ETag))
+            Response.Headers.ETag = foto.ETag;
+
+        if (foto.NoModificado)
+            return StatusCode(StatusCodes.Status304NotModified);
+
+        // Nunca se sirve otra cosa que una imagen de los tipos admitidos.
+        if (!TiposDeFoto.Contains(foto.TipoContenido))
+            return NotFound();
+
+        return File(foto.Contenido, foto.TipoContenido);
+    }
+
     /// <summary>
     /// Arma la pantalla con lo que hay en la API. Devuelve una salida (404) en
     /// vez del modelo si el usuario no existe o si el paciente pedido no existe
@@ -263,6 +387,7 @@ public class UsuariosController : ControladorBase
             NombreCompleto = $"{usuario.Nombre} {usuario.Apellido}".Trim(),
             Email = usuario.Email,
             Rol = usuario.Rol,
+            TieneFoto = fila?.TieneFoto ?? false,
             Cuenta = new CuentaEditarViewModel
             {
                 Nombre = usuario.Nombre,

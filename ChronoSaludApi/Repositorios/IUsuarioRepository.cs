@@ -11,4 +11,5 @@ public interface IUsuarioRepository
     Task Actualizar(Usuario usuario);
     Task Eliminar(Usuario usuario);
     Task<(int total, IEnumerable<Usuario> usuarios)> Buscar(string? buscar, string? rol, int pagina, int limite);
+    Task<IEnumerable<int>> ObtenerIdsConFoto(IEnumerable<int> idsUsuario);
 }

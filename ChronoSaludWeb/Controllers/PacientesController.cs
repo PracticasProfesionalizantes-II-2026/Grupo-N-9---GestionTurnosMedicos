@@ -21,17 +21,20 @@ public class PacientesController : ControladorBase
     private readonly PacienteService _pacientes;
     private readonly CoberturaService _coberturas;
     private readonly TurnoService _turnos;
+    private readonly UsuarioService _usuarios;
     private readonly AuthService _auth;
 
     public PacientesController(
         PacienteService pacientes,
         CoberturaService coberturas,
         TurnoService turnos,
+        UsuarioService usuarios,
         AuthService auth)
     {
         _pacientes = pacientes;
         _coberturas = coberturas;
         _turnos = turnos;
+        _usuarios = usuarios;
         _auth = auth;
     }
 
@@ -134,17 +137,27 @@ public class PacientesController : ControladorBase
         if (!_auth.EsAdministrador)
             return SinPermiso(TituloSinPermisoAlta, MotivoSinPermisoAlta);
 
+        // La foto es opcional, pero si vino se valida antes de crear nada: un
+        // archivo que no sirve frena el alta en vez de dejarla sin foto.
+        ImagenValidada? foto = null;
+        if (modelo.Foto is { Length: > 0 })
+        {
+            (foto, var errorFoto) = await ValidadorDeImagen.ValidarAsync(modelo.Foto);
+            if (foto is null)
+                ModelState.AddModelError(nameof(modelo.Foto), errorFoto!);
+        }
+
         if (!ModelState.IsValid)
             return View(modelo);
 
+        int idUsuario;
         try
         {
             // La API crea la fila en Pacientes sola al registrar el usuario.
             // TODO: enviar documento, fecha de nacimiento, género, nacionalidad,
             // estado civil, grupo sanguíneo, obra social, dirección, contacto de
-            // emergencia y alergias cuando la API los acepte en el alta. La foto
-            // tampoco se procesa todavía: solo se recibe el campo.
-            await _auth.RegistrarComoPacienteAsync(
+            // emergencia y alergias cuando la API los acepte en el alta.
+            idUsuario = await _auth.RegistrarComoPacienteAsync(
                 modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono);
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -154,6 +167,24 @@ public class PacientesController : ControladorBase
         }
 
         TempData["Exito"] = $"Paciente \"{modelo.Nombre} {modelo.Apellido}\" dado de alta correctamente.";
+
+        if (foto is not null)
+        {
+            try
+            {
+                await _usuarios.SubirFotoAsync(idUsuario, foto);
+            }
+            catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+            {
+                // El paciente ya quedó creado (no hay transacción entre los dos
+                // pedidos): se avisa y la foto se puede cargar después desde
+                // Usuarios/Editar.
+                TempData["Error"] =
+                    $"El paciente quedó dado de alta, pero no se pudo guardar la foto: {error.Message}. " +
+                    "Podés subirla desde \"Editar perfil\" en su ficha.";
+            }
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

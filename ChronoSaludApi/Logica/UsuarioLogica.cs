@@ -108,6 +108,7 @@ public class UsuarioLogica : IUsuarioLogica
                 "Rol inválido. Valores válidos: paciente, doctor, administrador.");
 
         var (total, usuarios) = await _repo.Buscar(buscar?.Trim(), rol, pagina, limite);
+        var conFoto = (await _repo.ObtenerIdsConFoto(usuarios.Select(u => u.Id))).ToHashSet();
 
         var resultado = usuarios.Select(u => new UsuarioListaDto(
             u.Id,
@@ -119,7 +120,7 @@ public class UsuarioLogica : IUsuarioLogica
             u.Activo,
             u.Paciente?.Id,
             u.Doctor?.Id,
-            false // TieneFoto: todavía no hay dónde guardar fotos
+            conFoto.Contains(u.Id)
         ));
 
         return (total, resultado, null);

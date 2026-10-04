@@ -86,7 +86,7 @@
 
 <div class="mt-6 flex items-center gap-4">
     <partial name="_Avatar"
-             model="new AvatarViewModel { Nombre = Model.NombreCompleto, Tamano = TamanoAvatar.Grande }" />
+             model='new AvatarViewModel { Nombre = Model.NombreCompleto, FotoUrl = Model.TieneFoto ? Url.Action("Foto", new { id = Model.IdUsuario }) : null, Tamano = TamanoAvatar.Grande }' />
     <div class="min-w-0">
         <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
         <p class="mt-0.5 text-sm text-muted">
@@ -135,6 +135,40 @@
             <button type="submit" class="@claseBoton">Guardar cuenta</button>
         </div>
     </form>
+</div>
+
+@* Subida con un formulario multipart común, sin vista previa: la foto nueva
+   se ve en el avatar de arriba al recargar. Quitar es otro formulario. *@
+<div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <h2 class="@claseSeccion">Foto</h2>
+
+    <form asp-action="SubirFoto" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+          method="post" enctype="multipart/form-data">
+        <div class="mt-4">
+            <label for="archivo" class="@claseEtiqueta">@(Model.TieneFoto ? "Reemplazar la foto" : "Elegir una foto")</label>
+            <input id="archivo" name="archivo" type="file" accept="image/jpeg,image/png,image/webp"
+                   aria-describedby="ayuda-foto"
+                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-primary-line file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft" />
+            <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
+            @{ ErrorCampo("Foto"); }
+        </div>
+
+        <div class="mt-4 flex justify-end">
+            <button type="submit" class="@claseBoton">Subir</button>
+        </div>
+    </form>
+
+    @if (Model.TieneFoto)
+    {
+        <form asp-action="QuitarFoto" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+              method="post" class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p class="text-sm text-muted">Sin foto, el avatar vuelve a mostrar las iniciales.</p>
+            <button type="submit"
+                    class="rounded-input border border-status-cancelado/40 px-4 py-2.5 text-sm font-semibold text-status-cancelado hover:bg-status-cancelado/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/20">
+                Quitar foto
+            </button>
+        </form>
+    }
 </div>
 
 @if (Model.Paciente is not null && Model.IdPaciente is not null)
