@@ -2,12 +2,26 @@ using System.Globalization;
 
 namespace ChronoSaludWeb.Models;
 
-/// <summary>Los tres tamaños que ya usan las vistas: 9, 10 y 16 de la escala de Tailwind.</summary>
+/// <summary>
+/// Los tamaños que ya usan las vistas: 9, 10 y 16 de la escala de Tailwind, y
+/// 12 para el encabezado de la ficha del doctor.
+/// </summary>
 public enum TamanoAvatar
 {
     Chico,
     Mediano,
-    Grande
+    Grande,
+    Intermedio
+}
+
+/// <summary>
+/// Color del círculo cuando no hay foto: teal para pacientes y usuarios en
+/// general, terracota para doctores (como se los mostró siempre).
+/// </summary>
+public enum TonoAvatar
+{
+    Teal,
+    Terracota
 }
 
 /// <summary>
@@ -22,6 +36,8 @@ public class AvatarViewModel
     public string? FotoUrl { get; init; }
 
     public TamanoAvatar Tamano { get; init; } = TamanoAvatar.Chico;
+
+    public TonoAvatar Tono { get; init; } = TonoAvatar.Teal;
 
     public bool TieneFoto => !string.IsNullOrWhiteSpace(FotoUrl);
 

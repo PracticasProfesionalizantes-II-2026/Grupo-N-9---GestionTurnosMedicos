@@ -52,6 +52,9 @@ public class PacientesController : ControladorBase
         {
             var pagina = await _pacientes.BuscarAsync(busqueda, Limite);
 
+            // Un solo pedido para toda la página: quiénes tienen foto.
+            var fotos = await _usuarios.ObtenerFotosAsync(pacientes: pagina.Pacientes.Select(p => p.IdPaciente));
+
             return View(new PacientesIndexViewModel
             {
                 Nombre = busqueda,
@@ -61,7 +64,8 @@ public class PacientesController : ControladorBase
                     {
                         IdPaciente = p.IdPaciente,
                         Nombre = p.Nombre,
-                        Apellido = p.Apellido
+                        Apellido = p.Apellido,
+                        FotoUrl = UrlDeFoto(fotos, p.IdPaciente)
                     })
                     .ToList()
             });
@@ -93,11 +97,13 @@ public class PacientesController : ControladorBase
             // vez de tirar toda la página abajo por un servicio secundario.
             var coberturas = await ObtenerCoberturasSinRomperAsync(id);
             var ultimoTurno = await ObtenerUltimoTurnoSinRomperAsync(id);
+            var fotos = await _usuarios.ObtenerFotosAsync(pacientes: new[] { paciente.IdPaciente });
 
             return View(new PacienteDetalleViewModel
             {
                 IdPaciente = paciente.IdPaciente,
                 IdUsuario = paciente.IdUsuario,
+                FotoUrl = UrlDeFoto(fotos, paciente.IdPaciente),
                 Nombre = paciente.Nombre,
                 Apellido = paciente.Apellido,
                 FechaNacimiento = paciente.FechaNacimiento,
@@ -187,6 +193,15 @@ public class PacientesController : ControladorBase
 
         return RedirectToAction(nameof(Index));
     }
+
+    /// <summary>
+    /// /Usuarios/Foto/{idUsuario} si la API informó que ese paciente tiene una
+    /// foto visible; null si no, así el avatar no pide una imagen que no existe.
+    /// </summary>
+    private string? UrlDeFoto(FotosDisponibles fotos, int idPaciente) =>
+        fotos.Pacientes.TryGetValue(idPaciente, out var idUsuario)
+            ? Url.Action("Foto", "Usuarios", new { id = idUsuario })
+            : null;
 
     private async Task<IReadOnlyList<CoberturaFilaViewModel>> ObtenerCoberturasSinRomperAsync(int idPaciente)
     {

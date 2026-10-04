@@ -8,6 +8,9 @@ public class PacienteFilaViewModel
     public string Nombre { get; init; } = string.Empty;
     public string Apellido { get; init; } = string.Empty;
 
+    /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
+    public string? FotoUrl { get; init; }
+
     public string NombreCompleto =>
         string.IsNullOrWhiteSpace($"{Nombre}{Apellido}") ? "Sin datos" : $"{Nombre} {Apellido}".Trim();
 
@@ -43,6 +46,9 @@ public class PacienteDetalleViewModel
 
     /// <summary>Id de la cuenta del paciente: lo necesita el enlace a Usuarios/Editar.</summary>
     public int IdUsuario { get; init; }
+
+    /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
+    public string? FotoUrl { get; init; }
     public string Nombre { get; init; } = string.Empty;
     public string Apellido { get; init; } = string.Empty;
     public DateTime? FechaNacimiento { get; init; }
@@ -92,6 +98,9 @@ public class DoctorFilaViewModel
     public string Especialidad { get; init; } = string.Empty;
     public string Matricula { get; init; } = string.Empty;
 
+    /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
+    public string? FotoUrl { get; init; }
+
     public string NombreMostrado =>
         string.IsNullOrWhiteSpace(Nombre) ? "Sin datos" : Nombre.Trim();
 
@@ -130,6 +139,9 @@ public class DoctorDetalleViewModel
     public string Especialidad { get; init; } = string.Empty;
     public string Matricula { get; init; } = string.Empty;
     public string? Consultorio { get; init; }
+
+    /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
+    public string? FotoUrl { get; init; }
 
     /// <summary>Horario semanal; null si no se pudo cargar (ver ErrorHorario).</summary>
     public HorarioSemanalViewModel? Horario { get; init; }

@@ -10,11 +10,13 @@ public class DoctoresController : ControladorBase
     private const int Limite = 100;
 
     private readonly DoctorService _doctores;
+    private readonly UsuarioService _usuarios;
     private readonly AuthService _auth;
 
-    public DoctoresController(DoctorService doctores, AuthService auth)
+    public DoctoresController(DoctorService doctores, UsuarioService usuarios, AuthService auth)
     {
         _doctores = doctores;
+        _usuarios = usuarios;
         _auth = auth;
     }
 
@@ -42,11 +44,15 @@ public class DoctoresController : ControladorBase
             var especialidades = await _doctores.ObtenerEspecialidadesAsync();
             var pagina = await _doctores.BuscarAsync(filtro, Limite);
 
+            // Un solo pedido para toda la página: quiénes tienen foto y cuál es
+            // su IdUsuario, que el listado de doctores no trae.
+            var fotos = await _usuarios.ObtenerFotosAsync(doctores: pagina.Doctores.Select(d => d.IdDoctor));
+
             return View(new DoctoresIndexViewModel
             {
                 Especialidad = filtro,
                 Total = pagina.Total,
-                Doctores = pagina.Doctores.Select(Mapear).ToList(),
+                Doctores = pagina.Doctores.Select(d => Mapear(d, UrlDeFoto(fotos, d.IdDoctor))).ToList(),
                 Especialidades = OpcionesDeEspecialidad(especialidades, filtro)
             });
         }
@@ -85,9 +91,12 @@ public class DoctoresController : ControladorBase
                 errorHorario = error.Message;
             }
 
+            var fotos = await _usuarios.ObtenerFotosAsync(doctores: new[] { doctor.IdDoctor });
+
             return View(new DoctorDetalleViewModel
             {
                 IdDoctor = doctor.IdDoctor,
+                FotoUrl = UrlDeFoto(fotos, doctor.IdDoctor),
                 Nombre = doctor.Nombre,
                 Apellido = doctor.Apellido,
                 Especialidad = doctor.Especialidad,
@@ -104,8 +113,18 @@ public class DoctoresController : ControladorBase
         }
     }
 
-    private static DoctorFilaViewModel Mapear(DoctorLista doctor) => new()
+    /// <summary>
+    /// /Usuarios/Foto/{idUsuario} si la API informó que ese doctor tiene foto;
+    /// null si no, así el avatar no pide una imagen que no existe.
+    /// </summary>
+    private string? UrlDeFoto(FotosDisponibles fotos, int idDoctor) =>
+        fotos.Doctores.TryGetValue(idDoctor, out var idUsuario)
+            ? Url.Action("Foto", "Usuarios", new { id = idUsuario })
+            : null;
+
+    private static DoctorFilaViewModel Mapear(DoctorLista doctor, string? fotoUrl) => new()
     {
+        FotoUrl = fotoUrl,
         IdDoctor = doctor.IdDoctor,
         Nombre = doctor.Nombre,
         Especialidad = doctor.Especialidad,

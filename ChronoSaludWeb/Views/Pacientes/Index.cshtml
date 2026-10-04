@@ -116,7 +116,7 @@ else
                 <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <partial name="_Avatar"
-                             model='new AvatarViewModel { Nombre = $"{paciente.Nombre} {paciente.Apellido}", Tamano = TamanoAvatar.Chico }' />
+                             model='new AvatarViewModel { Nombre = $"{paciente.Nombre} {paciente.Apellido}", FotoUrl = paciente.FotoUrl, Tamano = TamanoAvatar.Chico }' />
                     <span class="min-w-0 flex-1">
                         <a asp-action="Detalle" asp-route-id="@paciente.IdPaciente"
                            class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">

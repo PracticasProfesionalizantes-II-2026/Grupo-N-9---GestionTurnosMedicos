@@ -387,9 +387,8 @@ public class UsuariosController : ControladorBase
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Foto), new { id }));
 
-        if (!_auth.EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
-
+        // Acá no se exige rol: quién puede ver cada foto lo decide la API según
+        // el dueño (404 si no existe o si no le corresponde verla).
         ArchivoApi? foto;
         try
         {

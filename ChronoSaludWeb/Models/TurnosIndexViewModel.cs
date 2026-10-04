@@ -19,6 +19,9 @@ public class TurnoFilaViewModel
     /// </summary>
     public string? Hora { get; init; }
 
+    /// <summary>Foto del paciente del turno. Null si no tiene: el avatar muestra las iniciales.</summary>
+    public string? FotoUrl { get; init; }
+
     public string Iniciales => TurnosIndexViewModel.CalcularIniciales(Paciente);
 
     public string PacienteMostrado =>
@@ -36,8 +39,14 @@ public class TurnoFilaViewModel
     /// <summary>
     /// Arma la fila a partir de lo que devuelve la API.
     /// </summary>
-    public static TurnoFilaViewModel Desde(TurnoLista turno) => new()
+    public static TurnoFilaViewModel Desde(TurnoLista turno) => DesdeConFoto(turno, null);
+
+    /// <summary>
+    /// Igual que <see cref="Desde"/>, con la URL de la foto del paciente si la tiene.
+    /// </summary>
+    public static TurnoFilaViewModel DesdeConFoto(TurnoLista turno, string? fotoUrl) => new()
     {
+        FotoUrl      = fotoUrl,
         IdTurno      = turno.IdTurno,
         FechaInicio  = turno.FechaInicio,
         Estado       = turno.Estado,

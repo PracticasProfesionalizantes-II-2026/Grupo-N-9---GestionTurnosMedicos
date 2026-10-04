@@ -32,14 +32,49 @@ public record UsuarioLista(
 /// </summary>
 public record UsuariosPagina(int Total, int Pagina, IReadOnlyList<UsuarioLista> Usuarios);
 
+/// <summary>
+/// Una foto que existe y que el usuario logueado puede ver. Espeja
+/// FotoDisponibleDto: Id es el id por el que se preguntó (de paciente, de
+/// doctor o de turno) e IdUsuario el dueño de la foto.
+/// </summary>
+public record FotoDisponible(int Id, int IdUsuario);
+
+/// <summary>
+/// Respuesta de GET /usuarios/fotos: { pacientes, doctores, turnos }.
+/// </summary>
+public record FotosDisponiblesRespuesta(
+    IReadOnlyList<FotoDisponible>? Pacientes,
+    IReadOnlyList<FotoDisponible>? Doctores,
+    IReadOnlyList<FotoDisponible>? Turnos);
+
+/// <summary>
+/// Quién tiene foto entre los ids consultados: cada diccionario va del id por
+/// el que se preguntó al IdUsuario del dueño. Un id ausente no tiene foto, o
+/// tiene una que el usuario logueado no puede ver.
+/// </summary>
+public class FotosDisponibles
+{
+    public Dictionary<int, int> Pacientes { get; } = new();
+    public Dictionary<int, int> Doctores { get; } = new();
+    public Dictionary<int, int> Turnos { get; } = new();
+}
+
 public class UsuarioService
 {
     // Tope de "limite" que acepta GET /usuarios.
     private const int LimiteMaximo = 100;
 
-    private readonly ApiClient _api;
+    // Tope de ids por lista que acepta GET /usuarios/fotos (400 si se pasa).
+    private const int MaximoIdsPorConsulta = 100;
 
-    public UsuarioService(ApiClient api) => _api = api;
+    private readonly ApiClient _api;
+    private readonly ILogger<UsuarioService> _logger;
+
+    public UsuarioService(ApiClient api, ILogger<UsuarioService> logger)
+    {
+        _api = api;
+        _logger = logger;
+    }
 
     /// <summary>
     /// GET /usuarios/{id}. Null si no existe (la API contesta 404).
@@ -106,6 +141,76 @@ public class UsuarioService
     /// </summary>
     public Task<ArchivoApi?> ObtenerFotoAsync(int id, string? etag = null)
         => _api.GetArchivoAsync($"/usuarios/{id}/foto", etag);
+
+    /// <summary>
+    /// GET /usuarios/fotos: de los pacientes, doctores y turnos (por su
+    /// paciente) de una pantalla, cuáles tienen una foto que el usuario
+    /// logueado puede ver. Sirve para pintar el &lt;img&gt; solo donde hay foto.
+    /// La API acepta hasta 100 ids por lista: si llegan más se parte en varios
+    /// pedidos, y sin ids no se llama. Si la consulta falla devuelve vacío (la
+    /// pantalla se ve con iniciales) y deja un Warning en el log, para poder
+    /// distinguir "nadie tiene foto" de "falló".
+    /// </summary>
+    public async Task<FotosDisponibles> ObtenerFotosAsync(
+        IEnumerable<int>? pacientes = null,
+        IEnumerable<int>? doctores = null,
+        IEnumerable<int>? turnos = null)
+    {
+        var tandasPacientes = Tandas(pacientes);
+        var tandasDoctores = Tandas(doctores);
+        var tandasTurnos = Tandas(turnos);
+
+        var pedidos = Math.Max(tandasPacientes.Count, Math.Max(tandasDoctores.Count, tandasTurnos.Count));
+        var fotos = new FotosDisponibles();
+
+        try
+        {
+            for (var i = 0; i < pedidos; i++)
+            {
+                var parametros = new Dictionary<string, object?>
+                {
+                    ["pacientes"] = Unir(tandasPacientes, i),
+                    ["doctores"] = Unir(tandasDoctores, i),
+                    ["turnos"] = Unir(tandasTurnos, i)
+                };
+
+                var respuesta = await _api.GetAsync<FotosDisponiblesRespuesta>("/usuarios/fotos", parametros);
+
+                Volcar(respuesta?.Pacientes, fotos.Pacientes);
+                Volcar(respuesta?.Doctores, fotos.Doctores);
+                Volcar(respuesta?.Turnos, fotos.Turnos);
+            }
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            _logger.LogWarning(
+                "No se pudo consultar GET /usuarios/fotos (status {Status}): {Mensaje}. La pantalla se muestra con iniciales.",
+                error.Status, error.Message);
+            return new FotosDisponibles();
+        }
+
+        return fotos;
+    }
+
+    // Ids válidos y sin repetir, en grupos de a lo sumo 100.
+    private static List<int[]> Tandas(IEnumerable<int>? ids) =>
+        (ids ?? Enumerable.Empty<int>())
+            .Where(id => id > 0)
+            .Distinct()
+            .Chunk(MaximoIdsPorConsulta)
+            .ToList();
+
+    // "1,2,3", o null (parámetro que no se manda) si esa lista no tiene tanda i.
+    private static string? Unir(List<int[]> tandas, int i) =>
+        i < tandas.Count ? string.Join(',', tandas[i]) : null;
+
+    private static void Volcar(IReadOnlyList<FotoDisponible>? origen, Dictionary<int, int> destino)
+    {
+        if (origen is null) return;
+
+        foreach (var foto in origen)
+            destino[foto.Id] = foto.IdUsuario;
+    }
 
     /// <summary>
     /// La fila del buscador de un usuario puntual, que es de donde salen su
