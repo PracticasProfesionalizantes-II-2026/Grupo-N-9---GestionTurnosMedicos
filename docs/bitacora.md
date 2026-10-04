@@ -116,3 +116,18 @@ foto después del alta. Compilan API y Web, CSS recompilado.
 buscador consulta `UsuarioFotos`): aplicarla ANTES de desplegar la API.
 La foto no usa `?v=`: se revalida con ETag (ver etapa B en el chat).
 Usuarios/Foto en la Web es solo para administrador por ahora.
+
+## 2026-10-04 — fotos en toda la app, fase 1: API
+**Hecho:** GET /usuarios/fotos?pacientes=&doctores=&turnos= (hasta 100
+ids por lista): devuelve qué pacientes, doctores o turnos (por su
+paciente) tienen una foto que quien pregunta puede ver, con el
+`IdUsuario` del dueño. Regla nueva del GET /usuarios/{id}/foto: foto de
+doctor o administrador, cualquier autenticado; foto de paciente, solo
+administrador, doctor o el propio paciente. Sin foto y sin permiso
+contestan el mismo 404 "Foto no encontrada." (ya no hay 403). La regla
+vive en `UsuarioFotoLogica.PuedeVer`. Compila. Sin migración.
+**A medias:** sin probar en Scalar.
+**Sigue:** fase 2 (Web: acción Foto solo con sesión, consulta por lote
+y Pacientes), después Turnos y Doctores.
+**Ojo:** cualquier doctor ve la foto de cualquier paciente, y el
+registro abierto deja que cualquiera se registre como doctor por la API.
