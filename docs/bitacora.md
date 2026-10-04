@@ -146,3 +146,15 @@ tarjeta de Cuentas, Admin/CompletarDoctor y su view model siguen ahí.
 **Ojo:** si la búsqueda de usuarios falla, Editar no ofrece completar
 el perfil (no puede confirmar que falte). `ApiClient` sigue mostrando la
 URL de la API cuando no responde: se decidió no tocarlo.
+
+## 2026-10-04 — limpieza: perfil de doctor, etapa 3 (borrar lo viejo)
+**Hecho:** se quitó "Completar perfil de doctor" de Cuentas y se borraron
+las dos acciones de `AdminController`, la vista y su view model. La
+función vive ahora en Usuarios/Editar (tarjeta que aparece sola cuando a
+un usuario con rol doctor le falta el perfil). Se conservan
+`DoctorService.CrearAsync` e `IdUsuarioCreado`, que usa el alta de
+doctor. Compila, CSS recompilado. La API no se tocó.
+**A medias:** sin probar a mano.
+**Sigue:** fotos en Pacientes, Turnos y Doctores (fases 2 a 4 del plan
+de fotos), pendientes.
+**Ojo:** la ruta vieja de la pantalla ya no existe (da 404).

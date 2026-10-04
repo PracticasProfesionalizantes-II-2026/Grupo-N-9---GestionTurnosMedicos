@@ -80,7 +80,7 @@ public class AdminController : ControladorBase
             // El Usuario ya existe en la API (no hay transacción entre los dos
             // POST): no tiene sentido que el admin reintente este formulario
             // completo, porque el paso 1 va a fallar por "email ya registrado".
-            // Le dejamos el IdUsuario para que cierre el alta desde CompletarDoctor.
+            // Le dejamos el IdUsuario para que cierre el alta desde Usuarios/Editar.
             modelo.IdUsuarioCreado = idUsuario;
             ModelState.AddModelError(
                 string.Empty,
@@ -89,45 +89,6 @@ public class AdminController : ControladorBase
         }
 
         TempData["Exito"] = $"Doctor \"{modelo.Nombre} {modelo.Apellido}\" dado de alta correctamente.";
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpGet]
-    public IActionResult CompletarDoctor(int? idUsuario)
-    {
-        if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(CompletarDoctor)));
-
-        if (!_auth.EsAdministrador)
-            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
-
-        return View(new CompletarDoctorViewModel { IdUsuario = idUsuario });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CompletarDoctor(CompletarDoctorViewModel modelo)
-    {
-        if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(CompletarDoctor)));
-
-        if (!_auth.EsAdministrador)
-            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
-
-        if (!ModelState.IsValid)
-            return View(modelo);
-
-        try
-        {
-            await _doctores.CrearAsync(modelo.IdUsuario!.Value, modelo.Especialidad, modelo.Matricula, modelo.Consultorio);
-        }
-        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
-        {
-            ModelState.AddModelError(string.Empty, error.Message);
-            return View(modelo);
-        }
-
-        TempData["Exito"] = $"Perfil de doctor completado para el usuario Id {modelo.IdUsuario}.";
         return RedirectToAction(nameof(Index));
     }
 

@@ -57,8 +57,8 @@ public class UsuarioEditarViewModel
 
 /// <summary>
 /// Paso 2 del alta de doctor para un usuario que ya existe: completa su fila
-/// de Doctores (POST /doctores). Mismas validaciones y mensajes que
-/// CompletarDoctorViewModel, sin el IdUsuario: acá el usuario ya está elegido.
+/// de Doctores (POST /doctores). Pide lo mismo que el alta de doctor
+/// (NuevoDoctorViewModel) para esos tres campos; el usuario ya está elegido.
 /// </summary>
 public class DoctorNuevoViewModel
 {
