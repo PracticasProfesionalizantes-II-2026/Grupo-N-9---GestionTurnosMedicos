@@ -184,3 +184,16 @@ tocó. Con esto queda completo el plan de fotos.
 PUT /usuarios/{id}) sigue como propuesta sin implementar.
 **Ojo:** en Turnos el avatar es siempre el del paciente; la foto del
 doctor no se muestra ahí. La home no tiene avatares.
+
+## 2026-10-04 — etapa C: chequeo de dueño en PUT /usuarios/{id}
+**Hecho:** PUT /usuarios/{id} ahora solo lo acepta del propio usuario o
+de un administrador; al resto le contesta 403, antes de buscar al
+usuario. Un solo archivo (`UsuarioEndpoints.cs`), sin migración. El
+único llamador de la Web es Usuarios/Editar, que es de administrador:
+no cambia nada ahí. Compila.
+**A medias:** sin probar en Scalar.
+**Sigue:** decidir qué hacer con el registro abierto.
+**Ojo:** POST /usuarios/registro sigue siendo anónimo y acepta cualquier
+rol: quien se registre como administrador por la API se saltea este
+chequeo. GET /usuarios/{id} no se tocó: cualquier autenticado lee los
+datos de cualquier usuario.
