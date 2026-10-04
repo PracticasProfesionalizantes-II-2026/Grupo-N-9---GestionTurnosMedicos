@@ -96,3 +96,23 @@ con migración que corre Francis. Etapa C queda como propuesta.
 **Ojo:** la API no aplica migraciones al arrancar. Hay que desplegar la
 API antes que la Web: sin GET /usuarios el buscador muestra error.
 Pacientes/Detalle sigue con el círculo viejo en vez de `_Avatar`.
+
+## 2026-10-04 — perfiles del admin, etapa B: foto
+**Hecho:** API (autorizado por el grupo): entidad `UsuarioFoto` en tabla
+aparte `UsuarioFotos` (PK = IdUsuario, cascada, sin navegación en
+Usuario), repositorio, lógica y `UsuarioFotoEndpoints`: PUT (multipart,
+campo "archivo", solo admin), GET (admin, doctor o el propio usuario) y
+DELETE (solo admin) de /usuarios/{id}/foto. Valida 2 MB y firma de bytes
+(JPEG, PNG, WebP). `TieneFoto` del buscador ya es real: única línea
+existente modificada, en `UsuarioLogica.Buscar`.
+Web: `ValidadorDeImagen`, multipart y bytes en `ApiClient`, acciones
+SubirFoto / QuitarFoto / Foto en Usuarios, tarjeta "Foto" en Editar,
+avatar con foto en el buscador y en Editar, y Pacientes/Crear sube la
+foto después del alta. Compilan API y Web, CSS recompilado.
+**A medias:** falta generar y aplicar la migración `AgregarUsuarioFoto`
+(la corre Francis). Nada probado en ejecución.
+**Sigue:** etapa C (chequeo de dueño en PUT /usuarios/{id}), solo propuesta.
+**Ojo:** sin la migración aplicada falla también GET /usuarios (el
+buscador consulta `UsuarioFotos`): aplicarla ANTES de desplegar la API.
+La foto no usa `?v=`: se revalida con ETag (ver etapa B en el chat).
+Usuarios/Foto en la Web es solo para administrador por ahora.

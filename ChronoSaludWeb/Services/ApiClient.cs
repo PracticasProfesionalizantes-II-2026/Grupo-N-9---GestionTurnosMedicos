@@ -18,6 +18,12 @@ public class ApiException : Exception
 }
 
 /// <summary>
+/// Un archivo devuelto por la API. ETag identifica la versión; NoModificado
+/// indica que la copia que ya tenía quien preguntó sigue vigente.
+/// </summary>
+public record ArchivoApi(byte[] Contenido, string TipoContenido, string? ETag, bool NoModificado);
+
+/// <summary>
 /// Cliente HTTP tipado contra la API de ChronoSalud. Es el equivalente en C#
 /// de chronosalud-front/js/api.js: adjunta el Bearer si hay sesión, traduce los
 /// errores { "error": "..." } y corta la sesión cuando la API responde 401.
@@ -73,6 +79,90 @@ public class ApiClient
         if (cuerpo is not null)
             pedido.Content = JsonContent.Create(cuerpo, options: JsonOpciones);
 
+        using (var respuesta = await EnviarAsync(pedido, anonimo))
+        {
+            var estado = (int)respuesta.StatusCode;
+
+            if (estado == StatusCodes.Status204NoContent)
+                return default;
+
+            var texto = await respuesta.Content.ReadAsStringAsync();
+
+            if (!respuesta.IsSuccessStatusCode)
+                throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+
+            if (string.IsNullOrWhiteSpace(texto))
+                return default;
+
+            try
+            {
+                return JsonSerializer.Deserialize<T>(texto, JsonOpciones);
+            }
+            catch (JsonException)
+            {
+                throw new ApiException("La API devolvió una respuesta que no se pudo interpretar.", estado);
+            }
+        }
+    }
+
+    /// <summary>
+    /// PUT de un archivo como multipart/form-data, en el campo indicado. El
+    /// nombre de archivo es fijo: la API lo descarta.
+    /// </summary>
+    public async Task PutArchivoAsync(string ruta, string campo, byte[] contenido, string tipoContenido)
+    {
+        using var pedido = new HttpRequestMessage(HttpMethod.Put, ruta);
+
+        var parte = new ByteArrayContent(contenido);
+        parte.Headers.ContentType = new MediaTypeHeaderValue(tipoContenido);
+        pedido.Content = new MultipartFormDataContent { { parte, campo, "foto" } };
+
+        using var respuesta = await EnviarAsync(pedido, anonimo: false);
+        if (respuesta.IsSuccessStatusCode) return;
+
+        var estado = (int)respuesta.StatusCode;
+        var texto = await respuesta.Content.ReadAsStringAsync();
+        throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+    }
+
+    /// <summary>
+    /// GET de un archivo. Null si no existe (404). Si se pasa el ETag de una
+    /// copia anterior y la API contesta 304, vuelve sin contenido y con
+    /// NoModificado en true.
+    /// </summary>
+    public async Task<ArchivoApi?> GetArchivoAsync(string ruta, string? etag = null)
+    {
+        using var pedido = new HttpRequestMessage(HttpMethod.Get, ruta);
+        if (!string.IsNullOrEmpty(etag))
+            pedido.Headers.TryAddWithoutValidation("If-None-Match", etag);
+
+        using var respuesta = await EnviarAsync(pedido, anonimo: false);
+        var estado = (int)respuesta.StatusCode;
+        var etagNuevo = respuesta.Headers.ETag?.ToString();
+
+        if (estado == StatusCodes.Status404NotFound)
+            return null;
+
+        if (estado == StatusCodes.Status304NotModified)
+            return new ArchivoApi(Array.Empty<byte>(), string.Empty, etagNuevo ?? etag, NoModificado: true);
+
+        if (!respuesta.IsSuccessStatusCode)
+        {
+            var texto = await respuesta.Content.ReadAsStringAsync();
+            throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+        }
+
+        var contenido = await respuesta.Content.ReadAsByteArrayAsync();
+        var tipo = respuesta.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        return new ArchivoApi(contenido, tipo, etagNuevo, NoModificado: false);
+    }
+
+    /// <summary>
+    /// Lo que comparten todos los pedidos: adjuntar el Bearer, traducir los
+    /// errores de conexión y cortar la sesión ante un 401.
+    /// </summary>
+    private async Task<HttpResponseMessage> EnviarAsync(HttpRequestMessage pedido, bool anonimo)
+    {
         if (!anonimo)
         {
             var token = _contexto.HttpContext?.Session.ObtenerSesion()?.Token;
@@ -95,39 +185,17 @@ public class ApiClient
             throw new ApiException("La API tardó demasiado en responder.", 0);
         }
 
-        using (respuesta)
+        // El token venció o no es válido: se cierra la sesión y el controlador
+        // decide a dónde mandar al usuario. En los pedidos anónimos (el login)
+        // un 401 significa "credenciales incorrectas", no "sesión vencida".
+        if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized && !anonimo)
         {
-            var estado = (int)respuesta.StatusCode;
-
-            // El token venció o no es válido: se cierra la sesión y el controlador
-            // decide a dónde mandar al usuario. En los pedidos anónimos (el login)
-            // un 401 significa "credenciales incorrectas", no "sesión vencida".
-            if (estado == StatusCodes.Status401Unauthorized && !anonimo)
-            {
-                _contexto.HttpContext?.Session.CerrarSesion();
-                throw new ApiException("Sesión expirada. Volvé a iniciar sesión.", 401);
-            }
-
-            if (estado == StatusCodes.Status204NoContent)
-                return default;
-
-            var texto = await respuesta.Content.ReadAsStringAsync();
-
-            if (!respuesta.IsSuccessStatusCode)
-                throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
-
-            if (string.IsNullOrWhiteSpace(texto))
-                return default;
-
-            try
-            {
-                return JsonSerializer.Deserialize<T>(texto, JsonOpciones);
-            }
-            catch (JsonException)
-            {
-                throw new ApiException("La API devolvió una respuesta que no se pudo interpretar.", estado);
-            }
+            respuesta.Dispose();
+            _contexto.HttpContext?.Session.CerrarSesion();
+            throw new ApiException("Sesión expirada. Volvé a iniciar sesión.", 401);
         }
+
+        return respuesta;
     }
 
     private string ConstruirUrl(string ruta, IDictionary<string, object?>? parametros)

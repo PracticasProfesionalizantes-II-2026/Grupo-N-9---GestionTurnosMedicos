@@ -86,6 +86,28 @@ public class UsuarioService
     }
 
     /// <summary>
+    /// PUT /usuarios/{id}/foto: crea o reemplaza la foto. Reservado a
+    /// administrador. La API vuelve a validar tamaño y firma (400 si no pasa).
+    /// </summary>
+    public Task SubirFotoAsync(int id, ImagenValidada imagen)
+        => _api.PutArchivoAsync($"/usuarios/{id}/foto", "archivo", imagen.Contenido, imagen.TipoContenido);
+
+    /// <summary>
+    /// DELETE /usuarios/{id}/foto. Reservado a administrador. No falla si el
+    /// usuario no tenía foto.
+    /// </summary>
+    public Task QuitarFotoAsync(int id)
+        => _api.DeleteAsync($"/usuarios/{id}/foto");
+
+    /// <summary>
+    /// GET /usuarios/{id}/foto. Null si no tiene foto. La API se la da a
+    /// administrador, doctor o al propio usuario (403 al resto). Con el ETag de
+    /// la copia que ya tiene el navegador, contesta sin contenido si no cambió.
+    /// </summary>
+    public Task<ArchivoApi?> ObtenerFotoAsync(int id, string? etag = null)
+        => _api.GetArchivoAsync($"/usuarios/{id}/foto", etag);
+
+    /// <summary>
     /// La fila del buscador de un usuario puntual, que es de donde salen su
     /// IdPaciente y su IdDoctor: UsuarioDto no los trae y no hay endpoint que
     /// los resuelva por IdUsuario. Busca por su email (es único) y se queda con

@@ -23,6 +23,9 @@ public class UsuarioEditarViewModel
     public string Email { get; init; } = string.Empty;
     public string Rol { get; init; } = string.Empty;
 
+    /// <summary>Según la API. Decide si el avatar pide la foto y si se ofrece quitarla.</summary>
+    public bool TieneFoto { get; init; }
+
     public CuentaEditarViewModel Cuenta { get; set; } = new();
 
     public PacienteEditarViewModel? Paciente { get; set; }
@@ -58,6 +61,7 @@ public class UsuarioFilaViewModel
     public string Apellido { get; init; } = string.Empty;
     public string Email { get; init; } = string.Empty;
     public string Rol { get; init; } = string.Empty;
+    public bool TieneFoto { get; init; }
 
     /// <summary>Nombre crudo para el avatar: vacío si la API no mandó ninguno.</summary>
     public string NombreCrudo => $"{Nombre} {Apellido}".Trim();
