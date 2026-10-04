@@ -11,7 +11,14 @@ public record PacienteDetalle(
     string? Sexo,
     string? GrupoSanguineo,
     string? Alergias,
-    string? Condiciones);
+    string? Condiciones,
+    int IdUsuario = 0,
+    string? Email = null,
+    string? Telefono = null,
+    string? Dni = null,
+    string? Direccion = null,
+    string? Nacionalidad = null,
+    string? EstadoCivil = null);
 
 /// <summary>
 /// Una fila del listado. Espeja PacienteListaDto de la API.
@@ -119,5 +126,36 @@ public class PacienteService
                 grupoSanguineo,
                 alergias,
                 condiciones
+            });
+
+    /// <summary>
+    /// PUT /pacientes/{id} con la ficha completa, para la edición que hace el
+    /// administrador. La API ignora los campos vacíos (no borra lo que ya
+    /// estaba) y contesta 409 si el DNI ya es de otro paciente.
+    /// </summary>
+    public Task ActualizarFichaAsync(
+        int idPaciente,
+        DateTime? fechaNacimiento,
+        string? sexo,
+        string? grupoSanguineo,
+        string? alergias,
+        string? condiciones,
+        string? dni,
+        string? direccion,
+        string? nacionalidad,
+        string? estadoCivil)
+        => _api.PutAsync(
+            $"/pacientes/{idPaciente}",
+            new
+            {
+                fechaNacimiento,
+                sexo,
+                grupoSanguineo,
+                alergias,
+                condiciones,
+                dni,
+                direccion,
+                nacionalidad,
+                estadoCivil
             });
 }

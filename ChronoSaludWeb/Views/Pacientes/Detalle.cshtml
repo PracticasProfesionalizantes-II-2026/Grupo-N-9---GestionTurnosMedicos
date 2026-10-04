@@ -193,5 +193,19 @@ else
                 Agendar turno
             </a>
         }
+        @* Solo el administrador edita perfiles ajenos; Usuarios/Editar lo
+           vuelve a verificar en el servidor. *@
+        @if (Auth.EsAdministrador)
+        {
+            <a asp-controller="Usuarios" asp-action="Editar" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+               class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                    <path d="m15 5 4 4" />
+                </svg>
+                Editar perfil
+            </a>
+        }
     </div>
 }

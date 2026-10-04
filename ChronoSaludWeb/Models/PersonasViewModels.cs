@@ -40,6 +40,9 @@ public class CoberturaFilaViewModel
 public class PacienteDetalleViewModel
 {
     public int IdPaciente { get; init; }
+
+    /// <summary>Id de la cuenta del paciente: lo necesita el enlace a Usuarios/Editar.</summary>
+    public int IdUsuario { get; init; }
     public string Nombre { get; init; } = string.Empty;
     public string Apellido { get; init; } = string.Empty;
     public DateTime? FechaNacimiento { get; init; }

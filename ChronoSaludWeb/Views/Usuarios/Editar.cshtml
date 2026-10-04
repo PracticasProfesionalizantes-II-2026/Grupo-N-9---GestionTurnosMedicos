@@ -1,0 +1,214 @@
+@model UsuarioEditarViewModel
+@{
+    ViewData["Title"] = $"Editar perfil de {Model.NombreCompleto}";
+    // asp-for agrega input-validation-error al campo con error: la variante
+    // arbitraria pinta el borde con el color de error sin JavaScript.
+    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
+    const string claseEtiqueta = "block text-sm font-medium text-ink";
+    const string claseSeccion = "text-sm font-semibold uppercase tracking-wide text-muted";
+    const string claseAyuda = "mt-1 text-xs text-muted";
+    const string claseBoton = "rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft";
+
+    // El error de cada campo va con ícono además del texto y el borde, para
+    // que no dependa solo del color.
+    void ErrorCampo(string clave)
+    {
+        if (ErrorDe(clave) is { } mensaje)
+        {
+            <p class="mt-1 flex items-start gap-1 text-xs text-status-cancelado">
+                <svg class="mt-px h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4" />
+                    <path d="M12 16h.01" />
+                </svg>
+                <span>@mensaje</span>
+            </p>
+        }
+    }
+
+    // Error general de una tarjeta (lo que contestó la API al guardarla).
+    void ErrorTarjeta(string clave)
+    {
+        if (ErrorDe(clave) is { } mensaje)
+        {
+            <div role="alert"
+                 class="mt-4 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <span>@mensaje</span>
+            </div>
+        }
+    }
+}
+@functions {
+    string? ErrorDe(string clave)
+    {
+        if (!ViewData.ModelState.TryGetValue(clave, out var entrada) || entrada.Errors.Count == 0)
+            return null;
+
+        var mensaje = entrada.Errors[0].ErrorMessage;
+        return string.IsNullOrWhiteSpace(mensaje) ? "El valor ingresado no es válido." : mensaje;
+    }
+}
+
+@if (Model.IdPaciente is not null)
+{
+    <a asp-controller="Pacientes" asp-action="Detalle" asp-route-id="@Model.IdPaciente"
+       class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+        </svg>
+        Volver a la ficha del paciente
+    </a>
+}
+else
+{
+    <a asp-controller="Admin" asp-action="Index"
+       class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+        </svg>
+        Volver a Cuentas
+    </a>
+}
+
+<div class="mt-6 flex items-center gap-4">
+    <partial name="_Avatar"
+             model="new AvatarViewModel { Nombre = Model.NombreCompleto, Tamano = TamanoAvatar.Grande }" />
+    <div class="min-w-0">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
+        <p class="mt-0.5 text-sm text-muted">
+            <span class="break-all">@Model.Email</span>
+            <span aria-hidden="true"> · </span>
+            <span class="capitalize">@Model.Rol</span>
+        </p>
+    </div>
+</div>
+
+<div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <h2 class="@claseSeccion">Datos de la cuenta</h2>
+    @{ ErrorTarjeta("Cuenta"); }
+
+    <form asp-action="GuardarCuenta" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+          method="post" novalidate>
+        <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+                <label asp-for="Cuenta.Nombre" class="@claseEtiqueta"></label>
+                <input asp-for="Cuenta.Nombre" autocomplete="off" class="@claseCampo" />
+                @{ ErrorCampo("Cuenta.Nombre"); }
+            </div>
+
+            <div>
+                <label asp-for="Cuenta.Apellido" class="@claseEtiqueta"></label>
+                <input asp-for="Cuenta.Apellido" autocomplete="off" class="@claseCampo" />
+                @{ ErrorCampo("Cuenta.Apellido"); }
+            </div>
+
+            <div>
+                <label asp-for="Cuenta.Telefono" class="@claseEtiqueta"></label>
+                <input asp-for="Cuenta.Telefono" type="tel" autocomplete="off" class="@claseCampo" />
+                @{ ErrorCampo("Cuenta.Telefono"); }
+            </div>
+
+            <div class="sm:col-span-2 lg:col-span-3">
+                <span class="@claseEtiqueta">Email</span>
+                <p class="mt-1.5 break-all text-sm text-ink">@Model.Email</p>
+                <p class="@claseAyuda">El email es el usuario de ingreso y no se puede cambiar desde acá.</p>
+            </div>
+        </div>
+
+        <p class="mt-5 text-xs text-muted">Dejar el teléfono vacío no borra el que ya está cargado.</p>
+
+        <div class="mt-4 flex justify-end">
+            <button type="submit" class="@claseBoton">Guardar cuenta</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.Paciente is not null && Model.IdPaciente is not null)
+{
+    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+        <h2 class="@claseSeccion">Ficha del paciente</h2>
+        @{ ErrorTarjeta("Paciente"); }
+
+        <form asp-action="GuardarPaciente" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+              method="post" novalidate>
+            <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <label asp-for="Paciente.Dni" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.Dni" autocomplete="off" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.Dni"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.FechaNacimiento" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.FechaNacimiento" type="date" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.FechaNacimiento"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.Sexo" class="@claseEtiqueta"></label>
+                    <select asp-for="Paciente.Sexo" asp-items="Model.Paciente.Sexos" class="@claseCampo capitalize">
+                        <option value="">Sin especificar</option>
+                    </select>
+                    @{ ErrorCampo("Paciente.Sexo"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.GrupoSanguineo" class="@claseEtiqueta"></label>
+                    <select asp-for="Paciente.GrupoSanguineo" asp-items="Model.Paciente.GruposSanguineos" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                    </select>
+                    @{ ErrorCampo("Paciente.GrupoSanguineo"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.Nacionalidad" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.Nacionalidad" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.Nacionalidad"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.EstadoCivil" class="@claseEtiqueta"></label>
+                    <select asp-for="Paciente.EstadoCivil" asp-items="Model.Paciente.EstadosCiviles" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                    </select>
+                    @{ ErrorCampo("Paciente.EstadoCivil"); }
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label asp-for="Paciente.Direccion" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.Direccion" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.Direccion"); }
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label asp-for="Paciente.Alergias" class="@claseEtiqueta"></label>
+                    <textarea asp-for="Paciente.Alergias" rows="3" class="@claseCampo"></textarea>
+                    @{ ErrorCampo("Paciente.Alergias"); }
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <label asp-for="Paciente.Condiciones" class="@claseEtiqueta"></label>
+                    <textarea asp-for="Paciente.Condiciones" rows="3" class="@claseCampo"></textarea>
+                    @{ ErrorCampo("Paciente.Condiciones"); }
+                </div>
+            </div>
+
+            <p class="mt-5 text-xs text-muted">Dejar un campo vacío no borra el dato que ya está cargado.</p>
+
+            <div class="mt-4 flex justify-end">
+                <button type="submit" class="@claseBoton">Guardar ficha</button>
+            </div>
+        </form>
+    </div>
+}

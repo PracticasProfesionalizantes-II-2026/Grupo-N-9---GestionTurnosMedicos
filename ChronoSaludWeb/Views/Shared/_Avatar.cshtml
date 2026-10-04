@@ -1,0 +1,54 @@
+@model AvatarViewModel
+
+@functions {
+    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve las clases
+    // completas para que las encuentre al compilar el CSS.
+    static string ClaseCirculo(TamanoAvatar tamano) => tamano switch
+    {
+        TamanoAvatar.Grande  => "size-16 text-lg",
+        TamanoAvatar.Mediano => "size-10 text-sm",
+        _                    => "size-9 text-xs",
+    };
+
+    static string ClaseIcono(TamanoAvatar tamano) => tamano switch
+    {
+        TamanoAvatar.Grande  => "size-8",
+        TamanoAvatar.Mediano => "size-5",
+        _                    => "size-5",
+    };
+
+    // Ancho y alto del <img> en píxeles, para que reserve su lugar antes de
+    // cargar. El tamaño real lo manda la clase size-*, que acompaña la escala.
+    static int Lado(TamanoAvatar tamano) => tamano switch
+    {
+        TamanoAvatar.Grande  => 64,
+        TamanoAvatar.Mediano => 40,
+        _                    => 36,
+    };
+}
+
+@* Siempre decorativo: el nombre va escrito al lado en la vista que lo usa. *@
+@if (Model.TieneFoto)
+{
+    <img src="@Model.FotoUrl" alt="" aria-hidden="true"
+         width="@Lado(Model.Tamano)" height="@Lado(Model.Tamano)"
+         class="shrink-0 rounded-full object-cover @ClaseCirculo(Model.Tamano)" />
+}
+else
+{
+    <span aria-hidden="true"
+          class="flex shrink-0 items-center justify-center rounded-full bg-primary-soft font-semibold text-primary @ClaseCirculo(Model.Tamano)">
+        @if (Model.Iniciales is { } iniciales)
+        {
+            @iniciales
+        }
+        else
+        {
+            <svg class="@ClaseIcono(Model.Tamano)" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="5" />
+                <path d="M20 21a8 8 0 0 0-16 0" />
+            </svg>
+        }
+    </span>
+}

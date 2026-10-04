@@ -66,10 +66,8 @@ else
             <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Quiénes</h2>
 
             <div class="mt-4 flex items-center gap-3">
-                <span aria-hidden="true"
-                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
-                    @Model.Iniciales
-                </span>
+                <partial name="_Avatar"
+                         model="new AvatarViewModel { Nombre = Model.PacienteNombre, Tamano = TamanoAvatar.Mediano }" />
                 <span>
                     <span class="block font-medium text-ink">@Model.PacienteMostrado</span>
                     <span class="block text-sm text-muted">Paciente</span>

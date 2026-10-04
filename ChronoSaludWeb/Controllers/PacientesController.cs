@@ -94,6 +94,7 @@ public class PacientesController : ControladorBase
             return View(new PacienteDetalleViewModel
             {
                 IdPaciente = paciente.IdPaciente,
+                IdUsuario = paciente.IdUsuario,
                 Nombre = paciente.Nombre,
                 Apellido = paciente.Apellido,
                 FechaNacimiento = paciente.FechaNacimiento,

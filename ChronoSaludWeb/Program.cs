@@ -45,6 +45,7 @@ builder.Services.AddScoped<MedicamentoService>();
 builder.Services.AddScoped<HistorialService>();
 builder.Services.AddScoped<PerfilService>();
 builder.Services.AddScoped<CoberturaService>();
+builder.Services.AddScoped<UsuarioService>();
 
 var app = builder.Build();
 

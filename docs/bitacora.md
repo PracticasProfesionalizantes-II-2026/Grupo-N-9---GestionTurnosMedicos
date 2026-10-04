@@ -53,3 +53,31 @@ Compilan Web y Seed, CSS recompilado.
 **Ojo:** no borrar ni renombrar el marcador: la FK borra en cascada los
 renglones de receta que lo usan. La Web no tiene pantalla para hacerlo,
 pero la API sí lo permite (PUT/DELETE /medicamentos).
+## 2026-10-04 — perfiles del admin, fase 1: partial de avatar
+**Hecho:** `_Avatar` + `AvatarViewModel` (foto, iniciales o ícono de
+persona; tamaños Chico/Mediano/Grande). Reemplaza el círculo copiado en
+Pacientes/Index, Pacientes/Detalle, Turnos/Index, Turnos/Detalle y
+Turnos/Cancelar. Recibe el nombre crudo: sin nombre ya no muestra "SD",
+"?" ni "P#", muestra el ícono. Compila, CSS recompilado. La API no se tocó.
+**A medias:** sin probar a mano. La rama con foto no tiene de dónde
+salir hasta la fase 4.
+**Sigue:** fase 2, edición de perfil de pacientes por el admin
+(Usuarios/Editar desde la ficha), cuando Francis dé el OK.
+**Pendiente API:** GET /usuarios (buscador), endpoints de foto y el
+chequeo de dueño en PUT /usuarios/{id}; propuesta para llevar al grupo.
+**Ojo:** Doctores/Index y Doctores/Detalle siguen con su círculo
+terracota propio, a propósito. CLAUDE.md no está en el repo.
+## 2026-10-04 — perfiles del admin, fase 2: edición de pacientes
+**Hecho:** Usuarios/Editar (solo administrador, 403 al resto en GET y
+POST) con dos tarjetas y dos formularios: cuenta (PUT /usuarios/{id}:
+nombre, apellido, teléfono) y ficha del paciente (PUT /pacientes/{id}).
+Se entra desde el botón "Editar perfil" de Pacientes/Detalle. Verifica
+que el paciente sea de ese usuario, el 409 de DNI cae en el campo DNI y
+el 403 de la API se traduce. Compila, CSS recompilado. La API no se tocó.
+**A medias:** sin probar a mano. Pacientes/Detalle volvió al círculo
+viejo (sin `_Avatar`): falta reponer esa línea de la fase 1.
+**Sigue:** fase 3 (buscador, doctores y administradores) cuando exista
+GET /usuarios; fase 4 (foto) cuando existan sus endpoints.
+**Ojo:** vaciar un campo no borra el dato (la API ignora vacíos); la
+pantalla lo avisa. Usuarios/Index todavía solo redirige a Cuentas.
+PUT /usuarios/{id} sigue sin chequeo de dueño en la API.
