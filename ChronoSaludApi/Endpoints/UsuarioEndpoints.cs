@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
 
@@ -56,8 +57,16 @@ public static class UsuarioEndpoints
         .RequireAuthorization();
 
         // PUT /usuarios/{id}
-        grupo.MapPut("/{id:int}", async (int id, UsuarioUpdateDto dto, IUsuarioLogica logica) =>
+        grupo.MapPut("/{id:int}", async (int id, UsuarioUpdateDto dto, HttpContext ctx, IUsuarioLogica logica) =>
         {
+            // Solo el propio usuario o un administrador pueden modificar la cuenta.
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            if (idUsuario != id && !ctx.User.IsInRole("administrador"))
+                return Results.Forbid();
+
             var (ok, error) = await logica.Actualizar(id, dto);
             if (!ok)
                 return error!.Contains("no encontrado")
