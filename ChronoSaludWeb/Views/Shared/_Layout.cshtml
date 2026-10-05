@@ -33,6 +33,11 @@
     <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
 
     <link rel="stylesheet" href="~/css/app.build.css" asp-append-version="true" />
+
+    @* Para lo poco que una vista necesite sumar al <head>, después de la hoja
+       de estilos para que le gane (hoy: Recetas/Crear apaga ahí la transición
+       entre páginas). *@
+    @await RenderSectionAsync("Head", required: false)
 </head>
 @* Con sesión, en el celular hay una barra fija abajo: el margen inferior evita
    que tape el final de la página (el botón de un formulario, por ejemplo). *@

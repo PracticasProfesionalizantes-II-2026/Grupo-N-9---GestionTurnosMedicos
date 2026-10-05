@@ -171,6 +171,18 @@
     </div>
 </div>
 
+@* Esta pantalla no participa del fundido entre páginas: «+» y «−» la repintan
+   anclada a otra fila, y un fundido encima de ese salto se vería como un
+   parpadeo en cada clic. Es CSS, no JavaScript. Para volver a activarlo
+   alcanza con borrar esta sección. *@
+@section Head {
+    <style>
+        @@view-transition {
+            navigation: none;
+        }
+    </style>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

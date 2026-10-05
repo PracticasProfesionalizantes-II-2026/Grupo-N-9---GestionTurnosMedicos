@@ -376,3 +376,23 @@ CSS recompilado, chequeo de atributos sin diferencias.
 el input de la foto oculto detrás de su etiqueta: el contorno se dibuja
 en el contenedor con `has-[:focus-visible]:outline-*` (antes no tenía
 indicador de foco).
+
+## 2026-10-04 — rediseño, F5.4: transiciones y movimiento
+**Hecho:** todo en CSS y dentro de `prefers-reduced-motion:
+no-preference`: fundido entre páginas con `@view-transition` (180 ms);
+botones, tarjetas-enlace y campos con transición de sombra, fondo y
+color (150 ms), hover que acorta la sombra (`shadow-elevado-xs`) y
+`:active` hundido; entrada de los dos menús flotantes con
+`@starting-style`; el latido del motivo de marca se dibuja una vez en el
+inicio (banner y portada). El layout suma la sección opcional `Head`.
+`docs/diseno.md` al día: valores oscuros, clases nuevas, sección
+"Movimiento" y tabla de contraste. Compila; las reglas nuevas están en el
+CSS generado.
+**A medias:** nada de F5 está probado en navegador.
+**Sigue:** F5.4b, anclaje CSS del menú de cuenta, en commit aparte.
+**Ojo:** Recetas/Crear NO participa del fundido entre páginas (sección
+`Head` con `navigation: none`): no se pudo ver si "+" y "−" parpadeaban,
+y cada clic repinta la página anclada a otra fila, así que se eligió la
+salida segura que se había previsto. Para reactivarlo, borrar esa
+sección. El chequeo de atributos marca `required` en `_Layout`: es el
+argumento `required: false` de la sección nueva, no un campo.

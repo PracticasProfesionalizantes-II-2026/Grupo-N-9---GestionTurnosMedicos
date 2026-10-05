@@ -40,12 +40,15 @@ Viven en el `@theme` de `ChronoSaludWeb/wwwroot/css/app.css`. El tema oscuro red
 
 El castaño y el beige son el terciario: **una sola pieza por pantalla** además del motivo. Nunca en botones ni en estados.
 
+En el tema oscuro los nombres son los mismos y cambian los valores. Los tres que más importan: `primary #2F9FA9` (el teal se aclara para leerse como texto), `on-primary #0B1F22` (los botones llevan tinta oscura en vez de blanco) y `primary-hover #4DB8C1` (el hover aclara en vez de oscurecer). Por eso el texto de un botón relleno se escribe siempre con `text-on-primary`, nunca con `text-white`.
+
 ### Sombras, radios y tipografía
 
 | Token | Para qué |
 |---|---|
 | `shadow-elevado` | Tarjetas |
 | `shadow-elevado-sm` | Botones y hover de tarjetas que son enlace |
+| `shadow-elevado-xs` | Hover de los botones |
 | `shadow-flotante` | Menús flotantes |
 | `inset-shadow-hundido` | Campos, botón secundario presionado, filtro o ítem seleccionado |
 | `inset-shadow-presionado` | Botón primario presionado |
@@ -73,7 +76,9 @@ Reglas que no se negocian:
 
 ## Foco
 
-Una regla global en `app.css` dibuja un contorno sólido de 2 px en `primary`, separado 2 px, sobre enlaces, botones, campos, selects, textareas, `summary` y elementos con `tabindex`, solo con `:focus-visible`. Está fuera de las capas de Tailwind para ganarle a los `focus:outline-none` que quedaron en las vistas. En código nuevo no hace falta agregar clases de foco.
+Una regla global en `app.css` dibuja un contorno sólido de 2 px en `primary`, separado 2 px, sobre enlaces, botones, campos, selects, textareas, `summary` y elementos con `tabindex`, solo con `:focus-visible`. Está fuera de las capas de Tailwind para que ninguna utilidad `outline-none` la pueda anular.
+
+En las vistas no se escribe ninguna clase de foco: ni `focus:ring-*` ni `focus:outline-none`. La única excepción son los controles ocultos con `sr-only` (un radio o un archivo detrás de su etiqueta): como el contorno del control no se ve, se le pone al contenedor con `has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary`.
 
 ## Componentes
 
@@ -81,11 +86,14 @@ Una regla global en `app.css` dibuja un contorno sólido de 2 px en `primary`, s
 |---|---|
 | Botón primario | `class="boton boton-primario"`. Uno por bloque como máximo |
 | Botón secundario | `class="boton boton-secundario"` |
-| Campo | `class="campo"` más su `<label>`. El error va debajo, en `text-status-cancelado`, y el campo toma borde rojo con `aria-invalid="true"` o con la clase que pone ASP.NET |
-| Tarjeta | `class="tarjeta"`. Si lleva lista, `overflow-hidden` y divisores `border-border` |
-| Chip de estado | `class="chip bg-status-X/10 text-status-X"`; parcial `_BadgeEstado` |
+| Botón de peligro | `class="boton boton-peligro"` para la acción destructiva de una pantalla de confirmación. Una acción destructiva menor va como secundario con `border-status-cancelado text-status-cancelado` |
+| Botón de texto | `class="boton-texto"`: sin relieve, para "Volver a…" y para las acciones dentro de una fila (ahí se le suma `px-2 py-1`) |
+| Campo | `class="campo"` más su `<label>`, también en selects y textareas. Con `w-auto` cuando no tiene que ocupar todo el ancho. El error va debajo, en `text-status-cancelado`, y el campo toma borde rojo con `aria-invalid="true"` o con la clase que pone ASP.NET |
+| Tarjeta | `class="tarjeta"`. Si lleva lista, `overflow-hidden` y divisores `border-border`; las filas marcan el hover con `hover:bg-surface` |
+| Tarjeta que es enlace | `class="tarjeta tarjeta-enlace"`: el hover acorta la sombra y al presionarla se hunde |
+| Chip | Parcial `_Chip` con `ChipViewModel { Texto, Tono, Capitalizar }`. Tonos: `Neutro` (borde `control`, texto `muted`), `Exito`, `Aviso`, `Info`, `Peligro` y `Proximamente`. El estado de un turno usa `_BadgeEstado`, que elige el tono |
 | Acceso rápido | Tarjeta que es enlace, con el ícono dentro de un círculo `bg-primary-soft text-primary` de `size-12` y la etiqueta debajo |
-| Estado vacío | Ícono en círculo, título, una línea de ayuda y **un botón** que lleve a la acción que lo resuelve |
+| Estado vacío | Parcial `_EstadoVacio` dentro de una `tarjeta`: ícono en círculo, título, una línea de ayuda y **un botón** que lleve a la acción que lo resuelve. `Tono` distingue "no hay nada" (`Neutro`), "falta un paso" (`Aviso`) y "no se pudo cargar" (`Error`); `Nivel` es 2 cuando cuelga del `h1` de la pantalla y 3 dentro de un panel |
 | Filtro seleccionable | Radios dentro de `label.boton.boton-secundario` con `has-[:checked]:inset-shadow-hundido` |
 | Menú de cuenta | `<button popovertarget>` más un `<div popover class="menu-flotante">`. Abre, cierra con Escape o clic afuera y devuelve el foco sin JavaScript |
 | Barra inferior | Solo por debajo de 768 px. Cinco ítems como máximo, ícono y etiqueta siempre visible, `aria-current="page"` en el actual. El resto va en "Más" |
@@ -98,9 +106,25 @@ Una regla global en `app.css` dibuja un contorno sólido de 2 px en `primary`, s
 
 Una línea de latido que entra por la izquierda y termina en el centro de unos arcos concéntricos tipo reloj, con doce marcas de hora y dos agujas, emparentado con el favicon.
 
-- SVG en línea con `aria-hidden="true"`. Arcos y agujas en `primary-line`, latido en `primary` y un solo arco en `accent`.
+- SVG en línea con `aria-hidden="true"` (parcial `_MotivoMarca`). Arcos y agujas en `primary-line`, latido en `primary` y un solo arco en `accent`.
 - Una vez por pantalla: banner del inicio, portada y pantallas de acceso.
 - Nunca debajo de texto. En pantallas angostas se achica y pasa arriba del contenido.
+- En el inicio el latido se dibuja una sola vez al cargar: el contenedor lleva la clase `motivo-animado`. En login y registro queda quieto.
+
+## Movimiento
+
+Todo el movimiento es CSS y está dentro de `@media (prefers-reduced-motion: no-preference)`: quien pidió menos movimiento en su sistema no ve ninguno.
+
+| Qué | Cómo |
+|---|---|
+| Cambio de nivel | `boton`, `boton-texto`, `tarjeta-enlace` y `campo` transicionan sombra, fondo, color y borde en 150 ms. El hover acorta la sombra; `:active` la hunde |
+| Entre páginas | `@view-transition { navigation: auto; }` con un fundido de 180 ms. Las dos páginas tienen que pedirlo |
+| Una vista sin fundido | Declara `@view-transition { navigation: none; }` en su sección `Head`. Lo hace Recetas/Crear, porque «+» y «−» la repintan anclada a otra fila |
+| Menús flotantes | Entran con opacidad y un desplazamiento de 0,375rem, desde `@starting-style`. Cerrados no se les toca la opacidad |
+| Listados | Las filas entran escalonadas con `fila-animada` |
+| Motivo de marca | El latido se dibuja una vez, en 1,4 s |
+
+No se anima nada que mueva el layout (alto, ancho, márgenes).
 
 ## Textos
 
@@ -146,11 +170,20 @@ Dos cosas a recordar: dentro de un aviso los enlaces van en `ink` subrayado, por
 | `accent-ink` sobre `canvas` / `accent-soft` | 6,54 / 5,26 | 4,5 |
 | `control` sobre `canvas` / `surface` | 3,82 / 3,53 | 3 |
 | Chips sobre su tinte (pendiente, confirmado, completado, cancelado) | 6,73 / 5,88 / 6,43 / 5,43 | 4,5 |
-| `primary` sobre `canvas` / `surface` | 4,38 / 4,05 | 4,5 (**pendiente**) |
-| `on-primary` sobre `primary` | 4,23 | 4,5 (**pendiente**) |
+| `primary` sobre `canvas` / `surface` / `primary-soft` | 5,87 / 5,42 / 4,72 | 4,5 |
+| `on-primary` sobre `primary` / `primary-hover` | 5,39 / 7,25 | 4,5 |
+| `primary-hover` como texto de enlace sobre `canvas` | 7,88 | 4,5 |
+| `on-primary` sobre `status-cancelado` (botón de peligro) | 5,64 | 4,5 |
+| Contorno de foco (`primary`) sobre `canvas` | 5,87 | 3 |
 
-Las dos filas pendientes se resuelven juntas: aclarar `primary` a `#3AA9B3` y pasar `on-primary` a `#0B1F22` da 6,62 como texto y 6,09 en botones. No se puede hacer antes de reemplazar `text-white` por `text-on-primary` en los botones viejos, porque quedarían en 2,80.
+En oscuro no alcanza con aclarar el teal hasta 4,5:1 sobre `canvas`: en ese punto (`#178E98`) ni el blanco (3,92) ni la tinta (4,34) pasan como texto del botón. `#2A9CA6` es el primer valor en el que pasan todos los pares; `#2F9FA9` deja un poco de margen.
+
+En claro, el botón de peligro (blanco sobre `status-cancelado`) da 6,47.
 
 ## Qué falta aplicar
 
-Esta guía describe el destino. Hasta que se haga el barrido general conviven con ella las tarjetas planas con borde, los campos con borde `primary-line` (1,59:1) y los títulos de sección en mayúsculas de las pantallas que todavía no se tocaron.
+El barrido de F5 llevó todas las pantallas a esta guía. Lo que queda afuera a propósito:
+
+- El mensaje "No se pudo conectar con la API…" de `ApiClient`, que se decidió dejar como está.
+- jQuery y la validación del cliente, que no forman parte del rediseño.
+- La pantalla de "Mis coberturas" del paciente, que sigue como "Próximamente".
