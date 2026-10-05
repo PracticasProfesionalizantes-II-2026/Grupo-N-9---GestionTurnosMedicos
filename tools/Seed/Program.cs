@@ -17,6 +17,7 @@ using ChronoSalud.Seed;
 //  Es idempotente: se apoya en lo que ya existe en la API en vez de crear a
 //  ciegas, asi que se puede correr dos veces sin duplicar nada.
 //    - Usuarios  -> el registro devuelve 409 si el email ya existe; ahi hace login.
+//    - Administrador -> primero intenta entrar; solo si no existe lo registra.
 //    - Medicamentos -> lista GET /medicamentos y compara por nombre comercial +
 //                      generico + concentracion + forma farmaceutica.
 //    - Doctores  -> consulta GET /doctores/me con el token del propio doctor.
@@ -28,17 +29,26 @@ using ChronoSalud.Seed;
 //    dotnet run --project tools/Seed
 //    dotnet run --project tools/Seed -- --url http://localhost:5001 --contrasena "Chrono2026!"
 //
+//  La API solo deja registrar un administrador sin sesion cuando todavia no hay
+//  ninguno. Si la base ya tiene administradores y el de la demo no existe, hay
+//  que entrar con uno de ellos: --email <cuenta>. Con --email, --contrasena es
+//  la de esa cuenta (si no va, la pide) y las cuentas de la demo se crean con
+//  la contrasena de siempre.
+//    dotnet run --project tools/Seed -- --email <administrador>
+//
 //  Solo los medicamentos, sin usuarios ni turnos de demo (pensado para Azure).
-//  Con --email entra con una cuenta administrador o doctor que ya exista en vez
-//  de registrar al administrador de la demo; si no va --contrasena, la pide.
+//  Aca la cuenta de --email puede ser administrador o doctor.
 //    dotnet run --project tools/Seed -- --url <api> --solo-medicamentos --email <cuenta>
 // ---------------------------------------------------------------------------
 
 Console.OutputEncoding = Encoding.UTF8;
 
+const string contrasenaDemo = "Chrono2026!";
+
 var baseUrl = "http://localhost:5001";
-var contrasena = "Chrono2026!";
+var contrasena = contrasenaDemo;
 var contrasenaIndicada = false;
+var contrasenaCuenta = string.Empty;
 var soloMedicamentos = false;
 string? cuentaPropia = null;
 
@@ -62,20 +72,17 @@ for (var i = 0; i < args.Length; i++)
         case "--help":
         case "-h":
             Console.WriteLine("Uso: dotnet run --project tools/Seed -- [--url <api>] [--contrasena <clave>] " +
-                              "[--solo-medicamentos [--email <cuenta>]]");
+                              "[--email <cuenta>] [--solo-medicamentos]");
             return 0;
     }
 }
 
-if (cuentaPropia is not null && !soloMedicamentos)
+if (cuentaPropia is not null)
 {
-    // El resto de la carga necesita al administrador de la demo y sus doctores.
-    Morir("--email solo se puede usar junto con --solo-medicamentos.");
-}
-
-if (cuentaPropia is not null && !contrasenaIndicada)
-{
-    contrasena = LeerContrasena(cuentaPropia);
+    // La contrasena de la cuenta propia va aparte: no se usa para crear las
+    // cuentas de la demo ni se muestra al final.
+    contrasenaCuenta = contrasenaIndicada ? contrasena : LeerContrasena(cuentaPropia);
+    contrasena = contrasenaDemo;
 }
 
 using var api = new ApiCliente(baseUrl);
@@ -90,12 +97,11 @@ string tokenAdmin;
 
 if (cuentaPropia is null)
 {
-    var cuentaAdmin = await ResolverUsuarioAsync(DatosDemo.Administrador, "administrador");
-    tokenAdmin = cuentaAdmin.Token;
+    tokenAdmin = await ResolverAdministradorDemoAsync();
 }
 else
 {
-    tokenAdmin = await IniciarSesionAsync(cuentaPropia);
+    tokenAdmin = await IniciarSesionAsync(cuentaPropia, contrasenaCuenta);
 }
 
 // --- 1b. Medicamentos: el vademecum de los CSV de data/ --------------------
@@ -243,7 +249,8 @@ var idsDoctor = new Dictionary<string, int>();
 
 foreach (var doctor in DatosDemo.Doctores)
 {
-    var cuenta = await ResolverUsuarioAsync(doctor.Persona, "doctor");
+    // El alta de un doctor la tiene que pedir un administrador.
+    var cuenta = await ResolverUsuarioAsync(doctor.Persona, "doctor", tokenAdmin);
 
     // El registro no crea la ficha de doctor (a diferencia de la de paciente),
     // asi que la pedimos con el token del propio doctor y la creamos si falta.
@@ -522,10 +529,13 @@ foreach (var grupo in DatosDemo.Turnos.GroupBy(t => t.Estado).OrderBy(g => g.Key
 
 // --- 6. Credenciales -------------------------------------------------------
 
-var credenciales = new List<(string Rol, string Nombre, string Email, string Detalle)>
+var credenciales = new List<(string Rol, string Nombre, string Email, string Detalle)>();
+
+// Con --email no se crea el administrador de la demo.
+if (cuentaPropia is null)
 {
-    ("administrador", DatosDemo.Administrador.NombreCompleto, DatosDemo.Administrador.Email, "")
-};
+    credenciales.Add(("administrador", DatosDemo.Administrador.NombreCompleto, DatosDemo.Administrador.Email, ""));
+}
 
 credenciales.AddRange(DatosDemo.Doctores.Select(d =>
     ("doctor", d.Persona.NombreCompleto, d.Persona.Email, $"{d.Especialidad} - {d.Matricula}")));
@@ -549,7 +559,7 @@ foreach (var (rol, nombre, email, detalle) in credenciales)
 }
 
 Console.WriteLine();
-Escribir($"Contrasena de todos los usuarios: {contrasena}", ConsoleColor.White);
+Escribir($"Contrasena de los usuarios de la demo: {contrasena}", ConsoleColor.White);
 Escribir($"Turnos: {creados} nuevo(s), {saltados} ya existente(s), " +
          $"{DatosDemo.Turnos.Length} en total para la demo.", ConsoleColor.White);
 Escribir($"Medicamentos: {medicamentosNuevos} nuevo(s), {medicamentosSaltados} ya existente(s).",
@@ -659,12 +669,12 @@ void Morir(string texto)
 }
 
 // Entra con una cuenta que ya existe, sin registrar nada.
-async Task<string> IniciarSesionAsync(string cuenta)
+async Task<string> IniciarSesionAsync(string cuenta, string clave)
 {
     var login = await api.PostAsync("/usuarios/login", new
     {
         Email = cuenta,
-        Contrasena = contrasena
+        Contrasena = clave
     });
 
     if (!login.Ok)
@@ -681,8 +691,31 @@ async Task<string> IniciarSesionAsync(string cuenta)
     return Json.Texto(login.Datos, "token");
 }
 
-// Registra el usuario o, si el email ya estaba, hace login.
-async Task<(int IdUsuario, string Token, bool Creado)> ResolverUsuarioAsync(Persona persona, string rol)
+// Entra como el administrador de la demo o, si no existe, lo registra sin
+// sesion: la API solo lo acepta cuando todavia no hay ningun administrador.
+async Task<string> ResolverAdministradorDemoAsync()
+{
+    var admin = DatosDemo.Administrador;
+
+    var login = await api.PostAsync("/usuarios/login", new
+    {
+        admin.Email,
+        Contrasena = contrasena
+    });
+
+    if (login.Ok)
+    {
+        Ya($"administrador {admin.NombreCompleto} <{admin.Email}> ya existia");
+        return Json.Texto(login.Datos, "token");
+    }
+
+    return (await ResolverUsuarioAsync(admin, "administrador")).Token;
+}
+
+// Registra el usuario o, si el email ya estaba, hace login. Para un rol
+// distinto de paciente la API pide el token de un administrador.
+async Task<(int IdUsuario, string Token, bool Creado)> ResolverUsuarioAsync(
+    Persona persona, string rol, string? token = null)
 {
     var alta = await api.PostAsync("/usuarios/registro", new
     {
@@ -692,7 +725,7 @@ async Task<(int IdUsuario, string Token, bool Creado)> ResolverUsuarioAsync(Pers
         Contrasena = contrasena,
         persona.Telefono,
         Rol = rol
-    });
+    }, token);
 
     if (alta.Ok)
     {
@@ -706,6 +739,16 @@ async Task<(int IdUsuario, string Token, bool Creado)> ResolverUsuarioAsync(Pers
         {
             Morir($"No se pudo contactar la API en {baseUrl}. Verifica que este corriendo " +
                   $"(dotnet run --project ChronoSaludApi). Detalle: {alta.Error}");
+        }
+
+        // La API no deja crear esa cuenta: sin sesion, porque ya hay algun
+        // administrador; con sesion, porque la cuenta no es de un administrador.
+        if (alta.Estado is 401 or 403)
+        {
+            Morir(token is null
+                ? "Ya hay administradores: corre el seeder con --email <cuenta de un administrador>."
+                : $"La API no acepto el alta de {persona.Email} (HTTP {alta.Estado}): " +
+                  "la cuenta de --email tiene que ser de un administrador.");
         }
 
         Morir($"No se pudo registrar {persona.Email} (HTTP {alta.Estado}): {alta.Error}");

@@ -11,7 +11,9 @@ public static class UsuarioEndpoints
         var grupo = app.MapGroup("/usuarios").WithTags("Usuarios");
 
         // POST /usuarios/registro
-        grupo.MapPost("/registro", async (UsuarioRegistroDto dto, IUsuarioLogica logica) =>
+        // Es anónimo para que un paciente se registre solo. Un rol distinto de
+        // paciente pide el token de un administrador (ver UsuarioLogica.Registrar).
+        grupo.MapPost("/registro", async (UsuarioRegistroDto dto, HttpContext ctx, IUsuarioLogica logica) =>
         {
             if (string.IsNullOrEmpty(dto.Nombre) || string.IsNullOrEmpty(dto.Apellido) ||
                 string.IsNullOrEmpty(dto.Email)  || string.IsNullOrEmpty(dto.Contrasena) ||
@@ -21,7 +23,12 @@ public static class UsuarioEndpoints
             if (dto.Contrasena.Length < 8)
                 return Results.BadRequest(new { error = "La contraseña debe tener al menos 8 caracteres." });
 
-            var (resultado, error) = await logica.Registrar(dto);
+            var (resultado, error, sinPermiso) = await logica.Registrar(dto, ctx.User.IsInRole("administrador"));
+            if (sinPermiso)
+                return ctx.User.Identity?.IsAuthenticated == true
+                    ? Results.Forbid()
+                    : Results.Unauthorized();
+
             if (error != null)
                 return Results.Conflict(new { error });
 
@@ -46,8 +53,17 @@ public static class UsuarioEndpoints
         .AllowAnonymous();
 
         // GET /usuarios/{id}
-        grupo.MapGet("/{id:int}", async (int id, IUsuarioLogica logica) =>
+        grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, IUsuarioLogica logica) =>
         {
+            // Solo el propio usuario o un administrador pueden leer la cuenta.
+            // Va antes de buscarla: un 403 no revela si el id existe.
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            if (idUsuario != id && !ctx.User.IsInRole("administrador"))
+                return Results.Forbid();
+
             var usuario = await logica.ObtenerPorId(id);
             return usuario == null
                 ? Results.NotFound(new { error = "Usuario no encontrado." })

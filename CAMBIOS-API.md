@@ -1,3 +1,65 @@
+# Cambios en la API — Registro cerrado y lectura de cuentas
+
+**Fecha:** 2026-10-05 · **Rama:** `feature-a0-registro`
+
+Dos cambios de permisos en `/usuarios`. **Los dos rompen pedidos que antes andaban**
+si usan la API directo por Scalar o Postman. La Web y el seeder ya están adaptados.
+No hay migración.
+
+## 1. `POST /usuarios/registro` ya no acepta cualquier rol
+
+Antes cualquiera, sin token, podía crear una cuenta de doctor o de administrador.
+
+Ahora:
+
+| Rol que se pide | Quién puede | Si no |
+|---|---|---|
+| `paciente` | Cualquiera, sin token (como antes) | — |
+| `doctor` o `administrador` | Solo con el token de un administrador | `401` sin token · `403` con token de otro rol |
+
+El `401` y el `403` llegan sin cuerpo. El resto no cambió: mismo cuerpo, mismo `201`
+con el token de la cuenta creada, mismo `409` por email repetido.
+
+**Qué tienen que hacer:** para crear un doctor o un administrador, primero
+`POST /usuarios/login` con una cuenta de administrador y mandar ese token en
+`Authorization: Bearer <token>` (en Scalar, el botón de autenticación).
+
+### El primer administrador
+
+Si la base no tiene **ningún administrador activo**, el registro de un administrador se
+acepta sin token; si no, no habría forma de crear el primero. Vale solo para el rol
+`administrador`, no para `doctor`. En una base recién creada pueden correr el seeder
+(`dotnet run --project tools/Seed`) o registrar el administrador a mano por Scalar.
+
+Ojo: en una base nueva expuesta a internet, el primero que se registra queda de
+administrador. Creen el administrador apenas levanten la API.
+
+### Seeder
+
+Si su base ya tiene administradores pero no el de la demo
+(`admin@chronosalud.demo`), el seeder corta con "Ya hay administradores". Se corre con
+la cuenta de uno de ellos: `dotnet run --project tools/Seed -- --email <administrador>`.
+
+## 2. `GET /usuarios/{id}` solo para el dueño o un administrador
+
+Antes cualquier usuario autenticado leía nombre, apellido, email, teléfono y rol de
+cualquier cuenta. Ahora solo la propia, o cualquiera si el token es de un administrador;
+al resto, `403` sin cuerpo (también si el id no existe). Es la misma regla que ya tenía
+`PUT /usuarios/{id}`.
+
+## Archivos tocados
+
+| Archivo | Qué cambió |
+|---|---|
+| `ChronoSaludApi/Endpoints/UsuarioEndpoints.cs` | Permisos del registro y del GET por id |
+| `ChronoSaludApi/Logica/UsuarioLogica.cs`, `IUsuarioLogica.cs` | `Registrar` recibe si quien llama es administrador |
+| `ChronoSaludApi/Repositorios/UsuarioRepository.cs`, `IUsuarioRepository.cs` | `HayAdministradorActivo` |
+| `ChronoSaludWeb/Services/AuthService.cs` | El alta de doctor y de administrador manda el token de la sesión |
+| `ChronoSaludWeb/Controllers/AdminController.cs` | Mensaje para el `403` |
+| `tools/Seed/Program.cs` | Entra como administrador antes de crear doctores; `--email` en la carga completa |
+
+---
+
 # Cambios en la API — Historial Clínico
 
 **Fecha:** 2026-09-07 · **Rama:** `main`

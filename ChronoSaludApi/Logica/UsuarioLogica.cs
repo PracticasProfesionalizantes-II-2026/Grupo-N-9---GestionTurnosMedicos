@@ -21,15 +21,26 @@ public class UsuarioLogica : IUsuarioLogica
         _config = config;
     }
 
-    public async Task<(RegistroResponseDto? resultado, string? error)> Registrar(UsuarioRegistroDto dto)
+    public async Task<(RegistroResponseDto? resultado, string? error, bool sinPermiso)> Registrar(
+        UsuarioRegistroDto dto, bool esAdministrador)
     {
-        var existente = await _repo.ObtenerPorEmail(dto.Email);
-        if (existente != null)
-            return (null, "El email ya se encuentra registrado en el sistema.");
-
         var rolesValidos = new[] { "paciente", "doctor", "administrador" };
         if (!rolesValidos.Contains(dto.Rol))
-            return (null, "Rol inválido. Valores válidos: paciente, doctor, administrador.");
+            return (null, "Rol inválido. Valores válidos: paciente, doctor, administrador.", false);
+
+        // Cualquiera se registra como paciente. Los demás roles los da de alta
+        // un administrador, salvo el primero: sin ningún administrador activo
+        // no habría quién lo cree.
+        if (dto.Rol != "paciente" && !esAdministrador)
+        {
+            var esPrimerAdministrador = dto.Rol == "administrador" && !await _repo.HayAdministradorActivo();
+            if (!esPrimerAdministrador)
+                return (null, "No tenés permiso para crear una cuenta con ese rol.", true);
+        }
+
+        var existente = await _repo.ObtenerPorEmail(dto.Email);
+        if (existente != null)
+            return (null, "El email ya se encuentra registrado en el sistema.", false);
 
         var usuario = new Usuario
         {
@@ -49,7 +60,7 @@ public class UsuarioLogica : IUsuarioLogica
 
         var token = GenerarToken(usuario);
 
-        return (new RegistroResponseDto(usuario.Id, usuario.Email, usuario.Rol, token), null);
+        return (new RegistroResponseDto(usuario.Id, usuario.Email, usuario.Rol, token), null, false);
     }
 
     public async Task<(LoginResponseDto? resultado, string? error)> Login(UsuarioLoginDto dto)

@@ -1,0 +1,293 @@
+### ChronoSaludApi — Pruebas manuales Fase A0 (registro cerrado y lectura de cuentas)
+###
+### Cubre A0 del plan (docs/plan-funcionalidades.md): POST /usuarios/registro,
+### GET /usuarios/{id} y, como control, GET /usuarios (listado).
+###
+### Requisitos:
+###   1. La API corriendo en http://localhost:5001 (perfil "http" de launchSettings).
+###   2. Extensión "REST Client" (humao.rest-client) en VS Code para poder
+###      ejecutar cada bloque con "Send Request" y encadenar variables entre
+###      requests ({{nombre.response.body.$.campo}}).
+###   3. Correr antes el seeder (dotnet run --project tools/Seed; contraseña de
+###      la demo: Chrono2026!). Este archivo asume esas cuentas: administrador
+###      y pacientes ana.duarte / bruno.salas.
+###
+### Convención de cada bloque de prueba:
+###   AHORA (A0)    -> lo que tiene que devolver con este cambio aplicado.
+###   ANTES (main)  -> lo que devolvía antes de este PR (el agujero que se cierra).
+###
+### Los pasos 0.x son setup (login). Hay que correrlos primero: el resto usa
+### sus tokens e ids.
+###
+### Las altas que salen bien (1.1, 3.2 y 3.3) crean cuentas de prueba con
+### email "a0.<rol>.<timestamp>@chronosalud.test", distinto en cada corrida,
+### así que el archivo se puede volver a correr sin chocar con un 409. No hay
+### endpoint para borrarlas: al final hay un SQL de limpieza.
+###
+### Ojo: los 401 de la sección 2 dependen de que la base tenga al menos un
+### administrador activo. Con el seeder corrido, lo tiene. En una base sin
+### administradores, el registro de un administrador sin token da 201 (es el
+### caso del primer administrador).
+
+@baseUrl = http://localhost:5001
+@contrasena = Chrono2026!
+@idInexistente = 999999
+
+
+### ============================================================
+### 0. SETUP — login
+### ============================================================
+
+### 0.1 Login administrador
+# @name loginAdmin
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenAdmin = {{loginAdmin.response.body.$.token}}
+
+
+### 0.2 Login Paciente Duarte — hace de "paciente que pide" en las pruebas
+# @name loginDuarte
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "ana.duarte@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@tokenDuarte = {{loginDuarte.response.body.$.token}}
+@idUsuarioDuarte = {{loginDuarte.response.body.$.idUsuario}}
+
+
+### 0.3 Login Paciente Salas — hace de "cuenta ajena" en las pruebas
+# @name loginSalas
+POST {{baseUrl}}/usuarios/login
+Content-Type: application/json
+
+{
+  "email": "bruno.salas@chronosalud.demo",
+  "contrasena": "{{contrasena}}"
+}
+
+###
+
+@idUsuarioSalas = {{loginSalas.response.body.$.idUsuario}}
+
+
+### ============================================================
+### 1. Registro de paciente — sigue abierto
+### ============================================================
+
+### 1.1 [Sin token] Registro de paciente
+### AHORA: 201 Created. ANTES: 201 (sin cambios).
+POST {{baseUrl}}/usuarios/registro
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Paciente A0",
+  "email": "a0.paciente.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0001",
+  "rol": "paciente"
+}
+
+
+### ============================================================
+### 2. Registro de doctor o administrador sin permiso
+### ============================================================
+
+### 2.1 [Sin token] Registro de doctor
+### AHORA: 401 Unauthorized, sin cuerpo.
+### ANTES: 201 — cualquiera se creaba una cuenta de doctor.
+POST {{baseUrl}}/usuarios/registro
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Doctor A0",
+  "email": "a0.doctor.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0002",
+  "rol": "doctor"
+}
+
+
+### 2.2 [Sin token] Registro de administrador
+### AHORA: 401 Unauthorized, sin cuerpo.
+### ANTES: 201 — cualquiera se creaba una cuenta de administrador.
+POST {{baseUrl}}/usuarios/registro
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Administrador A0",
+  "email": "a0.admin.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0003",
+  "rol": "administrador"
+}
+
+
+### 2.3 [Sin token] Registro de administrador con un email que ya existe
+### AHORA: 401 Unauthorized, NO 409 — el permiso se revisa antes que el email,
+### así que sin permiso no se puede averiguar si un email está registrado.
+### ANTES: 409 "El email ya se encuentra registrado en el sistema."
+POST {{baseUrl}}/usuarios/registro
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Email Repetido",
+  "email": "admin@chronosalud.demo",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0004",
+  "rol": "administrador"
+}
+
+
+### 2.4 [Duarte, paciente] Registro de doctor
+### AHORA: 403 Forbidden, sin cuerpo. ANTES: 201.
+POST {{baseUrl}}/usuarios/registro
+Authorization: Bearer {{tokenDuarte}}
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Doctor A0",
+  "email": "a0.doctor.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0005",
+  "rol": "doctor"
+}
+
+
+### ============================================================
+### 3. Registro con token de administrador
+### ============================================================
+
+### 3.1 [Sin token] Registro con un rol inexistente
+### AHORA: 409 "Rol inválido. Valores válidos: paciente, doctor, administrador."
+### ANTES: 409 con el mismo mensaje (sin cambios). El rol se valida antes que
+### el permiso, así que da lo mismo con o sin token.
+POST {{baseUrl}}/usuarios/registro
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Rol Inexistente",
+  "email": "a0.secretario.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0006",
+  "rol": "secretario"
+}
+
+
+### 3.2 [Admin] Registro de doctor (email nuevo)
+### AHORA: 201 Created. ANTES: 201 (sin cambios).
+### Crea solo el usuario: la ficha de doctor es otro paso (POST /doctores).
+POST {{baseUrl}}/usuarios/registro
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Doctor A0",
+  "email": "a0.doctor.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0007",
+  "rol": "doctor"
+}
+
+
+### 3.3 [Admin] Registro de administrador (email nuevo)
+### AHORA: 201 Created. ANTES: 201 (sin cambios).
+POST {{baseUrl}}/usuarios/registro
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Prueba",
+  "apellido": "Administrador A0",
+  "email": "a0.admin.{{$timestamp}}@chronosalud.test",
+  "contrasena": "{{contrasena}}",
+  "telefono": "11-0000-0008",
+  "rol": "administrador"
+}
+
+
+### ============================================================
+### 4. GET /usuarios/{id} — solo el dueño o un administrador
+### ============================================================
+
+### 4.1 [Duarte] GET su propia cuenta
+### AHORA: 200 (dueño). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 4.2 [Duarte] GET la cuenta de Salas (cuenta ajena)
+### AHORA: 403 Forbidden, sin cuerpo.
+### ANTES: 200 con nombre, apellido, email, teléfono y rol de Salas — el
+### agujero que cierra A0.
+GET {{baseUrl}}/usuarios/{{idUsuarioSalas}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 4.3 [Duarte] GET un id que no existe
+### AHORA: 403 Forbidden, NO 404 — el permiso se revisa antes de buscar la
+### cuenta, así que no se puede averiguar qué ids existen.
+### ANTES: 404 "Usuario no encontrado."
+GET {{baseUrl}}/usuarios/{{idInexistente}}
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 4.4 [Sin token] GET una cuenta
+### AHORA: 401 Unauthorized. ANTES: 401 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}
+
+
+### 4.5 [Admin] GET la cuenta de Duarte
+### AHORA: 200 (administrador). ANTES: 200 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}
+Authorization: Bearer {{tokenAdmin}}
+
+
+### 4.6 [Admin] GET un id que no existe
+### AHORA: 404 "Usuario no encontrado." ANTES: 404 (sin cambios).
+GET {{baseUrl}}/usuarios/{{idInexistente}}
+Authorization: Bearer {{tokenAdmin}}
+
+
+### ============================================================
+### 5. GET /usuarios (listado) — control, A0 no lo cambia
+### ============================================================
+
+### 5.1 [Duarte] GET el listado
+### AHORA: 403 Forbidden. ANTES: 403 (sin cambios, ya era solo de administrador).
+GET {{baseUrl}}/usuarios
+Authorization: Bearer {{tokenDuarte}}
+
+
+### 5.2 [Admin] GET el listado
+### AHORA: 200 con { total, pagina, usuarios }. ANTES: 200 (sin cambios).
+GET {{baseUrl}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+
+
+### Limpieza opcional (manual, por SQL) — saca las cuentas de prueba que
+### crearon 1.1, 3.2 y 3.3. Solo contra la base local:
+###
+###   DELETE FROM Pacientes WHERE IdUsuario IN
+###     (SELECT Id FROM Usuarios WHERE Email LIKE 'a0.%@chronosalud.test');
+###   DELETE FROM Usuarios WHERE Email LIKE 'a0.%@chronosalud.test';

@@ -101,6 +101,18 @@ También carga los medicamentos del Vademécum Nacional que están en los CSV de
 
 Es idempotente: se puede correr las veces que haga falta sin duplicar nada.
 
+La API solo deja registrar un administrador sin sesión cuando la base todavía no tiene
+ninguno. En una base vacía el seeder crea el de la demo; si ya existe, entra con él. Si
+la base ya tiene otros administradores y el de la demo no está, el seeder corta y hay que
+correrlo con la cuenta de uno de ellos:
+
+```
+dotnet run --project tools/Seed -- --email <administrador>
+```
+
+Con `--email`, la contraseña que pide es la de esa cuenta; las cuentas de la demo se
+crean igual con `Chrono2026!`.
+
 Para cargar **solo los medicamentos** contra otra API (por ejemplo la de Azure), sin
 usuarios ni turnos de demo, entrando con una cuenta administrador o doctor que ya exista:
 

@@ -143,10 +143,9 @@ public class AuthService
     }
 
     /// <summary>
-    /// POST /usuarios/registro es AllowAnonymous y el campo Rol es un string
-    /// libre que la API valida contra "paciente"/"doctor"/"administrador" sin
-    /// mirar quién hace el pedido — quien le pegue directo a la API (no a
-    /// través de este método) podría registrarse como administrador. Por eso
+    /// POST /usuarios/registro es AllowAnonymous solo para el rol "paciente":
+    /// para "doctor" y "administrador" la API pide el token de un
+    /// administrador, así que esas altas viajan con el de la sesión.
     /// <paramref name="rol"/> es privado a esta clase: los métodos públicos de
     /// arriba son los únicos que lo fijan, y siempre con una constante.
     /// </summary>
@@ -156,7 +155,7 @@ public class AuthService
         var respuesta = await _api.PostAsync<RegistroRespuesta>(
             "/usuarios/registro",
             new { nombre, apellido, email, contrasena, telefono, rol },
-            anonimo: true);
+            anonimo: rol == "paciente");
 
         if (respuesta is null || string.IsNullOrEmpty(respuesta.Token))
             throw new ApiException("No pudimos completar el registro. Probá de nuevo en un momento.", 0);
