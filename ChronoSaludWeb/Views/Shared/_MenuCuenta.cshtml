@@ -1,0 +1,47 @@
+@model MenuViewModel
+
+@* El botón de la cuenta y su menú. El atributo popover lo maneja el
+   navegador: abre con el botón, cierra con Escape o con un clic afuera y
+   devuelve el foco, todo sin JavaScript. Al menú no se le pone display: el
+   navegador lo oculta cerrado y lo muestra abierto.
+   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+<button type="button" popovertarget="menu-cuenta" class="boton boton-secundario shrink-0 px-2 py-1">
+    <partial name="_Avatar" model="new AvatarViewModel { Nombre = Model.Nombre }" />
+    <span class="hidden max-w-40 truncate sm:inline">@Model.Nombre</span>
+    <span class="sr-only">Menú de tu cuenta</span>
+    <svg class="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        @Html.Raw(IconosLucide.Trazos("chevron-abajo"))
+    </svg>
+</button>
+
+<div id="menu-cuenta" popover class="menu-flotante menu-cuenta">
+    <div class="px-3 py-2">
+        <p class="truncate font-semibold text-ink">@Model.Nombre</p>
+        <p class="text-sm capitalize text-muted">@Model.Rol</p>
+    </div>
+    <ul class="mt-1 border-t border-border pt-1 text-sm font-medium">
+        <li>
+            <a asp-controller="Ajustes" asp-action="Index" aria-current="@(Model.AjustesActivo ? "page" : null)"
+               class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary">
+                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    @Html.Raw(IconosLucide.Trazos("ajustes"))
+                </svg>
+                Ajustes
+            </a>
+        </li>
+        <li>
+            <form asp-controller="Cuenta" asp-action="Logout" method="post">
+                <button type="submit"
+                        class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos("salir"))
+                    </svg>
+                    Cerrar sesión
+                </button>
+            </form>
+        </li>
+    </ul>
+</div>

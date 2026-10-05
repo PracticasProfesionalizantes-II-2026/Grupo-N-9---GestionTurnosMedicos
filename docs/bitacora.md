@@ -197,3 +197,92 @@ no cambia nada ahí. Compila.
 rol: quien se registre como administrador por la API se saltea este
 chequeo. GET /usuarios/{id} no se tocó: cualquier autenticado lee los
 datos de cualquier usuario.
+
+## 2026-10-04 — rediseño, F0: guía de diseño y prototipo
+**Hecho:** `docs/diseno.md` (tokens, niveles de relieve, foco,
+componentes, motivo de marca, textos y tabla de contraste) y el prototipo
+estático `docs/prototipos/inicio-paciente.html` con su hoja propia
+(`prototipo.css` -> `prototipo.build.css`, compilada con el CLI). Plus
+Jakarta Sans bajada a `wwwroot/fonts` (latin y latin-ext, woff2 variable,
+con su OFL). La app no cambia: nada de esto está referenciado todavía.
+**Sigue:** F1 (tokens y clases en app.css).
+**Ojo:** decididas sin consulta, por la opción más conservadora: (1) en
+un aviso el enlace va en tinta subrayada, porque el teal sobre ese tinte
+da 4,35:1; (2) el popover usa posición fija y no anclaje CSS, que no se
+puede probar sin navegador; (3) los componentes nuevos no llevan
+transiciones, quedan para F5.
+
+## 2026-10-04 — rediseño, F1: tokens, fuente local y clases
+**Hecho:** `app.css` con los valores nuevos (primary #0D717A, muted,
+los tres estados que no pasaban), los tokens `control`, `accent-ink`,
+`on-primary` y las sombras como tokens, `@font-face` local, clases
+`tarjeta`, `boton`, `boton-primario`, `boton-secundario`, `campo` y
+`chip`, y la regla global de foco. `.neu-elevado` y `.neu-hundido`
+conservan el nombre. No se tocó ninguna vista. CSS recompilado, compila.
+**Sigue:** F2 (layout, menú de cuenta y barra inferior).
+**Ojo:** la regla de foco va FUERA de las capas y no en `@layer base`
+como se había pedido: los 99 `focus:outline-none` de las vistas compilan
+en la capa utilities y le ganaban. Si se prefiere en base, es mover el
+bloque. En oscuro `on-primary` sigue blanco (4,23:1) hasta F5. Los campos
+viejos siguen con borde `primary-line` (1,59:1) hasta el barrido. El
+enlace a Google Fonts sigue en el layout hasta F2.
+
+## 2026-10-04 — rediseño, F2: layout, menú de cuenta y barra inferior
+**Hecho:** `_Layout` sin Google Fonts (la fuente ya es local), con
+enlace "Saltar al contenido", destinos en el encabezado desde 768 px,
+botón de cuenta con popover nativo (`_MenuCuenta`: nombre, rol, Ajustes,
+Cerrar sesión) y barra inferior en celular (`_BarraInferior`: cuatro
+destinos según el rol más "Más"). Los ítems salen de `MenuViewModel`,
+con las mismas banderas de `AuthService`. "Administración" pasó a
+"Cuentas". Íconos nuevos en `IconosLucide`. Compila, CSS recompilado.
+La API no se tocó; jQuery y `site.js` siguen como estaban.
+**A medias:** sin probar en navegador (lo prueba Francis).
+**Sigue:** F3 (inicios por rol).
+**Ojo:** decididas sin consulta: sin sesión ya no hay enlace "Inicio"
+(lleva el logo); "Más" repite Ajustes y Cerrar sesión, que también están
+en el menú de cuenta; los márgenes laterales siguen en `px-6`; Usuarios/*
+sigue sin marcar "Cuentas" como activo, igual que antes. En un navegador
+sin `popover` los dos menús quedan a la vista dentro de la página.
+
+## 2026-10-04 — rediseño, F3: inicios por rol
+**Hecho:** banner de bienvenida (`_BannerBienvenida` + `_MotivoMarca`)
+con una frase por rol y dos botones; accesos rápidos con ícono en
+círculo y el deshabilitado plano con "Próximamente"; estados vacíos con
+botón (`_EstadoVacio`); paneles como `tarjeta` con el "ver todo" escrito
+en vez de "…"; `_BadgeEstado` sobre la clase `chip`. Textos: títulos de
+sección sin mayúsculas forzadas, "Historial de consultas", aviso del
+doctor sin `POST /doctores`, "No pudimos cargar tu inicio". Compila, CSS
+recompilado. Ningún pedido nuevo a la API; la API no se tocó.
+**A medias:** sin probar en navegador.
+**Sigue:** F4 (portada, login y registro).
+**Ojo:** el próximo turno se ordena en la Web (día y hora) entre los seis
+que ya se pedían, salteando cancelados y completados: con más de seis
+turnos futuros puede no ser el real, porque GET /turnos no tiene orden
+fijo. No se compara la hora con la actual (el servidor puede estar en
+otro huso): un turno de hoy cuenta como próximo todo el día. Decididas
+sin consulta: la lista del panel de paciente y doctor también sale
+ordenada, para que coincida con el banner; el botón de los estados
+vacíos es secundario (el primario está en el banner); el admin ve el
+total de turnos de hoy. `_BadgeEstado` cambia también Turnos/Index,
+Detalle y Cancelar. "Mis coberturas" sigue como "Próximamente".
+
+## 2026-10-04 — rediseño, F4: portada, login y registro
+**Hecho:** portada (Home/Index sin sesión) como tarjeta con el motivo de
+marca y dos botones (Ingresar, Crear cuenta). Login y Registro en una
+tarjeta de acceso: formulario con campos `campo` y botón
+`boton-primario`, y el motivo arriba en celular o en una segunda columna
+desde 768 px. Un solo verbo para entrar ("Ingresar") y uno para
+registrarse ("Crear cuenta"), también en el encabezado. Compila, CSS
+recompilado. La API no se tocó.
+**A medias:** F0 a F4 sin probar en navegador: no se levantó la Web ni
+la API. Hay que mirar los tres roles y sin sesión, claro y oscuro, texto
+normal y extra grande, 360 px y teclado.
+**Sigue:** F5 (transiciones y barrido del resto de las pantallas),
+cuando Francis lo pida.
+**Ojo:** no cambió ningún `asp-for`, ni el `ReturnUrl` oculto, ni los
+mensajes de validación, ni `novalidate`, ni la sección `Scripts`.
+Decididas sin consulta: la portada cambió de texto ("Tus turnos médicos,
+en un mismo lugar"), el resumen de errores suma `role="alert"` y la
+tarjeta de acceso pasa a dos columnas en pantallas anchas. Pendiente
+para F5: 28 botones con `text-white`, 55 campos con borde `primary-line`,
+las tarjetas planas de 30 vistas y el `primary` del tema oscuro.

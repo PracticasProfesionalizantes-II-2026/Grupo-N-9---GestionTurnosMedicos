@@ -1,0 +1,88 @@
+@model MenuViewModel
+
+@functions {
+    // Todo en rem para que acompañe el tamaño de texto elegido en Ajustes. La
+    // etiqueta puede cortarse en dos renglones (wrap-anywhere) pero no
+    // desborda: cinco columnas tienen que entrar en 360 px con el texto extra
+    // grande.
+    const string ClaseItem = "flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs leading-tight wrap-anywhere";
+
+    // Lo seleccionado va hundido y en negrita además de en teal, para que no
+    // dependa solo del color.
+    const string ClaseEnlace = "font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido";
+
+    const string ClaseOpcion = "flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary";
+}
+
+@* Barra de navegación del celular. Html.Raw es seguro acá: IconosLucide.Trazos
+   devuelve literales del código. *@
+<nav aria-label="Principal"
+     class="fixed inset-x-0 bottom-0 z-20 border-t border-control bg-canvas px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden">
+    <ul class="grid grid-cols-5 gap-1">
+        @foreach (var item in Model.Barra)
+        {
+            <li class="min-w-0">
+                <a asp-controller="@item.Controlador" asp-action="@item.Accion"
+                   aria-current="@(item.Activo ? "page" : null)" class="@ClaseItem @ClaseEnlace">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos(item.Icono))
+                    </svg>
+                    @item.Etiqueta
+                </a>
+            </li>
+        }
+        <li class="min-w-0">
+            <button type="button" popovertarget="menu-mas"
+                    class="@ClaseItem @(Model.MasActivo ? "font-bold text-primary inset-shadow-hundido" : "font-medium text-muted")">
+                <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    @Html.Raw(IconosLucide.Trazos("menu"))
+                </svg>
+                Más
+            </button>
+        </li>
+    </ul>
+</nav>
+
+@* Lo que no entra en la barra. Sin display propio por debajo de md: lo
+   maneja el atributo popover. *@
+<div id="menu-mas" popover class="menu-flotante menu-mas md:hidden">
+    <ul class="text-sm font-medium">
+        @foreach (var item in Model.Resto)
+        {
+            <li>
+                <a asp-controller="@item.Controlador" asp-action="@item.Accion"
+                   aria-current="@(item.Activo ? "page" : null)" class="@ClaseOpcion">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos(item.Icono))
+                    </svg>
+                    @item.Titulo
+                </a>
+            </li>
+        }
+        <li>
+            <a asp-controller="Ajustes" asp-action="Index"
+               aria-current="@(Model.AjustesActivo ? "page" : null)" class="@ClaseOpcion">
+                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    @Html.Raw(IconosLucide.Trazos("ajustes"))
+                </svg>
+                Ajustes
+            </a>
+        </li>
+        <li class="mt-1 border-t border-border pt-1">
+            <form asp-controller="Cuenta" asp-action="Logout" method="post">
+                <button type="submit"
+                        class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos("salir"))
+                    </svg>
+                    Cerrar sesión
+                </button>
+            </form>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,199 @@
+/* Hoja del prototipo. Es independiente de la app: declara los tokens y las
+   clases que propone docs/diseno.md para poder verlos antes de que entren a
+   ChronoSaludWeb/wwwroot/css/app.css. Se compila con el mismo CLI:
+
+   ./ChronoSaludWeb/tools/tailwindcss.exe -i docs/prototipos/prototipo.css -o docs/prototipos/prototipo.build.css --minify
+
+   prototipo.build.css es generado y va al repo para que el prototipo abra con
+   doble clic aunque la máquina no tenga el CLI. */
+
+@import "tailwindcss" source(none);
+
+@source "./*.html";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Fuente local, sin CDN. Los woff2 viven en la app; la ruta es relativa a
+   esta carpeta. */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../../ChronoSaludWeb/wwwroot/fonts/PlusJakartaSans-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../../ChronoSaludWeb/wwwroot/fonts/PlusJakartaSans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --color-primary: #0D717A;
+  --color-primary-hover: #0A5F67;
+  --color-on-primary: #FFFFFF;
+  --color-primary-soft: #D7EDF0;
+  --color-primary-line: #A8D5DB;
+  --color-accent: #B08268;
+  --color-accent-ink: #85593F;
+  --color-accent-soft: #F2E7E1;
+  --color-canvas: #F4EFE9;
+  --color-surface: #FBF7F2;
+  --color-border: #E3DAD1;
+  --color-control: #7F7A70;
+  --color-field: #FFFFFF;
+  --color-ink: #1C2321;
+  --color-muted: #5B6661;
+  --color-status-pendiente: #96450A;
+  --color-status-confirmado: #116B33;
+  --color-status-completado: #075E91;
+  --color-status-cancelado: #B91C1C;
+  --radius-badge: 6px;
+  --radius-input: 10px;
+  --radius-card: 14px;
+  --radius-modal: 18px;
+  --color-neu-shadow-dark: rgba(176, 130, 104, 0.28);
+  --color-neu-shadow-light: rgba(255, 252, 245, 0.85);
+  --shadow-elevado: 5px 5px 16px var(--color-neu-shadow-dark), -5px -5px 22px var(--color-neu-shadow-light);
+  --shadow-elevado-sm: 3px 3px 8px var(--color-neu-shadow-dark), -3px -3px 10px var(--color-neu-shadow-light);
+  --shadow-flotante: 0 12px 32px var(--color-neu-shadow-dark);
+  --inset-shadow-hundido: inset 3px 3px 8px var(--color-neu-shadow-dark), inset -3px -3px 8px var(--color-neu-shadow-light);
+  --inset-shadow-presionado: inset 2px 2px 6px rgb(0 0 0 / 0.3);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #158892;
+  --color-primary-hover: #1BA3AF;
+  --color-on-primary: #FFFFFF;
+  --color-primary-soft: #0F2B31;
+  --color-primary-line: #1F5A62;
+  --color-accent: #C08F73;
+  --color-accent-ink: #C08F73;
+  --color-accent-soft: #33241C;
+  --color-canvas: #16130F;
+  --color-surface: #1F1B16;
+  --color-border: #322C25;
+  --color-control: #7A7065;
+  --color-field: #16130F;
+  --color-ink: #F2EBE2;
+  --color-muted: #A79C90;
+  --color-status-pendiente: #E09B3D;
+  --color-status-confirmado: #4CAF6A;
+  --color-status-completado: #4FADE0;
+  --color-status-cancelado: #E8706B;
+  --color-neu-shadow-dark: rgba(0, 0, 0, 0.55);
+  --color-neu-shadow-light: rgba(129, 111, 96, 0.22);
+}
+
+@layer components {
+  /* Elevado: tarjetas. Comparte fondo con el lienzo; el volumen lo da la
+     sombra doble. */
+  .tarjeta {
+    @apply rounded-card bg-canvas shadow-elevado;
+  }
+
+  /* Botones: elevados en reposo, hundidos al presionar. El primario se
+     distingue por el relleno; el secundario, por el borde de control, porque
+     la sombra sola no cuenta para el 3:1. */
+  .boton {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-input px-4 py-2.5 text-center text-sm font-semibold no-underline;
+  }
+
+  .boton-primario {
+    @apply bg-primary text-on-primary shadow-elevado-sm hover:bg-primary-hover active:bg-primary-hover active:shadow-none active:inset-shadow-presionado;
+  }
+
+  .boton-secundario {
+    @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary active:shadow-none active:inset-shadow-hundido;
+  }
+
+  /* Campo: hundido y con borde de control. La clase de error es la que pone
+     ASP.NET en el campo que no validó. */
+  .campo {
+    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-sm text-ink inset-shadow-hundido placeholder:text-muted;
+  }
+
+  .campo.input-validation-error,
+  .campo[aria-invalid="true"] {
+    @apply border-status-cancelado;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-badge px-2 py-1 text-xs font-semibold;
+  }
+
+  /* Enlace para saltar al contenido: fuera de pantalla hasta que recibe foco. */
+  .saltar {
+    position: absolute;
+    left: 1rem;
+    top: -6rem;
+    z-index: 50;
+  }
+
+  .saltar:focus {
+    top: 1rem;
+  }
+
+  /* Menús flotantes con el atributo popover. No se les fija display: el
+     navegador los oculta cerrados y los muestra abiertos. La posición fija va
+     dentro del @supports para que, sin soporte de popover, queden en el flujo
+     de la página en vez de tapar contenido. */
+  .menu-flotante {
+    @apply rounded-card border border-control bg-surface p-2 text-ink shadow-flotante;
+  }
+
+  @supports selector(:popover-open) {
+    .menu-flotante {
+      position: fixed;
+      inset: auto;
+      margin: 0;
+    }
+
+    .menu-cuenta {
+      top: 4.25rem;
+      right: max(1rem, calc((100vw - 72rem) / 2 + 1.5rem));
+      width: min(18rem, calc(100vw - 2rem));
+    }
+
+    .menu-mas {
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: 6.5rem;
+      width: auto;
+    }
+  }
+}
+
+/* Foco visible en todo el sitio. Va fuera de las capas a propósito: las
+   utilidades focus:outline-none de las vistas viven en la capa utilities y
+   le ganarían a una regla puesta en base. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-scale="lg"] {
+  font-size: 112.5%;
+}
+
+[data-scale="xl"] {
+  font-size: 125%;
+}

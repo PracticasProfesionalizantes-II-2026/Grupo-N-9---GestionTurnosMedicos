@@ -4,24 +4,36 @@
    del propio código, nunca datos de la API ni del usuario. *@
 @if (Model.Habilitado)
 {
+    @* Elevado en reposo; al pasar el mouse la sombra se acorta y al presionar
+       se hunde. *@
     <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.Ruta"
-       class="flex flex-col items-center justify-center gap-2 rounded-card neu-elevado px-3 py-5 text-center transition-colors hover:bg-primary-soft/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-        <svg class="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            @Html.Raw(IconosLucide.Trazos(Model.Icono))
-        </svg>
+       class="tarjeta flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido">
+        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos(Model.Icono))
+            </svg>
+        </span>
         <span class="text-sm font-medium text-ink">@Model.Titulo</span>
     </a>
 }
 else
 {
-    <span aria-disabled="true" title="@Model.Motivo"
-          class="flex cursor-not-allowed flex-col items-center justify-center gap-2 rounded-card neu-hundido px-3 py-5 text-center">
-        <svg class="h-6 w-6 text-muted" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            @Html.Raw(IconosLucide.Trazos(Model.Icono))
-        </svg>
-        <span class="text-sm font-medium text-muted">@Model.Titulo</span>
-        <span class="sr-only">No disponible: @Model.Motivo</span>
+    @* Deshabilitado: plano (sin sombra), atenuado y con la etiqueta a
+       opacidad completa. No es un enlace ni recibe foco. *@
+    <span aria-disabled="true"
+          class="flex h-full flex-col items-center justify-center gap-3 rounded-card border border-border px-3 py-5 text-center">
+        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary opacity-60">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos(Model.Icono))
+            </svg>
+        </span>
+        <span class="text-sm font-medium text-ink opacity-60">@Model.Titulo</span>
+        <span class="chip bg-accent-soft text-accent-ink">Próximamente</span>
+        @if (Model.Motivo is not null)
+        {
+            <span class="sr-only">@Model.Motivo</span>
+        }
     </span>
 }
