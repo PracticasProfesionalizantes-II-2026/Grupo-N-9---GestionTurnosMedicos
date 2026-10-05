@@ -55,7 +55,7 @@
 
         <form asp-action="Cancelar" asp-route-id="@Model.IdTurno" method="post" class="mt-7 flex flex-wrap items-center gap-3">
             <button type="submit"
-                    class="rounded-input bg-status-cancelado px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-status-cancelado/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
+                    class="rounded-input bg-status-cancelado px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-status-cancelado/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/40">
                 Sí, cancelar el turno
             </button>
             <a asp-action="Detalle" asp-route-id="@Model.IdTurno"

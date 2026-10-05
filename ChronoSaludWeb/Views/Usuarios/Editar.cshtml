@@ -3,11 +3,11 @@
     ViewData["Title"] = $"Editar perfil de {Model.NombreCompleto}";
     // asp-for agrega input-validation-error al campo con error: la variante
     // arbitraria pinta el borde con el color de error sin JavaScript.
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
+    const string claseCampo = "campo mt-1.5";
     const string claseEtiqueta = "block text-sm font-medium text-ink";
     const string claseSeccion = "text-sm font-semibold uppercase tracking-wide text-muted";
     const string claseAyuda = "mt-1 text-xs text-muted";
-    const string claseBoton = "rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseBoton = "rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft";
 
     // El error de cada campo va con ícono además del texto y el borde, para
     // que no dependa solo del color.
@@ -148,7 +148,7 @@
             <label for="archivo" class="@claseEtiqueta">@(Model.TieneFoto ? "Reemplazar la foto" : "Elegir una foto")</label>
             <input id="archivo" name="archivo" type="file" accept="image/jpeg,image/png,image/webp"
                    aria-describedby="ayuda-foto"
-                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-primary-line file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft" />
+                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft" />
             <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
             @{ ErrorCampo("Foto"); }
         </div>

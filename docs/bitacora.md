@@ -286,3 +286,21 @@ en un mismo lugar"), el resumen de errores suma `role="alert"` y la
 tarjeta de acceso pasa a dos columnas en pantallas anchas. Pendiente
 para F5: 28 botones con `text-white`, 55 campos con borde `primary-line`,
 las tarjetas planas de 30 vistas y el `primary` del tema oscuro.
+
+## 2026-10-04 — rediseño, F5.1: contraste pendiente
+**Hecho:** tema oscuro con `primary #2F9FA9` (5,87:1 como texto sobre
+canvas, 5,42 sobre surface, 4,72 sobre primary-soft), `on-primary
+#0B1F22` (5,39:1 en botones) y `primary-hover #4DB8C1` (7,25:1). Los 25
+`text-white` pasaron a `text-on-primary`. Todos los campos de texto,
+selects y textareas usan la clase `campo` (borde `control`, hundido):
+las 9 constantes `claseCampo` y los filtros escritos en línea. Clase
+nueva `boton-peligro`. Prototipo con los mismos valores. Compila, CSS
+recompilado, chequeo de atributos de formulario sin diferencias.
+**Sigue:** F5.2, barrido por grupos de vistas.
+**Ojo:** corrección de un dato de F4: no eran "28 botones" ni "55
+campos". Eran 25 botones, y de las 51 apariciones de `primary-line` solo
+19 eran clases de campo (unos 90 campos por las constantes); el resto
+son botones con borde teal y hovers, que se van en F5.2. Aclarar el teal
+solo hasta 4,5:1 sobre canvas (#178E98) no alcanzaba: ahí ni el blanco
+(3,92) ni la tinta (4,34) pasaban en el botón. El botón de cancelar turno
+también usa `on-primary`: en oscuro el blanco sobre ese rojo daba 3,02.

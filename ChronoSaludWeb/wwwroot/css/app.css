@@ -129,18 +129,16 @@
      oscura; es lo único que no se puede resolver con los tokens. */
   color-scheme: dark;
 
-  /* Teal de marca. En oscuro hay una tensión que no tiene solución con un
-     único token: si se lo aclara para que se lea bien como texto sobre el
-     lienzo, empeora como fondo de botón con texto blanco, y al revés. Este
-     valor es justo el punto de equilibrio: ~4.3:1 en ambos sentidos
-     (texto primary sobre canvas, y blanco sobre primary). */
-  --color-primary: #158892;
-  --color-primary-hover: #1BA3AF;
-  /* Sigue en blanco (4,23:1) hasta que los botones viejos dejen de usar
-     text-white. Recién ahí se puede aclarar primary a #3AA9B3 y pasar esto
-     a #0B1F22 (6,09:1 en botones, 6,62:1 como texto); hacerlo antes
-     dejaría esos botones en 2,80:1. */
-  --color-on-primary: #FFFFFF;
+  /* Teal de marca. Con un solo token y texto blanco en los botones no había
+     valor que sirviera para las dos cosas: aclararlo para leerlo como texto
+     lo arruinaba como fondo. Con on-primary aparte sí: el teal se aclara
+     hasta leerse bien como texto (5,87:1 sobre canvas, 5,42:1 sobre surface
+     y 4,72:1 sobre primary-soft) y los botones llevan tinta oscura encima
+     (5,39:1). El hover va todavía más claro: 7,25:1 con la tinta y 7,88:1
+     como texto de enlace. */
+  --color-primary: #2F9FA9;
+  --color-primary-hover: #4DB8C1;
+  --color-on-primary: #0B1F22;
   --color-primary-soft: #0F2B31;
   --color-primary-line: #1F5A62;
 
@@ -228,6 +226,14 @@
 
   .boton-secundario {
     @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary active:shadow-none active:inset-shadow-hundido;
+  }
+
+  /* Acción destructiva (cancelar un turno). Usa on-primary para el texto
+     porque el rojo cambia de luminosidad entre temas igual que el teal:
+     blanco sobre el rojo claro da 6,47:1, y la tinta oscura sobre el rojo
+     del tema oscuro, 5,64:1 (el blanco ahí daría 3,02:1). */
+  .boton-peligro {
+    @apply bg-status-cancelado text-on-primary shadow-elevado-sm hover:bg-status-cancelado/90 active:shadow-none active:inset-shadow-presionado;
   }
 
   /* Campo: hundido y con borde de control. El borde de error se activa con

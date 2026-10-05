@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Nuevo administrador";
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseCampo = "campo mt-1.5";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
 }
 
@@ -69,7 +69,7 @@
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
                 <button type="submit"
-                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
                     Crear administrador
                 </button>
                 <a asp-action="Index"
