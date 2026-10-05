@@ -207,8 +207,8 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCambiarEstadoTurno)
             return SinPermiso(
                 "No podés cambiar el estado de un turno con tu rol",
-                "La API reserva PUT /turnos al personal: el doctor sobre sus propios turnos, " +
-                "y administrador o secretario sobre cualquiera.");
+                "El estado de un turno lo cambia el personal: cada doctor en sus propios turnos, " +
+                "y administración o secretaría en cualquiera.");
 
         // El estado llega del formulario y la API lo guardaría tal cual, sin
         // validarlo, así que la lista blanca la ponemos nosotros.
@@ -335,8 +335,8 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCargarTurnos)
             return SinPermiso(
                 "No podés cargar turnos con tu rol",
-                "Para dar un turno hay que elegir el paciente de una lista, y la API solo se la " +
-                "muestra a los roles doctor y administrador.");
+                "Para dar un turno hay que elegir el paciente de una lista, y esa lista solo " +
+                "la ven doctores y administradores.");
 
         var rol = _auth.SesionActual?.Rol;
         var modelo = new TurnoCrearViewModel
@@ -382,8 +382,8 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCargarTurnos)
             return SinPermiso(
                 "No podés cargar turnos con tu rol",
-                "Para dar un turno hay que elegir el paciente de una lista, y la API solo se la " +
-                "muestra a los roles doctor y administrador.");
+                "Para dar un turno hay que elegir el paciente de una lista, y esa lista solo " +
+                "la ven doctores y administradores.");
 
         var rol = _auth.SesionActual?.Rol;
         modelo.Rol = rol;

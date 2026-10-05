@@ -5,7 +5,7 @@
    devuelve el foco, todo sin JavaScript. Al menú no se le pone display: el
    navegador lo oculta cerrado y lo muestra abierto.
    Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
-<button type="button" popovertarget="menu-cuenta" class="boton boton-secundario shrink-0 px-2 py-1">
+<button type="button" popovertarget="menu-cuenta" class="boton boton-secundario boton-cuenta shrink-0 px-2 py-1">
     <partial name="_Avatar" model="new AvatarViewModel { Nombre = Model.Nombre }" />
     <span class="hidden max-w-40 truncate sm:inline">@Model.Nombre</span>
     <span class="sr-only">Menú de tu cuenta</span>

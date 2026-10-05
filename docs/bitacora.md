@@ -286,3 +286,129 @@ en un mismo lugar"), el resumen de errores suma `role="alert"` y la
 tarjeta de acceso pasa a dos columnas en pantallas anchas. Pendiente
 para F5: 28 botones con `text-white`, 55 campos con borde `primary-line`,
 las tarjetas planas de 30 vistas y el `primary` del tema oscuro.
+
+## 2026-10-04 — rediseño, F5.1: contraste pendiente
+**Hecho:** tema oscuro con `primary #2F9FA9` (5,87:1 como texto sobre
+canvas, 5,42 sobre surface, 4,72 sobre primary-soft), `on-primary
+#0B1F22` (5,39:1 en botones) y `primary-hover #4DB8C1` (7,25:1). Los 25
+`text-white` pasaron a `text-on-primary`. Todos los campos de texto,
+selects y textareas usan la clase `campo` (borde `control`, hundido):
+las 9 constantes `claseCampo` y los filtros escritos en línea. Clase
+nueva `boton-peligro`. Prototipo con los mismos valores. Compila, CSS
+recompilado, chequeo de atributos de formulario sin diferencias.
+**Sigue:** F5.2, barrido por grupos de vistas.
+**Ojo:** corrección de un dato de F4: no eran "28 botones" ni "55
+campos". Eran 25 botones, y de las 51 apariciones de `primary-line` solo
+19 eran clases de campo (unos 90 campos por las constantes); el resto
+son botones con borde teal y hovers, que se van en F5.2. Aclarar el teal
+solo hasta 4,5:1 sobre canvas (#178E98) no alcanzaba: ahí ni el blanco
+(3,92) ni la tinta (4,34) pasaban en el botón. El botón de cancelar turno
+también usa `on-primary`: en oscuro el blanco sobre ese rojo daba 3,02.
+
+## 2026-10-04 — rediseño, F5.2: barrido por grupos de vistas
+**Hecho:** piezas compartidas: parcial `_Chip` con `ChipViewModel` y
+`TonoChip` (`_BadgeEstado` ahora delega en él), `_EstadoVacio` con tono
+(neutro, aviso, error) y nivel de título, clases `tarjeta-enlace` y
+`boton-texto`, íconos `alerta`, `info` y `persona`. En cada grupo: las
+tarjetas planas y las `neu-elevado` pasan a `tarjeta`, los botones a
+`boton-*`, los "Volver" a `boton-texto`, los estados vacíos, de aviso y
+de error a `_EstadoVacio`, y los títulos pierden las mayúsculas forzadas.
+Un commit por grupo, con build y chequeo de atributos de formulario (sin
+diferencias) antes de cada uno.
+- a. Turnos: Index, Crear, Detalle, Cancelar. Las franjas horarias son
+  `boton-secundario` y siguen siendo `submit` con su `name` y `value`;
+  "Confirmar" y "Cancelar" de cada fila son botones de texto.
+- b. Pacientes: Index, Detalle, Crear y MiPerfil/CompletarPaciente. El
+  grupo sanguíneo pasó de `text-accent` (2,77:1 sobre el beige) a
+  `text-accent-ink`.
+- c. Doctores: Index y Detalle; Coberturas/Index. El listado vacío de
+  doctores ofrece "Agregar doctor" al administrador (la vista ahora
+  inyecta `AuthService`).
+- d. Recetas: Index, Detalle, Crear; Historial: Index, Crear. Vigente,
+  vencida y "Fuera del vademécum" son `_Chip`. Los vacíos ofrecen "Nueva
+  receta" o "Nueva entrada" a quien puede cargarlas. "+" y "−" de
+  Recetas/Crear son `boton-secundario` de 44 px; no cambiaron
+  `formnovalidate`, acción, `asp-route-indice` ni `asp-fragment`.
+- e. Cuentas: Admin/Index (tarjetas que son enlace: `tarjeta-enlace`),
+  NuevoDoctor, NuevoAdministrador; Usuarios/Index (rol como `_Chip`,
+  paginación con botones, el paso inactivo plano) y Usuarios/Editar
+  ("Quitar foto" con borde y texto rojos a contraste completo).
+- f. Ajustes (cada opción elevada en reposo y hundida y en negrita al
+  elegirla), Home/Privacy, Shared/Error, NoEncontrado y SinPermiso (ícono
+  en círculo; el candado pasó de `text-accent` a `accent-ink`). Las
+  iniciales del avatar de doctor también pasaron a `accent-ink`. Se
+  borraron `.neu-elevado` y `.neu-hundido`: ya no las usa ninguna vista.
+**Sigue:** F5.2g (textos con jerga), después foco y movimiento.
+**Ojo:** decididas sin consulta: las tres páginas sueltas (Error,
+NoEncontrado, SinPermiso) no usan `_EstadoVacio` porque su título es el
+`h1` de la página y traen texto con formato; los dos avisos chicos de
+Turnos/Crear ("No hay horarios libres ese día") quedaron como nota
+dentro del formulario; "Reintentar" de la búsqueda de usuarios ya no
+manda filtros vacíos en la URL. Los botones miden ahora 44 px de alto
+mínimo y los campos algo más: las filas de filtros quedaron más altas.
+
+## 2026-10-04 — rediseño, F5.2g: textos sin jerga
+**Hecho:** 22 textos visibles que nombraban "la API", rutas o verbos
+HTTP pasaron a frases en voseo sin términos técnicos: 7 en vistas
+(Cuentas, Nuevo doctor, Nuevo administrador, Recetas, Historia clínica,
+detalle de turno) y 15 mensajes de controladores y servicios que llegan
+a la pantalla (motivos de "sin permiso", errores de formulario y de
+conexión). Además, dos títulos a sentence case en Pacientes/Crear. Solo
+cambió el texto de los literales; compila y el chequeo de atributos no
+muestra diferencias.
+**Sigue:** F5.3 (foco) y F5.4 (movimiento).
+**Ojo:** NO se tocó "No se pudo conectar con la API. ¿Está levantada en
+{url}?" de `ApiClient`: en la limpieza del login se había decidido
+dejarlo. Es el único texto visible que sigue nombrando la API. El mensaje
+de log de `UsuarioService` tampoco, porque no se muestra. Los comentarios
+del código siguen hablando de la API, a propósito.
+
+## 2026-10-04 — rediseño, F5.3: foco sin anillos duplicados
+**Hecho:** en las vistas ya no queda ningún `focus:outline-none`,
+`focus:ring-*`, `focus-visible:ring-*`, `focus:border-primary` ni
+`has-[:focus-visible]:ring-*` (eran 90, 56, 126, 19 y 2 al empezar F5;
+casi todos se fueron al pasar botones y campos a las clases de
+componente, y acá se barrieron los 24 que quedaban en enlaces de fila y
+en el campo de archivo). El foco lo dibuja solo la regla global. Compila,
+CSS recompilado, chequeo de atributos sin diferencias.
+**Sigue:** F5.4 (movimiento).
+**Ojo:** la regla global sigue fuera de las capas. Pacientes/Crear tiene
+el input de la foto oculto detrás de su etiqueta: el contorno se dibuja
+en el contenedor con `has-[:focus-visible]:outline-*` (antes no tenía
+indicador de foco).
+
+## 2026-10-04 — rediseño, F5.4: transiciones y movimiento
+**Hecho:** todo en CSS y dentro de `prefers-reduced-motion:
+no-preference`: fundido entre páginas con `@view-transition` (180 ms);
+botones, tarjetas-enlace y campos con transición de sombra, fondo y
+color (150 ms), hover que acorta la sombra (`shadow-elevado-xs`) y
+`:active` hundido; entrada de los dos menús flotantes con
+`@starting-style`; el latido del motivo de marca se dibuja una vez en el
+inicio (banner y portada). El layout suma la sección opcional `Head`.
+`docs/diseno.md` al día: valores oscuros, clases nuevas, sección
+"Movimiento" y tabla de contraste. Compila; las reglas nuevas están en el
+CSS generado.
+**A medias:** nada de F5 está probado en navegador.
+**Sigue:** F5.4b, anclaje CSS del menú de cuenta, en commit aparte.
+**Ojo:** Recetas/Crear NO participa del fundido entre páginas (sección
+`Head` con `navigation: none`): no se pudo ver si "+" y "−" parpadeaban,
+y cada clic repinta la página anclada a otra fila, así que se eligió la
+salida segura que se había previsto. Para reactivarlo, borrar esa
+sección. El chequeo de atributos marca `required` en `_Layout`: es el
+argumento `required: false` de la sección nueva, no un campo.
+
+## 2026-10-04 — rediseño, F5.4b: anclaje CSS del menú de cuenta
+**Hecho:** dentro de `@supports (anchor-name: --a) and (top:
+anchor(bottom))`, el botón de cuenta (`boton-cuenta`) declara un ancla y
+el menú se ubica con `top: anchor(bottom)` y `right: anchor(right)`. La
+posición fija de antes queda igual para los navegadores sin soporte.
+Compila; la regla está en el CSS generado.
+**A medias:** sin probar en navegador. Va en commit aparte para poder
+revertirlo solo (`git revert` de este commit) si el menú queda mal
+ubicado.
+**Sigue:** prueba manual de todo F5: tema oscuro, cada grupo de
+pantallas, teclado, Recetas/Crear con "+" y "−", menú de cuenta, y el
+sistema con "reducir movimiento" activado.
+**Ojo:** con F5 queda cerrado el rediseño. Afuera, a propósito: el
+mensaje de conexión de `ApiClient`, jQuery y la validación del cliente,
+y la pantalla de "Mis coberturas".

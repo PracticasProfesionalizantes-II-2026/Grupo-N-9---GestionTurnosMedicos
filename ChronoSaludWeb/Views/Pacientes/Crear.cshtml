@@ -2,32 +2,32 @@
 @{
     ViewData["Title"] = "Agregar paciente";
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
-    // asp-for agrega input-validation-error al campo con error: la variante
-    // arbitraria pinta el borde con el color de error sin JavaScript.
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
+    // asp-for agrega input-validation-error al campo con error: la clase
+    // campo de app.css le pinta el borde con el color de error, sin JavaScript.
+    const string claseCampo = "campo mt-1.5";
     const string claseEtiqueta = "block text-sm font-medium text-ink";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
-    const string claseSeccion = "text-sm font-semibold uppercase tracking-wide text-muted";
-    const string claseBotonSecundario = "rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft";
+    const string claseSeccion = "text-base font-semibold text-ink";
+    const string claseBotonSecundario = "boton boton-secundario";
 }
 
 <a asp-action="Index"
-   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+   class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
         <path d="M19 12H5" />
     </svg>
-    Volver a Pacientes
+    Volver a pacientes
 </a>
 
 <div class="mt-6">
-    <h1 class="text-2xl font-bold tracking-tight text-ink">Agregar Nuevo Paciente</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Agregar nuevo paciente</h1>
     <p class="mt-1 text-sm text-muted">
         Crea la cuenta del paciente: con el email y la contraseña va a poder ingresar al sistema.
     </p>
 
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         @if (erroresGenerales is { Count: > 0 })
         {
             <div class="mb-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
@@ -125,9 +125,11 @@
                 </div>
 
                 @* El input de archivo queda oculto y el label for="Foto" funciona
-                   como botón: abrir el selector no necesita JavaScript. *@
-                <div>
-                    <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-primary-line bg-field p-4 text-center">
+                   como botón: abrir el selector no necesita JavaScript. El foco
+                   del teclado cae en ese input que no se ve, así que el
+                   contorno se dibuja en este contenedor. *@
+                <div class="rounded-card has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
+                    <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-control bg-field p-4 text-center">
                         <svg class="h-10 w-10 text-primary-line" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="8" r="5" />
@@ -135,7 +137,7 @@
                         </svg>
                         <span class="text-sm text-muted">Foto del paciente</span>
                         <label for="Foto"
-                               class="cursor-pointer rounded-input border border-primary-line px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary-soft">
+                               class="boton boton-secundario">
                             Seleccionar foto
                         </label>
                     </div>
@@ -224,7 +226,7 @@
 
             <div class="mt-8 flex flex-wrap items-center justify-end gap-3">
                 <button type="submit"
-                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                        class="boton boton-primario">
                     Guardar
                 </button>
                 @* Enlace y no type="reset": tras un POST fallido, reset volvería a

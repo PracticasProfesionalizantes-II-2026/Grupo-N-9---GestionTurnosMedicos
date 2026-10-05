@@ -165,8 +165,9 @@ public class RecetasController : ControladorBase
         if (idDoctor is null)
         {
             ModelState.AddModelError(string.Empty,
-                "Tu usuario tiene rol doctor pero no tiene un perfil de doctor cargado " +
-                "(matrícula, especialidad), así que la API no puede registrar quién firma la receta.");
+                "Tu cuenta es de doctor pero todavía no tiene el perfil completo " +
+                "(matrícula y especialidad), así que no podemos registrar quién firma la receta. " +
+                "Pedile a administración que lo complete.");
             await CargarFormularioAsync(modelo);
             return View(modelo);
         }
@@ -182,7 +183,7 @@ public class RecetasController : ControladorBase
                 if (idMarcador is null)
                 {
                     ModelState.AddModelError(string.Empty,
-                        "La opción \"Otro...\" no está disponible: falta cargar el medicamento marcador en la API.");
+                        "La opción \"Otro...\" no está disponible todavía: falta una configuración del sistema. Avisale a administración.");
                     await CargarFormularioAsync(modelo);
                     return View(modelo);
                 }
@@ -401,7 +402,7 @@ public class RecetasController : ControladorBase
 
     private IActionResult SinPermisoDeEmision() => SinPermiso(
         "No podés emitir recetas con tu rol",
-        "La API reserva la emisión de recetas al rol doctor.");
+        "Solo los doctores pueden emitir recetas.");
 
     private static RecetaFilaViewModel Mapear(
         Services.Receta receta,

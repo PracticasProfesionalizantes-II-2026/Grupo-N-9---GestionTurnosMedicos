@@ -7,12 +7,12 @@
     Elegí qué tipo de cuenta dar de alta. Pensado sobre todo para cuando la
     persona no puede autogestionarse por la web (por ejemplo, un paciente
     mayor): el registro público sigue estando en
-    <a asp-controller="Cuenta" asp-action="Registro" class="font-medium text-primary hover:text-primary-hover">Cuenta/Registro</a>.
+    <a asp-controller="Cuenta" asp-action="Registro" class="font-medium text-primary hover:text-primary-hover">Crear cuenta</a>.
 </p>
 
 <div class="mt-6 grid gap-5 sm:grid-cols-3">
     <a asp-controller="Pacientes" asp-action="Crear"
-       class="rounded-card border border-border bg-surface p-6 transition-colors hover:border-primary-line hover:bg-primary-soft/20">
+       class="tarjeta tarjeta-enlace block p-6">
         <h2 class="text-base font-semibold text-ink">Paciente</h2>
         <p class="mt-1 text-sm text-muted">
             Agenda y consulta sus propios turnos. Un solo paso: la cuenta y la
@@ -21,7 +21,7 @@
     </a>
 
     <a asp-controller="Admin" asp-action="NuevoDoctor"
-       class="rounded-card border border-border bg-surface p-6 transition-colors hover:border-primary-line hover:bg-primary-soft/20">
+       class="tarjeta tarjeta-enlace block p-6">
         <h2 class="text-base font-semibold text-ink">Doctor</h2>
         <p class="mt-1 text-sm text-muted">
             Atiende turnos, carga historia clínica y emite recetas. Pide
@@ -30,7 +30,7 @@
     </a>
 
     <a asp-controller="Admin" asp-action="NuevoAdministrador"
-       class="rounded-card border border-border bg-surface p-6 transition-colors hover:border-primary-line hover:bg-primary-soft/20">
+       class="tarjeta tarjeta-enlace block p-6">
         <h2 class="text-base font-semibold text-ink">Administrador</h2>
         <p class="mt-1 text-sm text-muted">
             Gestiona turnos, pacientes y cuentas del sistema, como esta misma
@@ -40,7 +40,7 @@
 </div>
 
 <a asp-controller="Usuarios" asp-action="Index"
-   class="mt-5 block rounded-card border border-border bg-surface p-6 transition-colors hover:border-primary-line hover:bg-primary-soft/20">
+   class="tarjeta tarjeta-enlace mt-5 block p-6">
     <h2 class="text-base font-semibold text-ink">Buscar y editar usuarios</h2>
     <p class="mt-1 text-sm text-muted">
         Encontrá a un paciente, doctor o administrador por nombre o email y

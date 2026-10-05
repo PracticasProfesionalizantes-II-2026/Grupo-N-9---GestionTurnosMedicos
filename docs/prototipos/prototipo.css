@@ -69,9 +69,9 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --color-primary: #158892;
-  --color-primary-hover: #1BA3AF;
-  --color-on-primary: #FFFFFF;
+  --color-primary: #2F9FA9;
+  --color-primary-hover: #4DB8C1;
+  --color-on-primary: #0B1F22;
   --color-primary-soft: #0F2B31;
   --color-primary-line: #1F5A62;
   --color-accent: #C08F73;

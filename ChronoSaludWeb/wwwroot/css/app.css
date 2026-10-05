@@ -103,6 +103,9 @@
      nota menos su corte al ser casi del color del lienzo). */
   --shadow-elevado: 5px 5px 16px var(--color-neu-shadow-dark), -5px -5px 22px var(--color-neu-shadow-light);
   --shadow-elevado-sm: 3px 3px 8px var(--color-neu-shadow-dark), -3px -3px 10px var(--color-neu-shadow-light);
+  /* El hover de un botón: la misma sombra, más corta. La pieza se acerca al
+     lienzo pero no cambia de nivel. */
+  --shadow-elevado-xs: 2px 2px 5px var(--color-neu-shadow-dark), -2px -2px 6px var(--color-neu-shadow-light);
   /* Menús que flotan sobre contenido cualquiera: una sola sombra hacia
      abajo, porque la doble solo funciona sobre el lienzo liso. */
   --shadow-flotante: 0 12px 32px var(--color-neu-shadow-dark);
@@ -129,18 +132,16 @@
      oscura; es lo único que no se puede resolver con los tokens. */
   color-scheme: dark;
 
-  /* Teal de marca. En oscuro hay una tensión que no tiene solución con un
-     único token: si se lo aclara para que se lea bien como texto sobre el
-     lienzo, empeora como fondo de botón con texto blanco, y al revés. Este
-     valor es justo el punto de equilibrio: ~4.3:1 en ambos sentidos
-     (texto primary sobre canvas, y blanco sobre primary). */
-  --color-primary: #158892;
-  --color-primary-hover: #1BA3AF;
-  /* Sigue en blanco (4,23:1) hasta que los botones viejos dejen de usar
-     text-white. Recién ahí se puede aclarar primary a #3AA9B3 y pasar esto
-     a #0B1F22 (6,09:1 en botones, 6,62:1 como texto); hacerlo antes
-     dejaría esos botones en 2,80:1. */
-  --color-on-primary: #FFFFFF;
+  /* Teal de marca. Con un solo token y texto blanco en los botones no había
+     valor que sirviera para las dos cosas: aclararlo para leerlo como texto
+     lo arruinaba como fondo. Con on-primary aparte sí: el teal se aclara
+     hasta leerse bien como texto (5,87:1 sobre canvas, 5,42:1 sobre surface
+     y 4,72:1 sobre primary-soft) y los botones llevan tinta oscura encima
+     (5,39:1). El hover va todavía más claro: 7,25:1 con la tinta y 7,88:1
+     como texto de enlace. */
+  --color-primary: #2F9FA9;
+  --color-primary-hover: #4DB8C1;
+  --color-on-primary: #0B1F22;
   --color-primary-soft: #0F2B31;
   --color-primary-line: #1F5A62;
 
@@ -200,18 +201,15 @@
    así usan la misma cadena de variables que "shadow" y "ring" de Tailwind y
    un ring en el mismo elemento se sigue viendo encima. */
 @layer components {
-  /* Las dos clases originales. Conservan el nombre porque ya las usan
-     varias vistas; ahora salen de los tokens. */
-  .neu-elevado {
-    @apply bg-canvas shadow-elevado;
-  }
-
-  .neu-hundido {
-    @apply bg-canvas inset-shadow-hundido;
-  }
-
   .tarjeta {
     @apply rounded-card bg-canvas shadow-elevado;
+  }
+
+  /* Tarjeta que entera es un enlace (accesos rápidos, tarjetas de Cuentas):
+     al pasar el mouse la sombra se acorta, sin cambiar de nivel, y al
+     presionarla se hunde. Va junto con .tarjeta. */
+  .tarjeta-enlace {
+    @apply hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido;
   }
 
   /* Botones: elevados en reposo, hundidos al presionar. El primario se
@@ -223,11 +221,27 @@
   }
 
   .boton-primario {
-    @apply bg-primary text-on-primary shadow-elevado-sm hover:bg-primary-hover active:bg-primary-hover active:shadow-none active:inset-shadow-presionado;
+    @apply bg-primary text-on-primary shadow-elevado-sm hover:bg-primary-hover hover:shadow-elevado-xs active:bg-primary-hover active:shadow-none active:inset-shadow-presionado;
   }
 
   .boton-secundario {
-    @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary active:shadow-none active:inset-shadow-hundido;
+    @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary hover:shadow-elevado-xs active:shadow-none active:inset-shadow-hundido;
+  }
+
+  /* Acción destructiva (cancelar un turno). Usa on-primary para el texto
+     porque el rojo cambia de luminosidad entre temas igual que el teal:
+     blanco sobre el rojo claro da 6,47:1, y la tinta oscura sobre el rojo
+     del tema oscuro, 5,64:1 (el blanco ahí daría 3,02:1). */
+  .boton-peligro {
+    @apply bg-status-cancelado text-on-primary shadow-elevado-sm hover:bg-status-cancelado/90 hover:shadow-elevado-xs active:shadow-none active:inset-shadow-presionado;
+  }
+
+  /* Botón de texto: sin relieve ni relleno, para acciones de poco peso
+     (volver, acciones dentro de una fila). No lleva padding horizontal para
+     que un "Volver" quede alineado con el título de abajo; quien lo use
+     dentro de una fila le suma px-2. */
+  .boton-texto {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-badge text-sm font-semibold text-primary no-underline hover:underline;
   }
 
   /* Campo: hundido y con borde de control. El borde de error se activa con
@@ -296,16 +310,106 @@
       bottom: 6.5rem;
       width: auto;
     }
+
+    /* Mejora progresiva: donde el navegador soporta anclaje CSS, el menú de
+       cuenta se pega al botón que lo abre (debajo y alineado a su borde
+       derecho) en vez de ir a la posición calculada de arriba. Así queda en
+       su lugar aunque el encabezado ocupe dos renglones o la página esté
+       corrida. Fuera de este @supports no cambia nada. */
+    @supports (anchor-name: --a) and (top: anchor(bottom)) {
+      .boton-cuenta {
+        anchor-name: --boton-cuenta;
+      }
+
+      .menu-cuenta {
+        position-anchor: --boton-cuenta;
+        top: calc(anchor(bottom) + 0.5rem);
+        right: anchor(right);
+      }
+    }
+  }
+
+  /* Movimiento de los componentes. Todo va dentro de no-preference: quien
+     pidió menos movimiento no recibe ninguna de estas reglas (y el bloque
+     de reduce de más abajo queda como segunda red). */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Cambios de nivel suaves: la sombra que se acorta en el hover y la que
+       se hunde al presionar. No se anima nada que mueva el layout. */
+    .boton,
+    .boton-texto,
+    .tarjeta-enlace,
+    .campo {
+      transition: box-shadow 150ms ease-out, background-color 150ms ease-out,
+                  color 150ms ease-out, border-color 150ms ease-out;
+    }
+
+    /* Entrada de los menús flotantes. Solo se anima el estado abierto y el
+       punto de partida sale de @starting-style: al menú cerrado no se le
+       toca la opacidad, así un navegador sin popover lo sigue mostrando, y
+       uno sin @starting-style lo abre de golpe, como antes. */
+    @supports selector(:popover-open) {
+      .menu-flotante:popover-open {
+        transition: opacity 160ms ease-out, translate 160ms ease-out;
+      }
+
+      @starting-style {
+        .menu-flotante:popover-open {
+          opacity: 0;
+          translate: 0 -0.375rem;
+        }
+
+        /* El de la barra inferior sube desde abajo. */
+        .menu-mas:popover-open {
+          translate: 0 0.375rem;
+        }
+      }
+    }
+
+    /* El latido del motivo de marca se dibuja una vez, al cargar el inicio.
+       El trazo lleva pathLength="1", así el guion mide lo mismo que el
+       camino. Arranca corrido un poco más que su largo (1.02) para que la
+       punta redondeada no asome como un punto antes de empezar. */
+    .motivo-animado .motivo-latido {
+      stroke-dasharray: 1 1.1;
+      stroke-dashoffset: 1.02;
+      animation: dibujar-trazo 1.4s ease-out 200ms forwards;
+    }
+  }
+}
+
+@keyframes dibujar-trazo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Fundido corto entre páginas, sin JavaScript: el navegador cruza la página
+   que se va con la que llega. Las dos tienen que pedirlo, así que una vista
+   puede quedar afuera declarando navigation: none en su sección Head (lo
+   hace Recetas/Crear). Solo para quien no pidió menos movimiento. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
   }
 }
 
 /* Foco visible en todo el sitio: contorno sólido, solo con teclado. Es un
    outline y no un ring para no mezclarse con las sombras del relieve y para
    que siga existiendo en modo de alto contraste.
-   Va fuera de las capas a propósito: las vistas tienen focus:outline-none
-   por todos lados, eso compila en la capa utilities y le ganaría a esta
-   regla si estuviera en base. Sin capa gana ella, igual que el bloque del
-   tema oscuro de más arriba. El :where() deja la especificidad en 0. */
+   Va fuera de las capas a propósito: una utilidad como focus:outline-none
+   compila en la capa utilities y le ganaría a esta regla si estuviera en
+   base. Las vistas ya no traen ninguna, pero sin capa tampoco la puede
+   anular una que se cuele más adelante; gana igual que el bloque del tema
+   oscuro de más arriba. El :where() deja la especificidad en 0.
+   Por eso en las vistas no hace falta ninguna clase de foco. La única
+   excepción son los controles ocultos con sr-only (un radio o un archivo
+   detrás de su etiqueta): ahí el contorno se le pone al contenedor con
+   has-[:focus-visible]:outline-*. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

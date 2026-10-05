@@ -3,11 +3,11 @@
     ViewData["Title"] = $"Editar perfil de {Model.NombreCompleto}";
     // asp-for agrega input-validation-error al campo con error: la variante
     // arbitraria pinta el borde con el color de error sin JavaScript.
-    const string claseCampo = "mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft [&.input-validation-error]:border-status-cancelado [&.input-validation-error]:focus:ring-status-cancelado/20";
+    const string claseCampo = "campo mt-1.5";
     const string claseEtiqueta = "block text-sm font-medium text-ink";
-    const string claseSeccion = "text-sm font-semibold uppercase tracking-wide text-muted";
+    const string claseSeccion = "text-base font-semibold text-ink";
     const string claseAyuda = "mt-1 text-xs text-muted";
-    const string claseBoton = "rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft";
+    const string claseBoton = "boton boton-primario";
 
     // El error de cada campo va con ícono además del texto y el borde, para
     // que no dependa solo del color.
@@ -60,7 +60,7 @@
    el volver va al buscador y la ficha queda como enlace aparte. *@
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <a asp-action="Index"
-       class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+       class="boton-texto text-muted hover:text-primary">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m12 19-7-7 7-7" />
@@ -71,14 +71,14 @@
     @if (Model.IdPaciente is not null)
     {
         <a asp-controller="Pacientes" asp-action="Detalle" asp-route-id="@Model.IdPaciente"
-           class="rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+           class="rounded-badge text-sm font-medium text-muted hover:text-primary">
             Ver ficha del paciente
         </a>
     }
     @if (Model.IdDoctor is not null)
     {
         <a asp-controller="Doctores" asp-action="Detalle" asp-route-id="@Model.IdDoctor"
-           class="rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+           class="rounded-badge text-sm font-medium text-muted hover:text-primary">
             Ver ficha del doctor
         </a>
     }
@@ -97,7 +97,7 @@
     </div>
 </div>
 
-<div class="mt-6 rounded-card border border-border bg-surface p-8">
+<div class="mt-6 tarjeta p-8">
     <h2 class="@claseSeccion">Datos de la cuenta</h2>
     @{ ErrorTarjeta("Cuenta"); }
 
@@ -139,7 +139,7 @@
 
 @* Subida con un formulario multipart común, sin vista previa: la foto nueva
    se ve en el avatar de arriba al recargar. Quitar es otro formulario. *@
-<div class="mt-6 rounded-card border border-border bg-surface p-8">
+<div class="mt-6 tarjeta p-8">
     <h2 class="@claseSeccion">Foto</h2>
 
     <form asp-action="SubirFoto" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
@@ -148,7 +148,7 @@
             <label for="archivo" class="@claseEtiqueta">@(Model.TieneFoto ? "Reemplazar la foto" : "Elegir una foto")</label>
             <input id="archivo" name="archivo" type="file" accept="image/jpeg,image/png,image/webp"
                    aria-describedby="ayuda-foto"
-                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-primary-line file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft" />
+                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft" />
             <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
             @{ ErrorCampo("Foto"); }
         </div>
@@ -164,7 +164,7 @@
               method="post" class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p class="text-sm text-muted">Sin foto, el avatar vuelve a mostrar las iniciales.</p>
             <button type="submit"
-                    class="rounded-input border border-status-cancelado/40 px-4 py-2.5 text-sm font-semibold text-status-cancelado hover:bg-status-cancelado/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-status-cancelado/20">
+                    class="boton boton-secundario border-status-cancelado text-status-cancelado">
                 Quitar foto
             </button>
         </form>
@@ -173,7 +173,7 @@
 
 @if (Model.Paciente is not null && Model.IdPaciente is not null)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         <h2 class="@claseSeccion">Ficha del paciente</h2>
         @{ ErrorTarjeta("Paciente"); }
 
@@ -252,7 +252,7 @@
 
 @if (Model.Doctor is not null && Model.IdDoctor is not null)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         <h2 class="@claseSeccion">Perfil de doctor</h2>
         @{ ErrorTarjeta("Doctor"); }
 
@@ -291,7 +291,7 @@
    un alta que quedó a mitad de camino). La condición la calcula el servidor. *@
 @if (Model.FaltaPerfilDoctor)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         <h2 class="@claseSeccion">Completar perfil de doctor</h2>
         <p class="mt-2 text-sm text-muted">
             Este usuario tiene rol doctor pero todavía no tiene especialidad ni

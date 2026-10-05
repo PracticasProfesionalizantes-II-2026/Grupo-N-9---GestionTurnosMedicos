@@ -3,13 +3,15 @@
     ViewData["Title"] = "Algo salió mal";
 }
 
-<div class="mx-auto max-w-lg rounded-card border border-border bg-surface p-10 text-center">
-    <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-        <path d="M12 9v4" />
-        <path d="M12 17h.01" />
-    </svg>
+<div class="mx-auto max-w-lg tarjeta p-10 text-center">
+    <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-status-cancelado/10 text-status-cancelado">
+        <svg class="size-7" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+    </span>
     <h1 class="mt-4 text-xl font-bold tracking-tight text-ink">Algo salió mal</h1>
     <p class="mx-auto mt-2 max-w-sm text-sm text-muted">
         Hubo un error inesperado procesando tu pedido. Si vuelve a pasar, avisale al equipo.
@@ -19,12 +21,12 @@
     {
         <p class="mt-4 text-xs text-muted">
             Código para el reporte:
-            <code class="rounded-badge bg-canvas px-1.5 py-0.5 font-mono text-ink">@Model.RequestId</code>
+            <code class="rounded-badge bg-surface px-1.5 py-0.5 font-mono text-ink">@Model.RequestId</code>
         </p>
     }
 
     <a asp-controller="Home" asp-action="Index"
-       class="mt-6 inline-block rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover">
+       class="boton boton-primario mt-6">
         Volver al inicio
     </a>
 </div>

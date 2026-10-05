@@ -187,7 +187,7 @@ public class HistorialController : ControladorBase
 
     private IActionResult SinPermisoDeEscritura() => SinPermiso(
         "No podés escribir en la historia clínica con tu rol",
-        "La API reserva la carga de entradas del historial al rol doctor.");
+        "Solo los doctores pueden cargar entradas en la historia clínica.");
 
     private static EntradaHistorialViewModel Mapear(EntradaHistorial entrada) => new()
     {

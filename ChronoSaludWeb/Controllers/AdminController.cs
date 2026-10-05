@@ -8,8 +8,8 @@ public class AdminController : ControladorBase
 {
     private const string TituloSinPermiso = "Esta sección es solo para administradores";
     private const string MotivoSinPermiso =
-        "El hub de Cuentas (alta asistida de paciente, doctor y administrador) es de uso exclusivo " +
-        "del rol administrador. POST /doctores en particular ya lo reserva la propia API a ese rol.";
+        "La sección Cuentas (alta de pacientes, doctores y administradores) es de uso exclusivo " +
+        "de los administradores.";
 
     private readonly AuthService _auth;
     private readonly DoctorService _doctores;

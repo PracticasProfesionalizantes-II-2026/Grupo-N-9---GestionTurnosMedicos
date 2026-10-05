@@ -30,7 +30,7 @@
         @if (Model.PuedeCrear)
         {
             <a asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
-               class="inline-flex items-center gap-1.5 rounded-input bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+               class="boton boton-primario">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M5 12h14" />
@@ -45,16 +45,16 @@
 @if (Model.PuedeElegirPaciente)
 {
     <form method="get" asp-action="Index"
-          class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+          class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
         <div class="w-full sm:w-auto sm:min-w-64">
             <label for="paciente" class="block text-sm font-medium text-ink">Paciente</label>
             <select id="paciente" name="paciente" asp-items="Model.Pacientes"
-                    class="mt-1.5 w-full rounded-input border border-primary-line bg-field px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                    class="campo mt-1.5">
                 <option value="">Elegí un paciente</option>
             </select>
         </div>
         <button type="submit"
-                class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                class="boton boton-primario">
             Ver recetas
         </button>
     </form>
@@ -62,72 +62,40 @@
 
 @if (Model.Aviso is not null)
 {
-    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-status-pendiente" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4" />
-            <path d="M12 8h.01" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No podemos mostrarte recetas</h2>
-        <p class="mx-auto mt-1 max-w-md text-sm text-muted">@Model.Aviso</p>
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "info", Tono = TonoVacio.Aviso, Nivel = 2, Titulo = "No podemos mostrarte recetas", Ayuda = Model.Aviso }' />
     </div>
 }
 else if (Model.HuboError)
 {
-    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No se pudieron cargar las recetas</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
-        <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
-            Reintentar
-        </a>
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudieron cargar las recetas", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Recetas", Accion = "Index", Ruta = Model.IdPaciente is null ? null : new Dictionary<string, string> { ["paciente"] = $"{Model.IdPaciente}" }, Descripcion = "Reintentar" } }' />
     </div>
 }
 else if (Model.SinPacienteElegido)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">Elegí un paciente</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-            La API lista las recetas por paciente, así que primero hay que elegir de quién.
-        </p>
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Elegí un paciente", Ayuda = "Las recetas se guardan por paciente, así que primero elegí de quién querés verlas." }' />
     </div>
 }
 else if (Model.Recetas.Count == 0)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-            <path d="m8.5 8.5 7 7" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No hay recetas</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-            Este paciente todavía no tiene recetas emitidas.
-        </p>
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "pastilla", Nivel = 2, Titulo = "No hay recetas", Ayuda = "Este paciente todavía no tiene recetas emitidas.", Accion = Model.PuedeCrear ? new EnlaceViewModel { Controlador = "Recetas", Accion = "Crear", Ruta = Model.IdPaciente is null ? null : new Dictionary<string, string> { ["paciente"] = $"{Model.IdPaciente}" }, Descripcion = "Nueva receta" } : null }' />
     </div>
 }
 else
 {
-    <div class="mt-6 overflow-hidden rounded-card border border-border bg-surface">
+    <div class="mt-6 overflow-hidden tarjeta">
         <ul>
             @{ var fila = 0; }
             @foreach (var receta in Model.Recetas)
             {
-                <li class="fila-animada relative flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-canvas"
+                <li class="fila-animada relative flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span aria-hidden="true"
                           class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -140,7 +108,7 @@ else
 
                     <span class="min-w-0 flex-1">
                         <a asp-action="Detalle" asp-route-id="@receta.IdReceta" asp-route-paciente="@Model.IdPaciente"
-                           class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                           class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             Receta #@receta.IdReceta
                             <span class="sr-only">— ver detalle</span>
                         </a>
@@ -157,9 +125,8 @@ else
                         }
                     </span>
 
-                    <span class="shrink-0 rounded-badge px-2 py-1 text-xs font-semibold @(receta.Vigente ? "bg-status-confirmado/10 text-status-confirmado" : "bg-canvas text-muted")">
-                        @(receta.Vigente ? "vigente" : "vencida")
-                    </span>
+                    <partial name="_Chip"
+                             model='new ChipViewModel { Texto = receta.Vigente ? "vigente" : "vencida", Tono = receta.Vigente ? TonoChip.Exito : TonoChip.Neutro, Capitalizar = true }' />
                 </li>
             }
         </ul>

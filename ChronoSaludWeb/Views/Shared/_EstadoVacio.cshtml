@@ -1,21 +1,41 @@
 @model EstadoVacioViewModel
 
+@functions {
+    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve las clases
+    // completas para que las encuentre al compilar el CSS.
+    static string ClaseCirculo(TonoVacio tono) => tono switch
+    {
+        TonoVacio.Error => "bg-status-cancelado/10 text-status-cancelado",
+        TonoVacio.Aviso => "bg-status-pendiente/10 text-status-pendiente",
+        _               => "bg-primary-soft text-primary",
+    };
+}
+
 @* Estado vacío: ícono en círculo, título, una línea de ayuda y un botón que
-   lleva a la acción que lo resuelve. No trae tarjeta propia: va adentro de la
-   que lo usa. El botón es secundario porque el primario de la pantalla ya
-   está en otro lado (el banner del inicio).
+   lleva a la acción que lo resuelve. También sirve para "falta un paso" y
+   para "no se pudo cargar", cambiando el tono. No trae tarjeta propia: va
+   adentro de la que lo usa. El botón es secundario porque el primario de la
+   pantalla ya está en otro lado (el banner del inicio, el encabezado de un
+   listado).
    Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
 <div class="px-5 py-8 text-center">
-    <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+    <span class="mx-auto flex size-14 items-center justify-center rounded-full @ClaseCirculo(Model.Tono)">
         <svg class="size-7" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             @Html.Raw(IconosLucide.Trazos(Model.Icono))
         </svg>
     </span>
-    <h3 class="mt-4 text-base font-semibold text-ink">@Model.Titulo</h3>
+    @if (Model.Nivel == 2)
+    {
+        <h2 class="mt-4 text-base font-semibold text-ink">@Model.Titulo</h2>
+    }
+    else
+    {
+        <h3 class="mt-4 text-base font-semibold text-ink">@Model.Titulo</h3>
+    }
     @if (Model.Ayuda is not null)
     {
-        <p class="mx-auto mt-1 max-w-xs text-sm text-muted">@Model.Ayuda</p>
+        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Ayuda</p>
     }
     @if (Model.Accion is { } accion)
     {
