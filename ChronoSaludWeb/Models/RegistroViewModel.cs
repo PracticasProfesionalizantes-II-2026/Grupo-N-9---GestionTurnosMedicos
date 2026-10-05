@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations;
 namespace ChronoSaludWeb.Models;
 
 /// <summary>
-/// Registro público de paciente. A propósito no tiene un campo Rol: la API
-/// acepta cualquier valor en ese campo (ver AuthService.RegistrarPacienteAsync),
-/// así que fijarlo en el código en vez de exponerlo acá es lo único que impide
-/// que alguien se autoregistre como doctor o administrador desde esta pantalla.
+/// Registro público de paciente. A propósito no tiene un campo Rol: el rol lo
+/// fija el código (ver AuthService.RegistrarPacienteAsync) y no sale del
+/// formulario. La API además rechaza cualquier otro rol sin el token de un
+/// administrador.
 /// </summary>
 public class RegistroViewModel
 {

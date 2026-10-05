@@ -11,6 +11,11 @@ public class AdminController : ControladorBase
         "La sección Cuentas (alta de pacientes, doctores y administradores) es de uso exclusivo " +
         "de los administradores.";
 
+    // La API contesta 403 sin texto cuando el token no es de un administrador.
+    private const string MensajeSinPermisoApi =
+        "No pudimos crear la cuenta porque tu sesión no tiene permiso de administrador. " +
+        "Cerrá la sesión y volvé a ingresar.";
+
     private readonly AuthService _auth;
     private readonly DoctorService _doctores;
 
@@ -66,7 +71,7 @@ public class AdminController : ControladorBase
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            ModelState.AddModelError(string.Empty, error.Message);
+            ModelState.AddModelError(string.Empty, MensajeDeRegistro(error));
             return View(modelo);
         }
 
@@ -135,11 +140,14 @@ public class AdminController : ControladorBase
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            ModelState.AddModelError(string.Empty, error.Message);
+            ModelState.AddModelError(string.Empty, MensajeDeRegistro(error));
             return View(modelo);
         }
 
         TempData["Exito"] = $"Administrador \"{modelo.Nombre} {modelo.Apellido}\" dado de alta correctamente.";
         return RedirectToAction(nameof(Index));
     }
+
+    private static string MensajeDeRegistro(ApiException error) =>
+        error.Status == StatusCodes.Status403Forbidden ? MensajeSinPermisoApi : error.Message;
 }
