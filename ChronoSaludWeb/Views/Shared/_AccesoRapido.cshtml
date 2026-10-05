@@ -7,7 +7,7 @@
     @* Elevado en reposo; al pasar el mouse la sombra se acorta y al presionar
        se hunde. *@
     <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.Ruta"
-       class="tarjeta flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido">
+       class="tarjeta tarjeta-enlace flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center">
         <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <svg class="size-6" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -30,7 +30,7 @@ else
             </svg>
         </span>
         <span class="text-sm font-medium text-ink opacity-60">@Model.Titulo</span>
-        <span class="chip bg-accent-soft text-accent-ink">Próximamente</span>
+        <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />
         @if (Model.Motivo is not null)
         {
             <span class="sr-only">@Model.Motivo</span>

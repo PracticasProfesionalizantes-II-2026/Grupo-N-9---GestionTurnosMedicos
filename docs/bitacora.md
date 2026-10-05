@@ -304,3 +304,17 @@ son botones con borde teal y hovers, que se van en F5.2. Aclarar el teal
 solo hasta 4,5:1 sobre canvas (#178E98) no alcanzaba: ahí ni el blanco
 (3,92) ni la tinta (4,34) pasaban en el botón. El botón de cancelar turno
 también usa `on-primary`: en oscuro el blanco sobre ese rojo daba 3,02.
+
+## 2026-10-04 — rediseño, F5.2: barrido por grupos de vistas
+**Hecho:** piezas compartidas: parcial `_Chip` con `ChipViewModel` y
+`TonoChip` (`_BadgeEstado` ahora delega en él), `_EstadoVacio` con tono
+(neutro, aviso, error) y nivel de título, clases `tarjeta-enlace` y
+`boton-texto`, íconos `alerta`, `info` y `persona`. En cada grupo: las
+tarjetas planas y las `neu-elevado` pasan a `tarjeta`, los botones a
+`boton-*`, los "Volver" a `boton-texto`, los estados vacíos, de aviso y
+de error a `_EstadoVacio`, y los títulos pierden las mayúsculas forzadas.
+Un commit por grupo, con build y chequeo de atributos de formulario (sin
+diferencias) antes de cada uno.
+- a. Turnos: Index, Crear, Detalle, Cancelar. Las franjas horarias son
+  `boton-secundario` y siguen siendo `submit` con su `name` y `value`;
+  "Confirmar" y "Cancelar" de cada fila son botones de texto.

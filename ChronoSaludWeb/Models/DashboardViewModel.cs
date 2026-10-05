@@ -101,9 +101,21 @@ public class BannerViewModel
     public EnlaceViewModel? Secundario { get; init; }
 }
 
+/// <summary>Qué está contando el bloque de _EstadoVacio; cambia el color del ícono.</summary>
+public enum TonoVacio
+{
+    /// <summary>No hay nada para mostrar todavía, o ningún resultado coincide.</summary>
+    Neutro,
+    /// <summary>Falta un paso previo: elegir un paciente, completar un perfil.</summary>
+    Aviso,
+    /// <summary>No se pudo cargar.</summary>
+    Error
+}
+
 /// <summary>
 /// Modelo del partial _EstadoVacio: ícono en círculo, título, una línea de
-/// ayuda y un botón que lleva a la acción que resuelve el vacío.
+/// ayuda y un botón que lleva a la acción que resuelve el vacío. Sirve igual
+/// para "no hay nada", "falta un paso" y "no se pudo cargar".
 /// </summary>
 public class EstadoVacioViewModel
 {
@@ -113,6 +125,15 @@ public class EstadoVacioViewModel
     public required string Titulo { get; init; }
     public string? Ayuda { get; init; }
     public EnlaceViewModel? Accion { get; init; }
+
+    public TonoVacio Tono { get; init; } = TonoVacio.Neutro;
+
+    /// <summary>
+    /// Nivel del título: 3 dentro de un panel que ya tiene su h2 (el valor por
+    /// defecto, el del inicio) y 2 cuando el bloque cuelga directo del h1 de
+    /// la pantalla, como en los listados.
+    /// </summary>
+    public int Nivel { get; init; } = 3;
 }
 
 public class PanelTurnosViewModel

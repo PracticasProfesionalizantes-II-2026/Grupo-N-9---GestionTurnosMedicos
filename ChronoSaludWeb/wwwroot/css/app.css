@@ -212,6 +212,13 @@
     @apply rounded-card bg-canvas shadow-elevado;
   }
 
+  /* Tarjeta que entera es un enlace (accesos rápidos, tarjetas de Cuentas):
+     al pasar el mouse la sombra se acorta, sin cambiar de nivel, y al
+     presionarla se hunde. Va junto con .tarjeta. */
+  .tarjeta-enlace {
+    @apply hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido;
+  }
+
   /* Botones: elevados en reposo, hundidos al presionar. El primario se
      distingue por el relleno y el secundario por el borde de control,
      porque la sombra sola no cuenta para el 3:1. min-h-11 son 44 px de
@@ -234,6 +241,14 @@
      del tema oscuro, 5,64:1 (el blanco ahí daría 3,02:1). */
   .boton-peligro {
     @apply bg-status-cancelado text-on-primary shadow-elevado-sm hover:bg-status-cancelado/90 active:shadow-none active:inset-shadow-presionado;
+  }
+
+  /* Botón de texto: sin relieve ni relleno, para acciones de poco peso
+     (volver, acciones dentro de una fila). No lleva padding horizontal para
+     que un "Volver" quede alineado con el título de abajo; quien lo use
+     dentro de una fila le suma px-2. */
+  .boton-texto {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-badge text-sm font-semibold text-primary no-underline hover:underline;
   }
 
   /* Campo: hundido y con borde de control. El borde de error se activa con

@@ -1,18 +1,16 @@
 @model string
 
 @functions {
-    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve la clase
-    // completa para que las encuentre al compilar el CSS.
-    static string ClaseBadge(string estado) => estado?.ToLowerInvariant() switch
+    // El estado de un turno, como chip. Un estado que no se conoce cae en el
+    // tono neutro en vez de romper.
+    static TonoChip Tono(string? estado) => estado?.ToLowerInvariant() switch
     {
-        "confirmado" => "bg-status-confirmado/10 text-status-confirmado",
-        "pendiente"  => "bg-status-pendiente/10 text-status-pendiente",
-        "completado" => "bg-status-completado/10 text-status-completado",
-        "cancelado"  => "bg-status-cancelado/10 text-status-cancelado",
-        _            => "bg-canvas text-muted",
+        "confirmado" => TonoChip.Exito,
+        "pendiente"  => TonoChip.Aviso,
+        "completado" => TonoChip.Info,
+        "cancelado"  => TonoChip.Peligro,
+        _            => TonoChip.Neutro,
     };
 }
 
-@* La forma sale de la clase chip; acá solo se elige el color. Cada estado
-   pasa 4,5:1 sobre su propio tinte, y además se lee por el texto. *@
-<span class="chip shrink-0 capitalize @ClaseBadge(Model)">@Model</span>
+<partial name="_Chip" model="new ChipViewModel { Texto = Model, Tono = Tono(Model), Capitalizar = true }" />

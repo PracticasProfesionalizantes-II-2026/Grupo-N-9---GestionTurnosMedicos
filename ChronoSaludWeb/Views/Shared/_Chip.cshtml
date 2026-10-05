@@ -1,0 +1,20 @@
+@model ChipViewModel
+
+@functions {
+    // Tailwind escanea texto, no ejecuta Razor: cada rama devuelve las clases
+    // completas para que las encuentre al compilar el CSS. Todos los tonos
+    // llevan borde (transparente en los de color) para que midan lo mismo que
+    // el neutro, que es el único que lo necesita visible.
+    static string ClaseTono(TonoChip tono) => tono switch
+    {
+        TonoChip.Exito        => "border border-transparent bg-status-confirmado/10 text-status-confirmado",
+        TonoChip.Aviso        => "border border-transparent bg-status-pendiente/10 text-status-pendiente",
+        TonoChip.Info         => "border border-transparent bg-status-completado/10 text-status-completado",
+        TonoChip.Peligro      => "border border-transparent bg-status-cancelado/10 text-status-cancelado",
+        TonoChip.Proximamente => "border border-transparent bg-accent-soft text-accent-ink",
+        _                     => "border border-control text-muted",
+    };
+}
+
+@* La forma sale de la clase chip de app.css; acá se elige el color. *@
+<span class="chip shrink-0 @ClaseTono(Model.Tono) @(Model.Capitalizar ? "capitalize" : null)">@Model.Texto</span>
