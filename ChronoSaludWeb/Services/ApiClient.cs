@@ -178,7 +178,7 @@ public class ApiClient
         catch (HttpRequestException)
         {
             throw new ApiException(
-                $"No se pudo conectar con la API. ¿Está levantada en {_http.BaseAddress}?", 0);
+                "No pudimos conectarnos con el sistema. Probá de nuevo en un momento.", 0);
         }
         catch (TaskCanceledException)
         {
