@@ -5,7 +5,7 @@
 }
 
 <a asp-action="Index"
-   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+   class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
@@ -16,19 +16,9 @@
 
 @if (Model.HuboError)
 {
-    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No se pudo cargar el paciente</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
-        <a asp-action="Detalle" asp-route-id="@Model.IdPaciente"
-           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
-            Reintentar
-        </a>
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudo cargar el paciente", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Pacientes", Accion = "Detalle", Ruta = new Dictionary<string, string> { ["id"] = $"{Model.IdPaciente}" }, Descripcion = "Reintentar" } }' />
     </div>
 }
 else
@@ -43,8 +33,8 @@ else
     </div>
 
     <div class="mt-6 grid gap-4 lg:grid-cols-3">
-        <div class="rounded-card neu-elevado p-6">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos personales</h2>
+        <div class="tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">Datos personales</h2>
             <dl class="mt-4 space-y-4">
                 <div>
                     <dt class="text-sm text-muted">Fecha de nacimiento</dt>
@@ -72,15 +62,15 @@ else
             </dl>
         </div>
 
-        <div class="rounded-card neu-elevado p-6">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos clínicos</h2>
+        <div class="tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">Datos clínicos</h2>
             <dl class="mt-4 space-y-4">
                 <div>
                     <dt class="text-sm text-muted">Grupo sanguíneo</dt>
                     <dd class="mt-1">
                         @if (!string.IsNullOrWhiteSpace(Model.GrupoSanguineo))
                         {
-                            <span class="inline-block rounded-badge bg-accent-soft px-2 py-1 text-sm font-semibold tabular-nums text-accent">
+                            <span class="inline-block rounded-badge bg-accent-soft px-2 py-1 text-sm font-semibold tabular-nums text-accent-ink">
                                 @Model.GrupoSanguineo
                             </span>
                         }
@@ -125,8 +115,8 @@ else
             </dl>
         </div>
 
-        <div class="rounded-card neu-elevado p-6">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Cobertura</h2>
+        <div class="tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">Cobertura</h2>
             @if (Model.Coberturas.Count == 0)
             {
                 <p class="mt-4 text-sm text-muted">Sin coberturas registradas.</p>
@@ -154,7 +144,7 @@ else
 
     <div class="mt-6 flex flex-wrap gap-3">
         <a asp-controller="Historial" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+           class="boton boton-secundario">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" />
@@ -165,7 +155,7 @@ else
             Historia clínica
         </a>
         <a asp-controller="Recetas" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+           class="boton boton-secundario">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
@@ -178,7 +168,7 @@ else
         @if (Auth.PuedeCargarTurnos)
         {
             <a asp-controller="Turnos" asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
-               class="inline-flex items-center gap-1.5 rounded-input bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+               class="boton boton-primario">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M8 2v4" />
@@ -196,7 +186,7 @@ else
         @if (Auth.EsAdministrador)
         {
             <a asp-controller="Usuarios" asp-action="Editar" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-               class="inline-flex items-center gap-1.5 rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+               class="boton boton-secundario">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />

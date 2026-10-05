@@ -318,3 +318,6 @@ diferencias) antes de cada uno.
 - a. Turnos: Index, Crear, Detalle, Cancelar. Las franjas horarias son
   `boton-secundario` y siguen siendo `submit` con su `name` y `value`;
   "Confirmar" y "Cancelar" de cada fila son botones de texto.
+- b. Pacientes: Index, Detalle, Crear y MiPerfil/CompletarPaciente. El
+  grupo sanguíneo pasó de `text-accent` (2,77:1 sobre el beige) a
+  `text-accent-ink`.
