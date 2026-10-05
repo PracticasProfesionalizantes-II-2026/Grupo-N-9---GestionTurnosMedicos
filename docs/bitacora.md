@@ -329,3 +329,7 @@ diferencias) antes de cada uno.
   receta" o "Nueva entrada" a quien puede cargarlas. "+" y "−" de
   Recetas/Crear son `boton-secundario` de 44 px; no cambiaron
   `formnovalidate`, acción, `asp-route-indice` ni `asp-fragment`.
+- e. Cuentas: Admin/Index (tarjetas que son enlace: `tarjeta-enlace`),
+  NuevoDoctor, NuevoAdministrador; Usuarios/Index (rol como `_Chip`,
+  paginación con botones, el paso inactivo plano) y Usuarios/Editar
+  ("Quitar foto" con borde y texto rojos a contraste completo).
