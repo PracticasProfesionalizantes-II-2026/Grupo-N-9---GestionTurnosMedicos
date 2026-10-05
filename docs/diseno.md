@@ -95,7 +95,7 @@ En las vistas no se escribe ninguna clase de foco: ni `focus:ring-*` ni `focus:o
 | Acceso rápido | Tarjeta que es enlace, con el ícono dentro de un círculo `bg-primary-soft text-primary` de `size-12` y la etiqueta debajo |
 | Estado vacío | Parcial `_EstadoVacio` dentro de una `tarjeta`: ícono en círculo, título, una línea de ayuda y **un botón** que lleve a la acción que lo resuelve. `Tono` distingue "no hay nada" (`Neutro`), "falta un paso" (`Aviso`) y "no se pudo cargar" (`Error`); `Nivel` es 2 cuando cuelga del `h1` de la pantalla y 3 dentro de un panel |
 | Filtro seleccionable | Radios dentro de `label.boton.boton-secundario` con `has-[:checked]:inset-shadow-hundido` |
-| Menú de cuenta | `<button popovertarget>` más un `<div popover class="menu-flotante">`. Abre, cierra con Escape o clic afuera y devuelve el foco sin JavaScript |
+| Menú de cuenta | `<button popovertarget>` más un `<div popover class="menu-flotante">`. Abre, cierra con Escape o clic afuera y devuelve el foco sin JavaScript. Se ubica en una posición fija bajo el encabezado y, donde el navegador soporta anclaje CSS, pegado al botón |
 | Barra inferior | Solo por debajo de 768 px. Cinco ítems como máximo, ícono y etiqueta siempre visible, `aria-current="page"` en el actual. El resto va en "Más" |
 
 Área táctil mínima: `min-h-11` (44 px con el tamaño de texto normal).

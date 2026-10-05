@@ -310,6 +310,23 @@
       bottom: 6.5rem;
       width: auto;
     }
+
+    /* Mejora progresiva: donde el navegador soporta anclaje CSS, el menú de
+       cuenta se pega al botón que lo abre (debajo y alineado a su borde
+       derecho) en vez de ir a la posición calculada de arriba. Así queda en
+       su lugar aunque el encabezado ocupe dos renglones o la página esté
+       corrida. Fuera de este @supports no cambia nada. */
+    @supports (anchor-name: --a) and (top: anchor(bottom)) {
+      .boton-cuenta {
+        anchor-name: --boton-cuenta;
+      }
+
+      .menu-cuenta {
+        position-anchor: --boton-cuenta;
+        top: calc(anchor(bottom) + 0.5rem);
+        right: anchor(right);
+      }
+    }
   }
 
   /* Movimiento de los componentes. Todo va dentro de no-preference: quien

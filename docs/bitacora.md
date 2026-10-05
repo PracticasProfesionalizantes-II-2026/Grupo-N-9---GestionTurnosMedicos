@@ -396,3 +396,19 @@ y cada clic repinta la página anclada a otra fila, así que se eligió la
 salida segura que se había previsto. Para reactivarlo, borrar esa
 sección. El chequeo de atributos marca `required` en `_Layout`: es el
 argumento `required: false` de la sección nueva, no un campo.
+
+## 2026-10-04 — rediseño, F5.4b: anclaje CSS del menú de cuenta
+**Hecho:** dentro de `@supports (anchor-name: --a) and (top:
+anchor(bottom))`, el botón de cuenta (`boton-cuenta`) declara un ancla y
+el menú se ubica con `top: anchor(bottom)` y `right: anchor(right)`. La
+posición fija de antes queda igual para los navegadores sin soporte.
+Compila; la regla está en el CSS generado.
+**A medias:** sin probar en navegador. Va en commit aparte para poder
+revertirlo solo (`git revert` de este commit) si el menú queda mal
+ubicado.
+**Sigue:** prueba manual de todo F5: tema oscuro, cada grupo de
+pantallas, teclado, Recetas/Crear con "+" y "−", menú de cuenta, y el
+sistema con "reducir movimiento" activado.
+**Ojo:** con F5 queda cerrado el rediseño. Afuera, a propósito: el
+mensaje de conexión de `ApiClient`, jQuery y la validación del cliente,
+y la pantalla de "Mis coberturas".
