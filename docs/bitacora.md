@@ -243,3 +243,25 @@ La API no se tocó; jQuery y `site.js` siguen como estaban.
 en el menú de cuenta; los márgenes laterales siguen en `px-6`; Usuarios/*
 sigue sin marcar "Cuentas" como activo, igual que antes. En un navegador
 sin `popover` los dos menús quedan a la vista dentro de la página.
+
+## 2026-10-04 — rediseño, F3: inicios por rol
+**Hecho:** banner de bienvenida (`_BannerBienvenida` + `_MotivoMarca`)
+con una frase por rol y dos botones; accesos rápidos con ícono en
+círculo y el deshabilitado plano con "Próximamente"; estados vacíos con
+botón (`_EstadoVacio`); paneles como `tarjeta` con el "ver todo" escrito
+en vez de "…"; `_BadgeEstado` sobre la clase `chip`. Textos: títulos de
+sección sin mayúsculas forzadas, "Historial de consultas", aviso del
+doctor sin `POST /doctores`, "No pudimos cargar tu inicio". Compila, CSS
+recompilado. Ningún pedido nuevo a la API; la API no se tocó.
+**A medias:** sin probar en navegador.
+**Sigue:** F4 (portada, login y registro).
+**Ojo:** el próximo turno se ordena en la Web (día y hora) entre los seis
+que ya se pedían, salteando cancelados y completados: con más de seis
+turnos futuros puede no ser el real, porque GET /turnos no tiene orden
+fijo. No se compara la hora con la actual (el servidor puede estar en
+otro huso): un turno de hoy cuenta como próximo todo el día. Decididas
+sin consulta: la lista del panel de paciente y doctor también sale
+ordenada, para que coincida con el banner; el botón de los estados
+vacíos es secundario (el primario está en el banner); el admin ve el
+total de turnos de hoy. `_BadgeEstado` cambia también Turnos/Index,
+Detalle y Cancelar. "Mis coberturas" sigue como "Próximamente".

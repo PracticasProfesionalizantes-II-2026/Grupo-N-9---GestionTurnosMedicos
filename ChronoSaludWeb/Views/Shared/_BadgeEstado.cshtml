@@ -13,4 +13,6 @@
     };
 }
 
-<span class="inline-block rounded-badge px-2 py-1 text-xs font-semibold capitalize @ClaseBadge(Model)">@Model</span>
+@* La forma sale de la clase chip; acá solo se elige el color. Cada estado
+   pasa 4,5:1 sobre su propio tinte, y además se lee por el texto. *@
+<span class="chip shrink-0 capitalize @ClaseBadge(Model)">@Model</span>

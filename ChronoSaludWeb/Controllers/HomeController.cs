@@ -77,17 +77,39 @@ public class HomeController : Controller
 
         var turnos = perfil is null
             ? Array.Empty<TurnoFilaViewModel>()
-            : (await _turnos.ObtenerAsync(
+            : EnOrden((await _turnos.ObtenerAsync(
                     pacienteId: perfil.IdPaciente,
                     desde: DateTime.Today,
                     limite: TurnosDelPanel))
-                .Turnos.Select(TurnoFilaViewModel.Desde).ToArray();
+                .Turnos.Select(TurnoFilaViewModel.Desde));
+
+        var agendar = new EnlaceViewModel
+        {
+            Controlador = "Turnos",
+            Accion = "Crear",
+            Descripcion = "Agendar turno"
+        };
 
         return new DashboardViewModel
         {
             Rol = sesion.Rol,
             Nombre = sesion.Nombre,
             Disposicion = DisposicionDashboard.ActividadDerecha,
+            // Sin perfil no hay turnos que resumir (lo explica el aviso de
+            // abajo): el banner queda solo con el saludo.
+            Banner = perfil is null
+                ? null
+                : ArmarBanner(
+                    Proximo(turnos),
+                    turno => turno.Doctor,
+                    sinTurnos: "No tenés turnos programados.",
+                    principal: agendar,
+                    secundario: new EnlaceViewModel
+                    {
+                        Controlador = "Turnos",
+                        Accion = "Index",
+                        Descripcion = "Ver mis turnos"
+                    }),
             // El registro público (CuentaController.Registro) siempre crea la
             // fila en Pacientes, así que "perfil is null" a esta altura es un
             // caso residual: un Usuario rol paciente cargado por otra vía. Si
@@ -117,7 +139,7 @@ public class HomeController : Controller
                 },
                 new AccesoRapidoViewModel
                 {
-                    Titulo = "Historial consultas",
+                    Titulo = "Historial de consultas",
                     Icono = "historia",
                     Controlador = "Historial",
                     Accion = "Index"
@@ -133,7 +155,7 @@ public class HomeController : Controller
                 {
                     Titulo = "Mis coberturas",
                     Icono = "escudo",
-                    Motivo = "La sección de coberturas todavía no está implementada."
+                    Motivo = "Todavía no podés ver tus coberturas desde acá."
                 }
             },
             Panel = new PanelTurnosViewModel
@@ -141,7 +163,13 @@ public class HomeController : Controller
                 Titulo = "Próximos turnos",
                 Vista = VistaPanel.Paciente,
                 Turnos = turnos,
-                TextoVacio = "No tenés turnos programados de hoy en adelante.",
+                TextoVacio = perfil is null
+                    ? "No hay turnos para mostrar"
+                    : "No tenés turnos programados",
+                AyudaVacio = perfil is null
+                    ? null
+                    : "Elegí especialidad, doctor y horario en pocos pasos.",
+                AccionVacio = perfil is null ? null : agendar,
                 VerMas = new EnlaceViewModel
                 {
                     Controlador = "Turnos",
@@ -162,7 +190,14 @@ public class HomeController : Controller
         var panel = new PanelActividadViewModel
         {
             Titulo = "Historial reciente",
-            TextoVacio = "Todavía no hay consultas ni recetas registradas.",
+            TextoVacio = "Todavía no tenés consultas ni recetas",
+            AyudaVacio = "Cuando un doctor te atienda, vas a ver acá lo último de tu historia clínica.",
+            AccionVacio = new EnlaceViewModel
+            {
+                Controlador = "Doctores",
+                Accion = "Index",
+                Descripcion = "Ver doctores"
+            },
             VerMas = new EnlaceViewModel
             {
                 Controlador = "Historial",
@@ -192,6 +227,8 @@ public class HomeController : Controller
             {
                 Titulo = panel.Titulo,
                 TextoVacio = panel.TextoVacio,
+                AyudaVacio = panel.AyudaVacio,
+                AccionVacio = panel.AccionVacio,
                 VerMas = panel.VerMas,
                 Entradas = entradas
             };
@@ -220,13 +257,20 @@ public class HomeController : Controller
 
         var turnos = perfil is null
             ? Array.Empty<TurnoFilaViewModel>()
-            : (await _turnos.ObtenerAsync(
+            : EnOrden((await _turnos.ObtenerAsync(
                     doctorId: perfil.IdDoctor,
                     desde: DateTime.Today,
                     limite: TurnosDelPanel))
-                .Turnos.Select(TurnoFilaViewModel.Desde).ToArray();
+                .Turnos.Select(TurnoFilaViewModel.Desde));
 
         var hoy = DateTime.Today.ToString("yyyy-MM-dd");
+
+        var todaLaAgenda = new EnlaceViewModel
+        {
+            Controlador = "Turnos",
+            Accion = "Index",
+            Descripcion = "Ver toda mi agenda"
+        };
 
         // El login solo devuelve el nombre de pila, pero /doctores/me ya nos
         // trajo el apellido, así que el saludo sale sin pedir nada más.
@@ -239,8 +283,24 @@ public class HomeController : Controller
             Rol = sesion.Rol,
             Nombre = nombre,
             Disposicion = DisposicionDashboard.PanelAbajo,
+            // Sin perfil no hay turnos que resumir (lo explica el aviso):
+            // el banner queda solo con el saludo.
+            Banner = perfil is null
+                ? null
+                : ArmarBanner(
+                    Proximo(turnos),
+                    turno => turno.Paciente,
+                    sinTurnos: "No tenés turnos agendados de hoy en adelante.",
+                    principal: new EnlaceViewModel
+                    {
+                        Controlador = "Turnos",
+                        Accion = "Index",
+                        Ruta = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy },
+                        Descripcion = "Ver turnos de hoy"
+                    },
+                    secundario: todaLaAgenda),
             Aviso = perfil is null
-                ? "Tu usuario tiene rol doctor pero no tiene un perfil de doctor cargado (matrícula, especialidad), así que la API no puede decirnos qué turnos son tuyos. Un administrador lo crea desde POST /doctores."
+                ? "Tu cuenta todavía no tiene el perfil de doctor completo (matrícula y especialidad), por eso no vemos tus turnos. Pedile a administración que lo complete."
                 : null,
             Accesos = new[]
             {
@@ -279,13 +339,11 @@ public class HomeController : Controller
                 Titulo = "Próximos turnos",
                 Vista = VistaPanel.Doctor,
                 Turnos = turnos,
-                TextoVacio = "No tenés turnos agendados de hoy en adelante.",
-                VerMas = new EnlaceViewModel
-                {
-                    Controlador = "Turnos",
-                    Accion = "Index",
-                    Descripcion = "Ver toda mi agenda"
-                }
+                TextoVacio = perfil is null
+                    ? "No hay turnos para mostrar"
+                    : "No tenés turnos agendados de hoy en adelante",
+                AccionVacio = perfil is null ? null : todaLaAgenda,
+                VerMas = todaLaAgenda
             }
         };
     }
@@ -307,10 +365,37 @@ public class HomeController : Controller
         var hoy = DateTime.Today.ToString("yyyy-MM-dd");
         var soloHoy = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy };
 
+        var nuevoTurno = new EnlaceViewModel
+        {
+            Controlador = "Turnos",
+            Accion = "Crear",
+            Descripcion = "Nuevo turno"
+        };
+
         return new DashboardViewModel
         {
             Rol = sesion.Rol,
             Nombre = sesion.Nombre,
+            // Sale del total de hoy que ya se pide para la métrica y el panel.
+            Banner = new BannerViewModel
+            {
+                Resumen = turnosHoy.Total == 0 ? "Hoy no hay turnos programados." : "Hoy hay",
+                Destacado = turnosHoy.Total switch
+                {
+                    0 => null,
+                    1 => "1 turno programado",
+                    _ => $"{turnosHoy.Total} turnos programados"
+                },
+                Cierre = turnosHoy.Total == 0 ? null : ".",
+                Principal = nuevoTurno,
+                Secundario = new EnlaceViewModel
+                {
+                    Controlador = "Turnos",
+                    Accion = "Index",
+                    Ruta = new Dictionary<string, string> { ["estado"] = "pendiente" },
+                    Descripcion = "Ver turnos pendientes"
+                }
+            },
             Metricas = new[]
             {
                 new MetricaViewModel
@@ -380,7 +465,8 @@ public class HomeController : Controller
                 Titulo = "Turnos programados",
                 Vista = VistaPanel.Administrador,
                 Turnos = turnosHoy.Turnos.Select(TurnoFilaViewModel.Desde).ToArray(),
-                TextoVacio = "No hay turnos programados para hoy.",
+                TextoVacio = "No hay turnos programados para hoy",
+                AccionVacio = nuevoTurno,
                 VerMas = new EnlaceViewModel
                 {
                     Controlador = "Turnos",
@@ -389,6 +475,71 @@ public class HomeController : Controller
                     Descripcion = "Ver todos los turnos de hoy"
                 }
             }
+        };
+    }
+
+    /// <summary>
+    /// La API no devuelve los turnos en un orden fijo, así que se ordenan acá
+    /// por día y hora. Los que no traen hora quedan al final de su día.
+    /// </summary>
+    private static TurnoFilaViewModel[] EnOrden(IEnumerable<TurnoFilaViewModel> turnos) =>
+        turnos
+            .OrderBy(turno => turno.FechaInicio.Date)
+            .ThenBy(turno => turno.Hora is null)
+            .ThenBy(turno => turno.Hora, StringComparer.Ordinal)
+            .ToArray();
+
+    /// <summary>
+    /// El primer turno de la lista (ya ordenada) que sigue en pie. Sale de los
+    /// pocos turnos que se piden para el panel: si alguien tiene más turnos
+    /// futuros que esos, el más cercano podría no estar entre ellos.
+    /// </summary>
+    private static TurnoFilaViewModel? Proximo(IEnumerable<TurnoFilaViewModel> turnos) =>
+        turnos.FirstOrDefault(turno =>
+            !turno.EstaCancelado
+            && !string.Equals(turno.Estado, "completado", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// "hoy a las 10:30", "mañana a las 9:00" o "el jueves 8 de octubre a las
+    /// 10:30". No se compara la hora con la actual: el servidor y la clínica
+    /// pueden estar en husos distintos, así que un turno de hoy cuenta como
+    /// próximo durante todo el día.
+    /// </summary>
+    private static string Cuando(TurnoFilaViewModel turno)
+    {
+        var fecha = turno.FechaInicio.Date;
+
+        var dia = fecha == DateTime.Today ? "hoy"
+            : fecha == DateTime.Today.AddDays(1) ? "mañana"
+            : "el " + fecha.ToString("dddd d 'de' MMMM", TurnosIndexViewModel.Cultura);
+
+        return turno.Hora is null ? dia : $"{dia} a las {turno.Hora}";
+    }
+
+    /// <summary>
+    /// La frase del banner para paciente y doctor: el próximo turno y con
+    /// quién, o el texto de "sin turnos". <paramref name="conQuien"/> devuelve
+    /// el nombre crudo de la otra persona; si viene vacío se omite.
+    /// </summary>
+    private static BannerViewModel ArmarBanner(
+        TurnoFilaViewModel? proximo,
+        Func<TurnoFilaViewModel, string> conQuien,
+        string sinTurnos,
+        EnlaceViewModel principal,
+        EnlaceViewModel secundario)
+    {
+        if (proximo is null)
+            return new BannerViewModel { Resumen = sinTurnos, Principal = principal, Secundario = secundario };
+
+        var persona = conQuien(proximo).Trim();
+
+        return new BannerViewModel
+        {
+            Resumen = "Tu próximo turno es",
+            Destacado = Cuando(proximo),
+            Cierre = persona.Length == 0 ? "." : $" con {persona}.",
+            Principal = principal,
+            Secundario = secundario
         };
     }
 

@@ -1,0 +1,47 @@
+@model DashboardViewModel
+
+@* Banner de bienvenida del inicio: saludo, una frase con lo más importante
+   para el rol y hasta dos botones. Lleva la única decoración grande de la
+   pantalla. En el celular el motivo va arriba del texto y chico; desde sm
+   pasa al costado derecho, y el texto se angosta para no quedar nunca encima. *@
+<section aria-labelledby="saludo" class="tarjeta relative overflow-hidden p-5 sm:p-8">
+    <div class="mb-3 h-20 w-full sm:absolute sm:inset-y-0 sm:right-0 sm:mb-0 sm:h-full sm:w-[44%] sm:p-4">
+        <partial name="_MotivoMarca" />
+    </div>
+
+    <div class="relative sm:max-w-[54%]">
+        <h1 id="saludo" class="text-2xl font-bold tracking-tight text-ink sm:text-3xl">@Model.Saludo</h1>
+
+        @if (Model.Banner is { } banner)
+        {
+            @if (banner.Resumen is not null)
+            {
+                @* El resaltado y el cierre van pegados: Cierre trae su propio
+                   espacio cuando lo necesita. *@
+                <p class="mt-2 text-base text-muted">
+                    @banner.Resumen
+                    @if (banner.Destacado is not null)
+                    {
+                        <text><strong class="font-semibold text-ink">@banner.Destacado</strong>@banner.Cierre</text>
+                    }
+                </p>
+            }
+
+            @if (banner.Principal is not null || banner.Secundario is not null)
+            {
+                <div class="mt-5 flex flex-wrap gap-3">
+                    @if (banner.Principal is { } principal)
+                    {
+                        <a asp-controller="@principal.Controlador" asp-action="@principal.Accion" asp-all-route-data="principal.Ruta"
+                           class="boton boton-primario">@principal.Descripcion</a>
+                    }
+                    @if (banner.Secundario is { } secundario)
+                    {
+                        <a asp-controller="@secundario.Controlador" asp-action="@secundario.Accion" asp-all-route-data="secundario.Ruta"
+                           class="boton boton-secundario">@secundario.Descripcion</a>
+                    }
+                </div>
+            }
+        }
+    </div>
+</section>

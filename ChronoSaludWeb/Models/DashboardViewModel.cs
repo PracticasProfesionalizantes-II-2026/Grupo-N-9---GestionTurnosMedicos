@@ -36,8 +36,10 @@ public class EnlaceViewModel
     public IDictionary<string, string>? Ruta { get; init; }
 
     /// <summary>
-    /// Qué se va a ver al seguirlo. Va en un sr-only porque un "…" solo no le
-    /// dice nada a un lector de pantalla.
+    /// Qué se va a ver al seguirlo, escrito para entenderse solo ("Ver todos
+    /// mis turnos"). Es el texto del enlace o del botón; donde solo hay lugar
+    /// para un "…" va en un sr-only, porque tres puntos no le dicen nada a un
+    /// lector de pantalla.
     /// </summary>
     public required string Descripcion { get; init; }
 }
@@ -57,7 +59,10 @@ public class AccesoRapidoViewModel
     public string? Accion { get; init; }
     public IDictionary<string, string>? Ruta { get; init; }
 
-    /// <summary>Por qué está deshabilitada. Se muestra como tooltip.</summary>
+    /// <summary>
+    /// Por qué está deshabilitada. A la vista va la etiqueta "Próximamente";
+    /// este texto lo lee el lector de pantalla.
+    /// </summary>
     public string? Motivo { get; init; }
 
     public bool Habilitado => Controlador is not null && Accion is not null;
@@ -75,14 +80,55 @@ public class MetricaViewModel
     public EnlaceViewModel? VerMas { get; init; }
 }
 
+/// <summary>
+/// Lo que va debajo del saludo en el banner del inicio: una frase con una
+/// parte resaltada y hasta dos botones. Las tres partes de la frase se
+/// escriben seguidas, así que <see cref="Cierre"/> trae su propio espacio
+/// inicial cuando lo necesita (" con Ana Pérez." o solo ".").
+/// </summary>
+public class BannerViewModel
+{
+    public string? Resumen { get; init; }
+
+    /// <summary>La parte que va en negrita, ej. "jueves 8 de octubre a las 10:30".</summary>
+    public string? Destacado { get; init; }
+
+    public string? Cierre { get; init; }
+
+    /// <summary>La acción más probable para este rol. Va como botón primario.</summary>
+    public EnlaceViewModel? Principal { get; init; }
+
+    public EnlaceViewModel? Secundario { get; init; }
+}
+
+/// <summary>
+/// Modelo del partial _EstadoVacio: ícono en círculo, título, una línea de
+/// ayuda y un botón que lleva a la acción que resuelve el vacío.
+/// </summary>
+public class EstadoVacioViewModel
+{
+    /// <summary>Clave del ícono; el partial la traduce a un SVG.</summary>
+    public required string Icono { get; init; }
+
+    public required string Titulo { get; init; }
+    public string? Ayuda { get; init; }
+    public EnlaceViewModel? Accion { get; init; }
+}
+
 public class PanelTurnosViewModel
 {
     public required string Titulo { get; init; }
     public required VistaPanel Vista { get; init; }
     public IReadOnlyList<TurnoFilaViewModel> Turnos { get; init; } = Array.Empty<TurnoFilaViewModel>();
 
-    /// <summary>Texto del estado vacío, propio de cada rol.</summary>
+    /// <summary>Título del estado vacío, propio de cada rol.</summary>
     public required string TextoVacio { get; init; }
+
+    /// <summary>Línea de ayuda debajo del título del estado vacío.</summary>
+    public string? AyudaVacio { get; init; }
+
+    /// <summary>Botón del estado vacío: adónde ir cuando no hay turnos.</summary>
+    public EnlaceViewModel? AccionVacio { get; init; }
 
     public EnlaceViewModel? VerMas { get; init; }
 }
@@ -112,6 +158,12 @@ public class PanelActividadViewModel
     public IReadOnlyList<ActividadRecienteViewModel> Entradas { get; init; } = Array.Empty<ActividadRecienteViewModel>();
     public required string TextoVacio { get; init; }
 
+    /// <summary>Línea de ayuda debajo del título del estado vacío.</summary>
+    public string? AyudaVacio { get; init; }
+
+    /// <summary>Botón del estado vacío.</summary>
+    public EnlaceViewModel? AccionVacio { get; init; }
+
     /// <summary>Mensaje si la API falló al traer historial o recetas.</summary>
     public string? Error { get; init; }
 
@@ -140,6 +192,12 @@ public class DashboardViewModel
 
     /// <summary>Acción sugerida junto al aviso, ej. "Completar mi perfil".</summary>
     public EnlaceViewModel? AvisoEnlace { get; init; }
+
+    /// <summary>
+    /// Frase y botones del banner de bienvenida. Null cuando el rol no tiene
+    /// nada que resumir: el banner muestra solo el saludo.
+    /// </summary>
+    public BannerViewModel? Banner { get; init; }
 
     public DisposicionDashboard Disposicion { get; init; } = DisposicionDashboard.PanelDerecha;
 

@@ -1,10 +1,11 @@
 @model EnlaceViewModel
 
-@* El "…" de las tarjetas: lleva a la pantalla que muestra todo lo que la
-   tarjeta resume. El texto va en un sr-only porque tres puntos solos no le
-   dicen nada a un lector de pantalla. *@
+@* El "…" de las tarjetas de número, donde no hay lugar para un texto: lleva a
+   la pantalla que muestra todo lo que la tarjeta resume. El texto va en un
+   sr-only porque tres puntos solos no le dicen nada a un lector de pantalla.
+   El foco lo dibuja la regla global de app.css. *@
 <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.Ruta"
-   class="inline-flex shrink-0 items-center rounded-badge px-2 py-1 text-muted transition-colors hover:bg-primary-soft/40 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+   class="inline-flex shrink-0 items-center rounded-badge px-2 py-1 text-muted transition-colors hover:bg-primary-soft/40 hover:text-primary">
     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         @Html.Raw(IconosLucide.Trazos("puntos"))

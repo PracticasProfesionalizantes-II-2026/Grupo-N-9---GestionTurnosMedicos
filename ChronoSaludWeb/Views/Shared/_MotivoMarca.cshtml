@@ -1,0 +1,16 @@
+@* Motivo de marca: una línea de latido que termina en el centro de unos
+   arcos tipo reloj (docs/diseno.md). Es decorativo: va una sola vez por
+   pantalla, nunca debajo de texto, y oculto para los lectores de pantalla.
+   El tamaño lo da el contenedor; el dibujo se alinea a la derecha. Los arcos
+   son círculos recortados con stroke-dasharray sobre un pathLength fijo. *@
+<svg class="h-full w-full" viewBox="0 0 480 200" preserveAspectRatio="xMaxYMid meet" fill="none"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="360" cy="100" r="96" pathLength="120" stroke-dasharray="1.2 8.8" stroke-width="7" stroke-linecap="butt" class="stroke-primary-line" />
+    <circle cx="360" cy="100" r="80" pathLength="100" stroke-dasharray="68 32" stroke-width="2" transform="rotate(-150 360 100)" class="stroke-primary-line" />
+    <circle cx="360" cy="100" r="58" pathLength="100" stroke-dasharray="46 54" stroke-width="2" transform="rotate(20 360 100)" class="stroke-primary-line" />
+    <circle cx="360" cy="100" r="34" pathLength="100" stroke-dasharray="58 42" stroke-width="2.5" transform="rotate(-60 360 100)" class="stroke-accent" />
+    <path d="M360 100V58" stroke-width="3" class="stroke-primary-line" />
+    <path d="M360 100l24 14" stroke-width="3" class="stroke-primary-line" />
+    <path d="M12 100H150l14-12 12 12h18l14-52 18 96 16-66 12 22H360" stroke-width="2.5" class="stroke-primary" />
+    <circle cx="360" cy="100" r="4" class="fill-primary" />
+</svg>

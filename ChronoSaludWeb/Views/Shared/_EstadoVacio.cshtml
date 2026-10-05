@@ -1,0 +1,25 @@
+@model EstadoVacioViewModel
+
+@* Estado vacío: ícono en círculo, título, una línea de ayuda y un botón que
+   lleva a la acción que lo resuelve. No trae tarjeta propia: va adentro de la
+   que lo usa. El botón es secundario porque el primario de la pantalla ya
+   está en otro lado (el banner del inicio).
+   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+<div class="px-5 py-8 text-center">
+    <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+        <svg class="size-7" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            @Html.Raw(IconosLucide.Trazos(Model.Icono))
+        </svg>
+    </span>
+    <h3 class="mt-4 text-base font-semibold text-ink">@Model.Titulo</h3>
+    @if (Model.Ayuda is not null)
+    {
+        <p class="mx-auto mt-1 max-w-xs text-sm text-muted">@Model.Ayuda</p>
+    }
+    @if (Model.Accion is { } accion)
+    {
+        <a asp-controller="@accion.Controlador" asp-action="@accion.Accion" asp-all-route-data="accion.Ruta"
+           class="boton boton-secundario mt-5">@accion.Descripcion</a>
+    }
+</div>
