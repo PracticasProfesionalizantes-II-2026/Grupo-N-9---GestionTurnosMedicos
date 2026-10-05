@@ -5,7 +5,7 @@
     // La tarjeta entera es el label: se marca sola con has-[:checked] (CSS puro,
     // sin JavaScript) y el radio nativo queda a la vista para que se entienda
     // que es una opción única y siga funcionando con teclado.
-    const string claseOpcion = "flex cursor-pointer items-start gap-3 rounded-input border border-border bg-canvas px-4 py-3 transition-colors hover:border-primary-line has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-soft";
+    const string claseOpcion = "group flex cursor-pointer items-start gap-3 rounded-input border border-control bg-canvas px-4 py-3 shadow-elevado-sm has-[:checked]:border-primary has-[:checked]:shadow-none has-[:checked]:inset-shadow-hundido";
     const string claseRadio = "mt-0.5 h-4 w-4 shrink-0 accent-primary";
 }
 
@@ -16,7 +16,7 @@
         se mantiene aunque cierres sesión, y no cambia nada para el resto.
     </p>
 
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         <form asp-action="Guardar" method="post">
             <input type="hidden" asp-for="UrlRetorno" />
 
@@ -31,7 +31,7 @@
                             <input asp-for="Tema" type="radio" value="@opcion.Valor"
                                    id="tema-@opcion.Valor" class="@claseRadio" />
                             <span>
-                                <span class="block text-sm font-medium text-ink">@opcion.Titulo</span>
+                                <span class="block text-sm font-medium text-ink group-has-[:checked]:font-bold">@opcion.Titulo</span>
                                 <span class="mt-0.5 block text-xs text-muted">@opcion.Descripcion</span>
                             </span>
                         </label>
@@ -53,7 +53,7 @@
                             <input asp-for="Escala" type="radio" value="@opcion.Valor"
                                    id="escala-@opcion.Valor" class="@claseRadio" />
                             <span>
-                                <span class="block text-sm font-medium text-ink">@opcion.Titulo</span>
+                                <span class="block text-sm font-medium text-ink group-has-[:checked]:font-bold">@opcion.Titulo</span>
                                 <span class="mt-0.5 block text-xs text-muted">@opcion.Descripcion</span>
                             </span>
                         </label>
@@ -63,7 +63,7 @@
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
                 <button type="submit"
-                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                        class="boton boton-primario">
                     Guardar
                 </button>
                 <span class="text-xs text-muted">Los cambios se aplican al guardar.</span>

@@ -333,3 +333,16 @@ diferencias) antes de cada uno.
   NuevoDoctor, NuevoAdministrador; Usuarios/Index (rol como `_Chip`,
   paginación con botones, el paso inactivo plano) y Usuarios/Editar
   ("Quitar foto" con borde y texto rojos a contraste completo).
+- f. Ajustes (cada opción elevada en reposo y hundida y en negrita al
+  elegirla), Home/Privacy, Shared/Error, NoEncontrado y SinPermiso (ícono
+  en círculo; el candado pasó de `text-accent` a `accent-ink`). Las
+  iniciales del avatar de doctor también pasaron a `accent-ink`. Se
+  borraron `.neu-elevado` y `.neu-hundido`: ya no las usa ninguna vista.
+**Sigue:** F5.2g (textos con jerga), después foco y movimiento.
+**Ojo:** decididas sin consulta: las tres páginas sueltas (Error,
+NoEncontrado, SinPermiso) no usan `_EstadoVacio` porque su título es el
+`h1` de la página y traen texto con formato; los dos avisos chicos de
+Turnos/Crear ("No hay horarios libres ese día") quedaron como nota
+dentro del formulario; "Reintentar" de la búsqueda de usuarios ya no
+manda filtros vacíos en la URL. Los botones miden ahora 44 px de alto
+mínimo y los campos algo más: las filas de filtros quedaron más altas.

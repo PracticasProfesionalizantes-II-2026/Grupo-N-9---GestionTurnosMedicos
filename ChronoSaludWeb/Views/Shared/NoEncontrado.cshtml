@@ -6,7 +6,7 @@
 }
 
 <a asp-action="Index"
-   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+   class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
@@ -15,23 +15,25 @@
     Volver al listado
 </a>
 
-<div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
-    <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M8 2v4" />
-        <path d="M16 2v4" />
-        <rect width="18" height="18" x="3" y="4" rx="2" />
-        <path d="M3 10h18" />
-        <path d="m14 14-4 4" />
-        <path d="m10 14 4 4" />
-    </svg>
+<div class="mt-6 tarjeta p-10 text-center">
+    <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+        <svg class="size-7" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2v4" />
+            <path d="M16 2v4" />
+            <rect width="18" height="18" x="3" y="4" rx="2" />
+            <path d="M3 10h18" />
+            <path d="m14 14-4 4" />
+            <path d="m10 14 4 4" />
+        </svg>
+    </span>
     <h1 class="mt-4 text-base font-semibold text-ink">@titulo</h1>
     <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
         No existe ningún @entidad con el número <span class="font-medium tabular-nums text-ink">@Model</span>.
         Puede que lo hayan eliminado o que el enlace esté mal.
     </p>
     <a asp-action="Index"
-       class="mt-6 inline-block rounded-input bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary-hover">
+       class="boton boton-primario mt-6">
         Ir al listado
     </a>
 </div>

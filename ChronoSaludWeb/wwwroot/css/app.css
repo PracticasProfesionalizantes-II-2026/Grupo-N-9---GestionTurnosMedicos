@@ -198,16 +198,6 @@
    así usan la misma cadena de variables que "shadow" y "ring" de Tailwind y
    un ring en el mismo elemento se sigue viendo encima. */
 @layer components {
-  /* Las dos clases originales. Conservan el nombre porque ya las usan
-     varias vistas; ahora salen de los tokens. */
-  .neu-elevado {
-    @apply bg-canvas shadow-elevado;
-  }
-
-  .neu-hundido {
-    @apply bg-canvas inset-shadow-hundido;
-  }
-
   .tarjeta {
     @apply rounded-card bg-canvas shadow-elevado;
   }
