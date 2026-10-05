@@ -19,6 +19,9 @@ public class UsuarioRepository : IUsuarioRepository
     public async Task<Usuario?> ObtenerPorEmail(string email)
         => await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
 
+    public async Task<bool> HayAdministradorActivo()
+        => await _db.Usuarios.AnyAsync(u => u.Rol == "administrador" && u.Activo);
+
     public async Task Agregar(Usuario usuario)
     {
         _db.Usuarios.Add(usuario);
