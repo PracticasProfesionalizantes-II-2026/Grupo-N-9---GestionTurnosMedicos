@@ -1,7 +1,8 @@
-/* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
-   dotnet build ChronoSaludWeb -t:CompilarCss *//* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind:
-   dotnet build ChronoSaludWeb -t:CompilarCss *
-   Este archivo se edita a mano; app.build.css es generado, no se toca. */
+/* Fuente de Tailwind. Se compila a app.build.css con el CLI de Tailwind,
+   desde la raíz del repo:
+   ./ChronoSaludWeb/tools/tailwindcss.exe -i ChronoSaludWeb/wwwroot/css/app.css -o ChronoSaludWeb/wwwroot/css/app.build.css --minify
+   Este archivo se edita a mano; app.build.css es generado, no se toca.
+   Los tokens y las clases de acá abajo siguen la guía de docs/diseno.md. */
 
 @import "tailwindcss" source(none);
 
@@ -17,17 +18,54 @@
    El :where() mantiene la especificidad en 0, igual que la variante original. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Plus Jakarta Sans servida desde el propio sitio (wwwroot/fonts), sin CDN.
+   Es la fuente variable, así que un solo archivo cubre todos los pesos. Van
+   dos subconjuntos con su unicode-range: el navegador baja "latin" siempre y
+   "latin-ext" solo si la página trae algún carácter de ese rango (un
+   apellido con ő o ž, por ejemplo). */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fonts/PlusJakartaSans-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("../fonts/PlusJakartaSans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --color-primary: #0E7C86;
+  /* Teal de marca. 5,02:1 como texto sobre canvas, 4,72:1 sobre
+     primary-soft y 5,74:1 con on-primary encima. */
+  --color-primary: #0D717A;
   --color-primary-hover: #0A5F67;
+  /* Texto e íconos sobre primary. Token aparte para que el tema oscuro
+     pueda cambiarlo sin tocar las vistas. */
+  --color-on-primary: #FFFFFF;
   --color-primary-soft: #D7EDF0;
+  /* Solo decorativo (1,4:1 sobre canvas): no delimita campos ni lleva
+     información. */
   --color-primary-line: #A8D5DB;
+  /* Castaño: accent es decorativo (2,94:1); para texto o ícono se usa
+     accent-ink (5,25:1 sobre canvas, 4,94:1 sobre accent-soft). */
   --color-accent: #B08268;
+  --color-accent-ink: #85593F;
   --color-accent-soft: #F2E7E1;
   --color-canvas: #F4EFE9;
   --color-surface: #FBF7F2;
+  /* border es solo divisor (1,2:1). El borde que delimita campos, botones
+     secundarios y componentes es control: 3,73:1 sobre canvas, 4,00:1 sobre
+     surface y 4,27:1 sobre field. */
   --color-border: #E3DAD1;
+  --color-control: #7F7A70;
   /* Fondo de los campos de formulario. Necesita token propio porque es la
      única superficie cuya relación con la tarjeta se invierte entre temas:
      en claro el campo va por encima de surface (blanco puro) y en oscuro
@@ -35,10 +73,13 @@
      mal. */
   --color-field: #FFFFFF;
   --color-ink: #1C2321;
-  --color-muted: #6B7671;
-  --color-status-pendiente: #B45309;
-  --color-status-confirmado: #15803D;
-  --color-status-completado: #0284C7;
+  /* 5,22:1 sobre canvas y 5,60:1 sobre surface. */
+  --color-muted: #5B6661;
+  /* Estados: cada uno pasa 4,5:1 como texto sobre su propio tinte al 10 %,
+     que es como se usan en los chips (5,05 / 5,02 / 5,26 / 4,81). */
+  --color-status-pendiente: #96450A;
+  --color-status-confirmado: #116B33;
+  --color-status-completado: #075E91;
   --color-status-cancelado: #B91C1C;
   --radius-badge: 6px;
   --radius-input: 10px;
@@ -52,6 +93,23 @@
      se ve más pesada de lo que aporta en contraste real. */
   --color-neu-shadow-dark: rgba(176, 130, 104, 0.28);
   --color-neu-shadow-light: rgba(255, 252, 245, 0.85);
+  /* Niveles de relieve. Al estar en el @theme, Tailwind genera las
+     utilidades shadow-elevado, shadow-elevado-sm, shadow-flotante,
+     inset-shadow-hundido e inset-shadow-presionado, que ya se componen con
+     ring y con las variantes hover: y active:.
+     Offset chico + blur muy corto hace que la sombra clara no llegue a
+     degradarse: se ve casi opaca hasta el borde del blur y ahí "corta" en
+     vez de desvanecer. Por eso la clara lleva más blur que la oscura (se
+     nota menos su corte al ser casi del color del lienzo). */
+  --shadow-elevado: 5px 5px 16px var(--color-neu-shadow-dark), -5px -5px 22px var(--color-neu-shadow-light);
+  --shadow-elevado-sm: 3px 3px 8px var(--color-neu-shadow-dark), -3px -3px 10px var(--color-neu-shadow-light);
+  /* Menús que flotan sobre contenido cualquiera: una sola sombra hacia
+     abajo, porque la doble solo funciona sobre el lienzo liso. */
+  --shadow-flotante: 0 12px 32px var(--color-neu-shadow-dark);
+  --inset-shadow-hundido: inset 3px 3px 8px var(--color-neu-shadow-dark), inset -3px -3px 8px var(--color-neu-shadow-light);
+  /* Presionado del botón primario: sobre el teal la sombra de la paleta no
+     se ve, hace falta una oscura neutra. */
+  --inset-shadow-presionado: inset 2px 2px 6px rgb(0 0 0 / 0.3);
 }
 
 /* Tema oscuro. Se redefinen los mismos tokens del @theme, no se agregan
@@ -78,6 +136,11 @@
      (texto primary sobre canvas, y blanco sobre primary). */
   --color-primary: #158892;
   --color-primary-hover: #1BA3AF;
+  /* Sigue en blanco (4,23:1) hasta que los botones viejos dejen de usar
+     text-white. Recién ahí se puede aclarar primary a #3AA9B3 y pasar esto
+     a #0B1F22 (6,09:1 en botones, 6,62:1 como texto); hacerlo antes
+     dejaría esos botones en 2,80:1. */
+  --color-on-primary: #FFFFFF;
   --color-primary-soft: #0F2B31;
   --color-primary-line: #1F5A62;
 
@@ -85,6 +148,8 @@
      (bordes, iconos, detalles) y nunca fondo de texto chico: acá conviene
      priorizar que se distinga del marrón del lienzo. 6.4:1 sobre canvas. */
   --color-accent: #C08F73;
+  /* En oscuro el mismo tono ya sirve como texto (6,54:1 sobre canvas). */
+  --color-accent-ink: #C08F73;
   --color-accent-soft: #33241C;
 
   /* Lienzo y superficie: marrón casi negro, con la superficie apenas por
@@ -93,6 +158,9 @@
   --color-canvas: #16130F;
   --color-surface: #1F1B16;
   --color-border: #322C25;
+  /* Borde de campos y componentes: 3,82:1 sobre canvas, 3,53:1 sobre
+     surface. */
+  --color-control: #7A7065;
 
   /* El campo baja al nivel del lienzo, un escalón por debajo de la tarjeta
      que lo contiene: es el equivalente en oscuro del blanco sobre hueso del
@@ -123,41 +191,75 @@
   --color-neu-shadow-light: rgba(129, 111, 96, 0.22);
 }
 
-/* Prueba acotada de neumorfismo en la home de admin (ver commit de esta
-   pasada): la tarjeta comparte fondo con el lienzo en vez de diferenciarse
-   por color y borde, y dos sombras opuestas simulan el volumen que antes
-   daba ese borde. El box-shadow se arma con la misma cadena de variables
-   que usan las utilidades "shadow" y "ring" de Tailwind (confirmado en
-   app.build.css) para que un focus-visible:ring-2 en el mismo elemento se
-   siga viendo encima en vez de que uno pise al otro. */
+/* Soft UI: la pieza comparte fondo con el lienzo en vez de diferenciarse
+   por color y borde, y dos sombras opuestas simulan el volumen. Cada nivel
+   significa una cosa sola (docs/diseno.md): elevado para tarjetas y
+   botones; hundido para campos, botón presionado y lo seleccionado; plano
+   para lo deshabilitado.
+   Las clases se arman con @apply sobre las utilidades de sombra del @theme,
+   así usan la misma cadena de variables que "shadow" y "ring" de Tailwind y
+   un ring en el mismo elemento se sigue viendo encima. */
 @layer components {
-  /* Offset chico + blur muy corto hace que la sombra clara no llegue a
-     degradarse: se ve casi opaca hasta el borde del blur y ahí "corta" en
-     vez de desvanecer. Por eso la clara lleva más blur que la oscura (se
-     nota menos su corte al ser casi del color del lienzo) y ambas bajan
-     el offset para que el volumen no se sienta cargado hacia un lado. */
+  /* Las dos clases originales. Conservan el nombre porque ya las usan
+     varias vistas; ahora salen de los tokens. */
   .neu-elevado {
-    background-color: var(--color-canvas);
-    --tw-shadow: 5px 5px 16px var(--color-neu-shadow-dark),
-                 -5px -5px 22px var(--color-neu-shadow-light);
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
-                var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
-                var(--tw-shadow);
+    @apply bg-canvas shadow-elevado;
   }
 
-  /* Relieve hundido, sutil a propósito: para el acceso rápido deshabilitado,
-     que tiene que leerse como "espacio vacío" y no como una tarjeta rota o
-     sin terminar. Mismos tokens de color que la elevada, invertidos con
-     inset y con menor offset/blur para que no compita visualmente con las
-     tarjetas activas de al lado. */
   .neu-hundido {
-    background-color: var(--color-canvas);
-    --tw-inset-shadow: inset 3px 3px 8px var(--color-neu-shadow-dark),
-                       inset -3px -3px 8px var(--color-neu-shadow-light);
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow),
-                var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
-                var(--tw-shadow);
+    @apply bg-canvas inset-shadow-hundido;
   }
+
+  .tarjeta {
+    @apply rounded-card bg-canvas shadow-elevado;
+  }
+
+  /* Botones: elevados en reposo, hundidos al presionar. El primario se
+     distingue por el relleno y el secundario por el borde de control,
+     porque la sombra sola no cuenta para el 3:1. min-h-11 son 44 px de
+     área táctil con el texto en tamaño normal, y acompaña la escala. */
+  .boton {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-input px-4 py-2.5 text-center text-sm font-semibold no-underline;
+  }
+
+  .boton-primario {
+    @apply bg-primary text-on-primary shadow-elevado-sm hover:bg-primary-hover active:bg-primary-hover active:shadow-none active:inset-shadow-presionado;
+  }
+
+  .boton-secundario {
+    @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary active:shadow-none active:inset-shadow-hundido;
+  }
+
+  /* Campo: hundido y con borde de control. El borde de error se activa con
+     aria-invalid o con la clase que ASP.NET le pone al campo que no validó
+     en el servidor, así no depende de JavaScript. */
+  .campo {
+    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-sm text-ink inset-shadow-hundido placeholder:text-muted;
+  }
+
+  .campo.input-validation-error,
+  .campo[aria-invalid="true"] {
+    @apply border-status-cancelado;
+  }
+
+  /* Chip: la forma. El color lo pone quien lo usa (bg-status-X/10
+     text-status-X), con la clase completa escrita para que Tailwind la
+     encuentre. */
+  .chip {
+    @apply inline-flex items-center rounded-badge px-2 py-1 text-xs font-semibold;
+  }
+}
+
+/* Foco visible en todo el sitio: contorno sólido, solo con teclado. Es un
+   outline y no un ring para no mezclarse con las sombras del relieve y para
+   que siga existiendo en modo de alto contraste.
+   Va fuera de las capas a propósito: las vistas tienen focus:outline-none
+   por todos lados, eso compila en la capa utilities y le ganaría a esta
+   regla si estuviera en base. Sin capa gana ella, igual que el bloque del
+   tema oscuro de más arriba. El :where() deja la especificidad en 0. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Entrada escalonada de las filas de los listados. El retraso de cada fila lo

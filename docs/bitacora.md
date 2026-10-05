@@ -211,3 +211,18 @@ un aviso el enlace va en tinta subrayada, porque el teal sobre ese tinte
 da 4,35:1; (2) el popover usa posición fija y no anclaje CSS, que no se
 puede probar sin navegador; (3) los componentes nuevos no llevan
 transiciones, quedan para F5.
+
+## 2026-10-04 — rediseño, F1: tokens, fuente local y clases
+**Hecho:** `app.css` con los valores nuevos (primary #0D717A, muted,
+los tres estados que no pasaban), los tokens `control`, `accent-ink`,
+`on-primary` y las sombras como tokens, `@font-face` local, clases
+`tarjeta`, `boton`, `boton-primario`, `boton-secundario`, `campo` y
+`chip`, y la regla global de foco. `.neu-elevado` y `.neu-hundido`
+conservan el nombre. No se tocó ninguna vista. CSS recompilado, compila.
+**Sigue:** F2 (layout, menú de cuenta y barra inferior).
+**Ojo:** la regla de foco va FUERA de las capas y no en `@layer base`
+como se había pedido: los 99 `focus:outline-none` de las vistas compilan
+en la capa utilities y le ganaban. Si se prefiere en base, es mover el
+bloque. En oscuro `on-primary` sigue blanco (4,23:1) hasta F5. Los campos
+viejos siguen con borde `primary-line` (1,59:1) hasta el barrido. El
+enlace a Google Fonts sigue en el layout hasta F2.
