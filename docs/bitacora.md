@@ -346,3 +346,19 @@ Turnos/Crear ("No hay horarios libres ese día") quedaron como nota
 dentro del formulario; "Reintentar" de la búsqueda de usuarios ya no
 manda filtros vacíos en la URL. Los botones miden ahora 44 px de alto
 mínimo y los campos algo más: las filas de filtros quedaron más altas.
+
+## 2026-10-04 — rediseño, F5.2g: textos sin jerga
+**Hecho:** 22 textos visibles que nombraban "la API", rutas o verbos
+HTTP pasaron a frases en voseo sin términos técnicos: 7 en vistas
+(Cuentas, Nuevo doctor, Nuevo administrador, Recetas, Historia clínica,
+detalle de turno) y 15 mensajes de controladores y servicios que llegan
+a la pantalla (motivos de "sin permiso", errores de formulario y de
+conexión). Además, dos títulos a sentence case en Pacientes/Crear. Solo
+cambió el texto de los literales; compila y el chequeo de atributos no
+muestra diferencias.
+**Sigue:** F5.3 (foco) y F5.4 (movimiento).
+**Ojo:** NO se tocó "No se pudo conectar con la API. ¿Está levantada en
+{url}?" de `ApiClient`: en la limpieza del login se había decidido
+dejarlo. Es el único texto visible que sigue nombrando la API. El mensaje
+de log de `UsuarioService` tampoco, porque no se muestra. Los comentarios
+del código siguen hablando de la API, a propósito.

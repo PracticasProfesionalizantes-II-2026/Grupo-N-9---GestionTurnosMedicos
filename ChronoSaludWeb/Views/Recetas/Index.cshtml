@@ -78,7 +78,7 @@ else if (Model.SinPacienteElegido)
 {
     <div class="tarjeta mt-6">
         <partial name="_EstadoVacio"
-                 model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Elegí un paciente", Ayuda = "La API lista las recetas por paciente, así que primero hay que elegir de quién." }' />
+                 model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Elegí un paciente", Ayuda = "Las recetas se guardan por paciente, así que primero elegí de quién querés verlas." }' />
     </div>
 }
 else if (Model.Recetas.Count == 0)

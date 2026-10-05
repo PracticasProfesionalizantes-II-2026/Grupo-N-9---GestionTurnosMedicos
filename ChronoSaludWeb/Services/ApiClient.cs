@@ -100,7 +100,7 @@ public class ApiClient
             }
             catch (JsonException)
             {
-                throw new ApiException("La API devolvió una respuesta que no se pudo interpretar.", estado);
+                throw new ApiException("Recibimos una respuesta que no pudimos interpretar. Probá de nuevo en un momento.", estado);
             }
         }
     }
@@ -182,7 +182,7 @@ public class ApiClient
         }
         catch (TaskCanceledException)
         {
-            throw new ApiException("La API tardó demasiado en responder.", 0);
+            throw new ApiException("El sistema tardó demasiado en responder. Probá de nuevo en un momento.", 0);
         }
 
         // El token venció o no es válido: se cierra la sesión y el controlador

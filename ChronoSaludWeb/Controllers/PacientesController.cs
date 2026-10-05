@@ -11,8 +11,8 @@ public class PacientesController : ControladorBase
 
     private const string TituloSinPermiso = "No podés ver los pacientes con tu rol";
     private const string MotivoSinPermiso =
-        "La API reserva el listado de pacientes a los roles doctor y administrador, " +
-        "y el detalle incluye datos clínicos.";
+        "El listado de pacientes es solo para doctores y administradores, " +
+        "porque la ficha incluye datos clínicos.";
 
     private const string TituloSinPermisoAlta = "No podés dar de alta pacientes con tu rol";
     private const string MotivoSinPermisoAlta =

@@ -303,7 +303,7 @@ public class UsuariosController : ControladorBase
             ModelState.AddModelError(
                 PrefijoDoctorNuevo,
                 error.Status >= StatusCodes.Status500InternalServerError
-                    ? "La API no pudo crear el perfil de doctor. Revisá los datos y volvé a intentarlo."
+                    ? "No pudimos crear el perfil de doctor. Revisá los datos y volvé a intentarlo."
                     : MensajeDe(error));
             return View(nameof(Editar), modelo);
         }

@@ -159,7 +159,7 @@ public class AuthService
             anonimo: true);
 
         if (respuesta is null || string.IsNullOrEmpty(respuesta.Token))
-            throw new ApiException("La API no devolvió una respuesta válida de registro.", 0);
+            throw new ApiException("No pudimos completar el registro. Probá de nuevo en un momento.", 0);
 
         return respuesta;
     }
@@ -187,7 +187,7 @@ public class AuthService
         }
 
         if (respuesta is null || string.IsNullOrEmpty(respuesta.Token))
-            throw new ApiException("La API no devolvió un token de sesión.", 0);
+            throw new ApiException("No pudimos iniciar tu sesión. Probá de nuevo en un momento.", 0);
 
         var sesion = new SesionUsuario(
             respuesta.Token, respuesta.Rol, respuesta.IdUsuario, respuesta.Nombre);

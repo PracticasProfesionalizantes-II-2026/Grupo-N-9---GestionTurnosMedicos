@@ -8,8 +8,8 @@ public class MiPerfilController : ControladorBase
 {
     private const string TituloSinPermiso = "Esta pantalla es solo para pacientes";
     private const string MotivoSinPermiso =
-        "La ficha clínica de PUT /pacientes/{id} es propia de cada paciente, así " +
-        "que solo tiene sentido completarla con una sesión de rol paciente.";
+        "La ficha clínica es propia de cada paciente, así " +
+        "que solo se puede completar con una cuenta de paciente.";
 
     private readonly PacienteService _pacientes;
     private readonly PerfilService _perfil;
