@@ -197,3 +197,17 @@ no cambia nada ahí. Compila.
 rol: quien se registre como administrador por la API se saltea este
 chequeo. GET /usuarios/{id} no se tocó: cualquier autenticado lee los
 datos de cualquier usuario.
+
+## 2026-10-04 — rediseño, F0: guía de diseño y prototipo
+**Hecho:** `docs/diseno.md` (tokens, niveles de relieve, foco,
+componentes, motivo de marca, textos y tabla de contraste) y el prototipo
+estático `docs/prototipos/inicio-paciente.html` con su hoja propia
+(`prototipo.css` -> `prototipo.build.css`, compilada con el CLI). Plus
+Jakarta Sans bajada a `wwwroot/fonts` (latin y latin-ext, woff2 variable,
+con su OFL). La app no cambia: nada de esto está referenciado todavía.
+**Sigue:** F1 (tokens y clases en app.css).
+**Ojo:** decididas sin consulta, por la opción más conservadora: (1) en
+un aviso el enlace va en tinta subrayada, porque el teal sobre ese tinte
+da 4,35:1; (2) el popover usa posición fija y no anclaje CSS, que no se
+puede probar sin navegador; (3) los componentes nuevos no llevan
+transiciones, quedan para F5.

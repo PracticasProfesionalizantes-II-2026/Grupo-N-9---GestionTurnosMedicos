@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<!-- Prototipo estático del inicio del paciente. Sin JavaScript y sin CDN.
+     Para probar el tema oscuro o el texto grande, cambiá a mano data-theme
+     ("light" o "dark") y data-scale ("md", "lg" o "xl") en esta etiqueta. -->
+<html lang="es" data-theme="light" data-scale="md">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prototipo · Inicio del paciente · ChronoSalud</title>
+    <link rel="icon" href="../../ChronoSaludWeb/wwwroot/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="prototipo.build.css" />
+</head>
+<body class="min-h-screen bg-canvas pb-24 font-sans text-ink antialiased md:pb-0">
+    <a href="#contenido" class="saltar boton boton-primario">Saltar al contenido</a>
+
+    <header class="border-b border-border">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <a href="#" class="flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary">
+                <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
+                    <rect width="32" height="32" rx="7" class="fill-primary" />
+                    <path d="M16 8v8l5 3" fill="none" class="stroke-on-primary" stroke-width="3"
+                          stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                ChronoSalud
+            </a>
+
+            <nav aria-label="Principal" class="hidden md:block">
+                <ul class="flex items-center gap-1 text-sm font-medium text-muted">
+                    <li><a href="#" aria-current="page" class="block rounded-input px-3 py-2 hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido">Inicio</a></li>
+                    <li><a href="#" class="block rounded-input px-3 py-2 hover:text-primary">Turnos</a></li>
+                    <li><a href="#" class="block rounded-input px-3 py-2 hover:text-primary">Doctores</a></li>
+                    <li><a href="#" class="block rounded-input px-3 py-2 hover:text-primary">Recetas</a></li>
+                    <li><a href="#" class="block rounded-input px-3 py-2 hover:text-primary">Historia clínica</a></li>
+                </ul>
+            </nav>
+
+            <button type="button" popovertarget="menu-cuenta" class="boton boton-secundario px-2 py-1.5">
+                <span aria-hidden="true" class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">F</span>
+                <span class="hidden sm:inline">Francis</span>
+                <span class="sr-only">Abrir el menú de tu cuenta</span>
+                <svg class="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="menu-cuenta" popover class="menu-flotante menu-cuenta">
+        <div class="px-3 py-2">
+            <p class="font-semibold text-ink">Francis</p>
+            <p class="text-sm text-muted">Paciente</p>
+        </div>
+        <ul class="mt-1 border-t border-border pt-1 text-sm font-medium">
+            <li>
+                <a href="#" class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" />
+                        <line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" />
+                        <line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" />
+                        <line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
+                    </svg>
+                    Ajustes
+                </a>
+            </li>
+            <li>
+                <form action="#" method="post">
+                    <button type="submit" class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
+                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" />
+                        </svg>
+                        Cerrar sesión
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+
+    <main id="contenido" class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+
+        <!-- Banner de bienvenida: la única decoración grande de la pantalla. -->
+        <section aria-labelledby="saludo" class="tarjeta relative overflow-hidden p-5 sm:p-8">
+            <div class="mb-3 h-20 w-full sm:absolute sm:inset-y-0 sm:right-0 sm:mb-0 sm:h-full sm:w-[44%] sm:p-4">
+                <svg class="h-full w-full" viewBox="0 0 480 200" preserveAspectRatio="xMaxYMid meet" fill="none"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="360" cy="100" r="96" pathLength="120" stroke-dasharray="1.2 8.8" stroke-width="7" stroke-linecap="butt" class="stroke-primary-line" />
+                    <circle cx="360" cy="100" r="80" pathLength="100" stroke-dasharray="68 32" stroke-width="2" transform="rotate(-150 360 100)" class="stroke-primary-line" />
+                    <circle cx="360" cy="100" r="58" pathLength="100" stroke-dasharray="46 54" stroke-width="2" transform="rotate(20 360 100)" class="stroke-primary-line" />
+                    <circle cx="360" cy="100" r="34" pathLength="100" stroke-dasharray="58 42" stroke-width="2.5" transform="rotate(-60 360 100)" class="stroke-accent" />
+                    <path d="M360 100V58" stroke-width="3" class="stroke-primary-line" />
+                    <path d="M360 100l24 14" stroke-width="3" class="stroke-primary-line" />
+                    <path d="M12 100H150l14-12 12 12h18l14-52 18 96 16-66 12 22H360" stroke-width="2.5" class="stroke-primary" />
+                    <circle cx="360" cy="100" r="4" class="fill-primary" />
+                </svg>
+            </div>
+
+            <div class="relative sm:max-w-[54%]">
+                <h1 id="saludo" class="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Hola, Francis</h1>
+                <p class="mt-2 text-base text-muted">
+                    Tu próximo turno es el
+                    <strong class="font-semibold text-ink">jueves 8 de octubre a las 10:30</strong>
+                    con la Dra. Paula Ferreyra.
+                </p>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <a href="#" class="boton boton-primario">Agendar turno</a>
+                    <a href="#" class="boton boton-secundario">Ver mis turnos</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Aviso no fatal -->
+        <div class="mt-6 flex items-start gap-3 rounded-input border border-status-pendiente/50 bg-status-pendiente/10 px-4 py-3 text-sm text-ink">
+            <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+            </svg>
+            <span>
+                Todavía no completaste tu ficha clínica.
+                <a href="#" class="ml-1 rounded-badge font-semibold text-ink underline hover:no-underline">Completar mi perfil</a>
+            </span>
+        </div>
+
+        <!-- Accesos rápidos: ícono en círculo -->
+        <section aria-labelledby="titulo-accesos" class="mt-8">
+            <h2 id="titulo-accesos" class="text-base font-semibold text-ink">Accesos rápidos</h2>
+            <ul class="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <li>
+                    <a href="#" class="tarjeta flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido">
+                        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M8 2v4" /><path d="M16 2v4" /><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8" /><path d="M3 10h18" /><path d="M16 19h6" /><path d="M19 16v6" />
+                            </svg>
+                        </span>
+                        <span class="text-sm font-medium text-ink">Agendar turno</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="tarjeta flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido">
+                        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 14h6" /><path d="M9 18h4" />
+                            </svg>
+                        </span>
+                        <span class="text-sm font-medium text-ink">Historial de consultas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="tarjeta flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido">
+                        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" /><path d="m8.5 8.5 7 7" />
+                            </svg>
+                        </span>
+                        <span class="text-sm font-medium text-ink">Recetas</span>
+                    </a>
+                </li>
+                <li>
+                    <!-- Deshabilitado: plano, atenuado y con la etiqueta a opacidad completa. -->
+                    <span aria-disabled="true" class="flex h-full flex-col items-center justify-center gap-3 rounded-card border border-border px-3 py-5 text-center">
+                        <span class="flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary opacity-60">
+                            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" />
+                            </svg>
+                        </span>
+                        <span class="text-sm font-medium text-ink opacity-60">Mis coberturas</span>
+                        <span class="chip bg-accent-soft text-accent-ink">Próximamente</span>
+                    </span>
+                </li>
+            </ul>
+        </section>
+
+        <div class="mt-8 grid gap-6 lg:grid-cols-5">
+            <!-- Próximos turnos, con datos -->
+            <section aria-labelledby="titulo-turnos" class="tarjeta overflow-hidden lg:col-span-3">
+                <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border px-5 py-4">
+                    <h2 id="titulo-turnos" class="text-base font-semibold text-ink">Próximos turnos</h2>
+                    <a href="#" class="rounded-badge text-sm font-semibold text-primary hover:underline">Ver todos mis turnos</a>
+                </header>
+                <ul>
+                    <li class="relative flex items-center gap-4 border-b border-border px-5 py-4">
+                        <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">10:30</span>
+                        <span class="min-w-0 flex-1">
+                            <a href="#" class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                                Dra. Paula Ferreyra<span class="sr-only">, ver el detalle del turno</span>
+                            </a>
+                            <span class="block truncate text-sm text-muted">Jueves 8 de octubre</span>
+                        </span>
+                        <span class="chip bg-status-confirmado/10 text-status-confirmado">Confirmado</span>
+                    </li>
+                    <li class="relative flex items-center gap-4 px-5 py-4">
+                        <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">16:00</span>
+                        <span class="min-w-0 flex-1">
+                            <a href="#" class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                                Dr. Martín Aguirre<span class="sr-only">, ver el detalle del turno</span>
+                            </a>
+                            <span class="block truncate text-sm text-muted">Martes 20 de octubre</span>
+                        </span>
+                        <span class="chip bg-status-pendiente/10 text-status-pendiente">Pendiente</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Historial reciente, en estado vacío con botón -->
+            <section aria-labelledby="titulo-historial" class="tarjeta overflow-hidden lg:col-span-2">
+                <header class="border-b border-border px-5 py-4">
+                    <h2 id="titulo-historial" class="text-base font-semibold text-ink">Historial reciente</h2>
+                </header>
+                <div class="px-5 py-8 text-center">
+                    <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+                        <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 14h6" /><path d="M9 18h4" />
+                        </svg>
+                    </span>
+                    <h3 class="mt-4 text-base font-semibold text-ink">Todavía no tenés consultas ni recetas</h3>
+                    <p class="mx-auto mt-1 max-w-xs text-sm text-muted">
+                        Cuando un doctor te atienda, vas a ver acá lo último de tu historia clínica.
+                    </p>
+                    <a href="#" class="boton boton-secundario mt-5">Ver doctores</a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Lo que sigue no es parte de la pantalla: muestra los estados que no
+             se pueden ver a la vez en una página real. -->
+        <section aria-labelledby="titulo-variantes" class="mt-14 border-t-2 border-dashed border-control pt-8">
+            <h2 id="titulo-variantes" class="text-lg font-bold text-ink">Variantes (solo en el prototipo)</h2>
+            <p class="mt-1 max-w-2xl text-sm text-muted">
+                Estados que la guía define y que la pantalla de arriba no llega a mostrar todos juntos.
+            </p>
+
+            <h3 class="mt-8 text-base font-semibold text-ink">Botones</h3>
+            <div class="mt-3 flex flex-wrap items-center gap-4">
+                <a href="#" class="boton boton-primario">Reposo</a>
+                <a href="#" class="boton boton-primario bg-primary-hover shadow-none inset-shadow-presionado">Presionado</a>
+                <a href="#" class="boton boton-primario outline-2 outline-offset-2 outline-primary">Con foco</a>
+                <span aria-disabled="true" class="boton bg-primary text-on-primary opacity-60">Deshabilitado</span>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-4">
+                <a href="#" class="boton boton-secundario">Reposo</a>
+                <a href="#" class="boton boton-secundario shadow-none inset-shadow-hundido">Presionado</a>
+                <a href="#" class="boton boton-secundario outline-2 outline-offset-2 outline-primary">Con foco</a>
+                <span aria-disabled="true" class="boton border border-control text-ink opacity-60">Deshabilitado</span>
+            </div>
+
+            <h3 class="mt-8 text-base font-semibold text-ink">Campos</h3>
+            <form action="#" class="mt-3 grid max-w-2xl gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="demo-email" class="block text-sm font-medium text-ink">Email</label>
+                    <input id="demo-email" type="email" placeholder="tu@email.com" class="campo mt-1.5" />
+                </div>
+                <div>
+                    <label for="demo-dni" class="block text-sm font-medium text-ink">DNI</label>
+                    <input id="demo-dni" type="text" value="12.345" aria-invalid="true" aria-describedby="demo-dni-error" class="campo mt-1.5" />
+                    <span id="demo-dni-error" class="mt-1 block text-xs font-medium text-status-cancelado">El DNI tiene que tener 7 u 8 números.</span>
+                </div>
+            </form>
+
+            <h3 class="mt-8 text-base font-semibold text-ink">Filtro seleccionado</h3>
+            <form action="#">
+                <fieldset class="mt-3">
+                    <legend class="sr-only">Estado de los turnos</legend>
+                    <div class="flex flex-wrap gap-3">
+                        <label class="boton boton-secundario relative has-[:checked]:font-bold has-[:checked]:text-primary has-[:checked]:shadow-none has-[:checked]:inset-shadow-hundido has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
+                            <input type="radio" name="demo-estado" value="" checked class="sr-only" />Todos
+                        </label>
+                        <label class="boton boton-secundario relative has-[:checked]:font-bold has-[:checked]:text-primary has-[:checked]:shadow-none has-[:checked]:inset-shadow-hundido has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
+                            <input type="radio" name="demo-estado" value="pendiente" class="sr-only" />Pendientes
+                        </label>
+                        <label class="boton boton-secundario relative has-[:checked]:font-bold has-[:checked]:text-primary has-[:checked]:shadow-none has-[:checked]:inset-shadow-hundido has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
+                            <input type="radio" name="demo-estado" value="confirmado" class="sr-only" />Confirmados
+                        </label>
+                    </div>
+                </fieldset>
+            </form>
+
+            <h3 class="mt-8 text-base font-semibold text-ink">Chips de estado</h3>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                <span class="chip bg-status-pendiente/10 text-status-pendiente">Pendiente</span>
+                <span class="chip bg-status-confirmado/10 text-status-confirmado">Confirmado</span>
+                <span class="chip bg-status-completado/10 text-status-completado">Completado</span>
+                <span class="chip bg-status-cancelado/10 text-status-cancelado">Cancelado</span>
+                <span class="chip border border-control text-muted">Vencida</span>
+                <span class="chip bg-accent-soft text-accent-ink">Próximamente</span>
+            </div>
+
+            <h3 class="mt-8 text-base font-semibold text-ink">Estado vacío de turnos</h3>
+            <div class="tarjeta mt-3 max-w-xl px-5 py-8 text-center">
+                <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+                    <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />
+                    </svg>
+                </span>
+                <h4 class="mt-4 text-base font-semibold text-ink">No tenés turnos programados</h4>
+                <p class="mx-auto mt-1 max-w-xs text-sm text-muted">Elegí especialidad, doctor y horario en pocos pasos.</p>
+                <a href="#" class="boton boton-primario mt-5">Agendar turno</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-border">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted sm:px-6">
+            <span>&copy; 2026 ChronoSalud</span>
+            <a href="#" class="rounded-badge hover:text-primary">Privacidad</a>
+        </div>
+    </footer>
+
+    <!-- Barra inferior: solo en celular. Cinco ítems como máximo. -->
+    <nav aria-label="Principal" class="fixed inset-x-0 bottom-0 z-20 border-t border-control bg-canvas px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden">
+        <ul class="grid grid-cols-5 gap-1">
+            <li class="min-w-0">
+                <a href="#" aria-current="page" class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs font-medium leading-tight text-muted wrap-anywhere aria-[current=page]:font-bold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </svg>
+                    Inicio
+                </a>
+            </li>
+            <li class="min-w-0">
+                <a href="#" class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs font-medium leading-tight text-muted wrap-anywhere">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" />
+                    </svg>
+                    Turnos
+                </a>
+            </li>
+            <li class="min-w-0">
+                <a href="#" class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs font-medium leading-tight text-muted wrap-anywhere">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" /><path d="m8.5 8.5 7 7" />
+                    </svg>
+                    Recetas
+                </a>
+            </li>
+            <li class="min-w-0">
+                <a href="#" class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs font-medium leading-tight text-muted wrap-anywhere">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 14h6" /><path d="M9 18h4" />
+                    </svg>
+                    Historia
+                </a>
+            </li>
+            <li class="min-w-0">
+                <button type="button" popovertarget="menu-mas" class="flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs font-medium leading-tight text-muted wrap-anywhere">
+                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 12h16" /><path d="M4 18h16" /><path d="M4 6h16" />
+                    </svg>
+                    Más
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <div id="menu-mas" popover class="menu-flotante menu-mas">
+        <ul class="text-sm font-medium">
+            <li>
+                <a href="#" class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 2v2" /><path d="M5 2v2" /><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" /><path d="M8 15a6 6 0 0 0 12 0v-3" /><circle cx="20" cy="10" r="2" />
+                    </svg>
+                    Doctores
+                </a>
+            </li>
+            <li>
+                <a href="#" class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary">
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="21" x2="14" y1="4" y2="4" /><line x1="10" x2="3" y1="4" y2="4" />
+                        <line x1="21" x2="12" y1="12" y2="12" /><line x1="8" x2="3" y1="12" y2="12" />
+                        <line x1="21" x2="16" y1="20" y2="20" /><line x1="12" x2="3" y1="20" y2="20" />
+                        <line x1="14" x2="14" y1="2" y2="6" /><line x1="8" x2="8" y1="10" y2="14" /><line x1="16" x2="16" y1="18" y2="22" />
+                    </svg>
+                    Ajustes
+                </a>
+            </li>
+            <li class="mt-1 border-t border-border pt-1">
+                <form action="#" method="post">
+                    <button type="submit" class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
+                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" />
+                        </svg>
+                        Cerrar sesión
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>
