@@ -265,3 +265,24 @@ ordenada, para que coincida con el banner; el botón de los estados
 vacíos es secundario (el primario está en el banner); el admin ve el
 total de turnos de hoy. `_BadgeEstado` cambia también Turnos/Index,
 Detalle y Cancelar. "Mis coberturas" sigue como "Próximamente".
+
+## 2026-10-04 — rediseño, F4: portada, login y registro
+**Hecho:** portada (Home/Index sin sesión) como tarjeta con el motivo de
+marca y dos botones (Ingresar, Crear cuenta). Login y Registro en una
+tarjeta de acceso: formulario con campos `campo` y botón
+`boton-primario`, y el motivo arriba en celular o en una segunda columna
+desde 768 px. Un solo verbo para entrar ("Ingresar") y uno para
+registrarse ("Crear cuenta"), también en el encabezado. Compila, CSS
+recompilado. La API no se tocó.
+**A medias:** F0 a F4 sin probar en navegador: no se levantó la Web ni
+la API. Hay que mirar los tres roles y sin sesión, claro y oscuro, texto
+normal y extra grande, 360 px y teclado.
+**Sigue:** F5 (transiciones y barrido del resto de las pantallas),
+cuando Francis lo pida.
+**Ojo:** no cambió ningún `asp-for`, ni el `ReturnUrl` oculto, ni los
+mensajes de validación, ni `novalidate`, ni la sección `Scripts`.
+Decididas sin consulta: la portada cambió de texto ("Tus turnos médicos,
+en un mismo lugar"), el resumen de errores suma `role="alert"` y la
+tarjeta de acceso pasa a dos columnas en pantallas anchas. Pendiente
+para F5: 28 botones con `text-white`, 55 campos con borde `primary-line`,
+las tarjetas planas de 30 vistas y el `primary` del tema oscuro.
