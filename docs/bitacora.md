@@ -362,3 +362,17 @@ muestra diferencias.
 dejarlo. Es el único texto visible que sigue nombrando la API. El mensaje
 de log de `UsuarioService` tampoco, porque no se muestra. Los comentarios
 del código siguen hablando de la API, a propósito.
+
+## 2026-10-04 — rediseño, F5.3: foco sin anillos duplicados
+**Hecho:** en las vistas ya no queda ningún `focus:outline-none`,
+`focus:ring-*`, `focus-visible:ring-*`, `focus:border-primary` ni
+`has-[:focus-visible]:ring-*` (eran 90, 56, 126, 19 y 2 al empezar F5;
+casi todos se fueron al pasar botones y campos a las clases de
+componente, y acá se barrieron los 24 que quedaban en enlaces de fila y
+en el campo de archivo). El foco lo dibuja solo la regla global. Compila,
+CSS recompilado, chequeo de atributos sin diferencias.
+**Sigue:** F5.4 (movimiento).
+**Ojo:** la regla global sigue fuera de las capas. Pacientes/Crear tiene
+el input de la foto oculto detrás de su etiqueta: el contorno se dibuja
+en el contenedor con `has-[:focus-visible]:outline-*` (antes no tenía
+indicador de foco).

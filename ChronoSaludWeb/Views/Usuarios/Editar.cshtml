@@ -71,14 +71,14 @@
     @if (Model.IdPaciente is not null)
     {
         <a asp-controller="Pacientes" asp-action="Detalle" asp-route-id="@Model.IdPaciente"
-           class="rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+           class="rounded-badge text-sm font-medium text-muted hover:text-primary">
             Ver ficha del paciente
         </a>
     }
     @if (Model.IdDoctor is not null)
     {
         <a asp-controller="Doctores" asp-action="Detalle" asp-route-id="@Model.IdDoctor"
-           class="rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+           class="rounded-badge text-sm font-medium text-muted hover:text-primary">
             Ver ficha del doctor
         </a>
     }
@@ -148,7 +148,7 @@
             <label for="archivo" class="@claseEtiqueta">@(Model.TieneFoto ? "Reemplazar la foto" : "Elegir una foto")</label>
             <input id="archivo" name="archivo" type="file" accept="image/jpeg,image/png,image/webp"
                    aria-describedby="ayuda-foto"
-                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft" />
+                   class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft" />
             <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
             @{ ErrorCampo("Foto"); }
         </div>

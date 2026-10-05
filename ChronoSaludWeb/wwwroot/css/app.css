@@ -313,10 +313,15 @@
 /* Foco visible en todo el sitio: contorno sólido, solo con teclado. Es un
    outline y no un ring para no mezclarse con las sombras del relieve y para
    que siga existiendo en modo de alto contraste.
-   Va fuera de las capas a propósito: las vistas tienen focus:outline-none
-   por todos lados, eso compila en la capa utilities y le ganaría a esta
-   regla si estuviera en base. Sin capa gana ella, igual que el bloque del
-   tema oscuro de más arriba. El :where() deja la especificidad en 0. */
+   Va fuera de las capas a propósito: una utilidad como focus:outline-none
+   compila en la capa utilities y le ganaría a esta regla si estuviera en
+   base. Las vistas ya no traen ninguna, pero sin capa tampoco la puede
+   anular una que se cuele más adelante; gana igual que el bloque del tema
+   oscuro de más arriba. El :where() deja la especificidad en 0.
+   Por eso en las vistas no hace falta ninguna clase de foco. La única
+   excepción son los controles ocultos con sr-only (un radio o un archivo
+   detrás de su etiqueta): ahí el contorno se le pone al contenedor con
+   has-[:focus-visible]:outline-*. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

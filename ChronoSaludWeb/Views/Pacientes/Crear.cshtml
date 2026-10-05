@@ -125,8 +125,10 @@
                 </div>
 
                 @* El input de archivo queda oculto y el label for="Foto" funciona
-                   como botón: abrir el selector no necesita JavaScript. *@
-                <div>
+                   como botón: abrir el selector no necesita JavaScript. El foco
+                   del teclado cae en ese input que no se ve, así que el
+                   contorno se dibuja en este contenedor. *@
+                <div class="rounded-card has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
                     <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-control bg-field p-4 text-center">
                         <svg class="h-10 w-10 text-primary-line" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

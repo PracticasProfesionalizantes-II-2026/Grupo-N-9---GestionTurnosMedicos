@@ -79,7 +79,7 @@ else
                              model="new AvatarViewModel { Nombre = doctor.Nombre, FotoUrl = doctor.FotoUrl, Tamano = TamanoAvatar.Chico, Tono = TonoAvatar.Terracota }" />
                     <span class="min-w-0 flex-1">
                         <a asp-action="Detalle" asp-route-id="@doctor.IdDoctor"
-                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             @doctor.NombreMostrado
                             <span class="sr-only">— ver ficha del doctor</span>
                         </a>

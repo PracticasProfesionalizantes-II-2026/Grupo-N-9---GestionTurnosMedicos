@@ -103,7 +103,7 @@ else
                              model='new AvatarViewModel { Nombre = usuario.NombreCrudo, FotoUrl = usuario.TieneFoto ? Url.Action("Foto", new { id = usuario.IdUsuario }) : null, Tamano = TamanoAvatar.Chico }' />
                     <span class="min-w-0 flex-1">
                         <a asp-action="Editar" asp-route-id="@usuario.IdUsuario"
-                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                           class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             @usuario.NombreCompleto
                             <span class="sr-only">— editar perfil</span>
                         </a>

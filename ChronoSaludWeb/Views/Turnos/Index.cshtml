@@ -204,7 +204,7 @@ else
                                                  model="new AvatarViewModel { Nombre = turno.Paciente, FotoUrl = turno.FotoUrl, Tamano = TamanoAvatar.Chico }" />
                                         <span>
                                             <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
-                                               class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                               class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                                                 @turno.PacienteMostrado
                                                 <span class="sr-only">— ver detalle del turno</span>
                                             </a>
