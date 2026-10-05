@@ -324,3 +324,8 @@ diferencias) antes de cada uno.
 - c. Doctores: Index y Detalle; Coberturas/Index. El listado vacío de
   doctores ofrece "Agregar doctor" al administrador (la vista ahora
   inyecta `AuthService`).
+- d. Recetas: Index, Detalle, Crear; Historial: Index, Crear. Vigente,
+  vencida y "Fuera del vademécum" son `_Chip`. Los vacíos ofrecen "Nueva
+  receta" o "Nueva entrada" a quien puede cargarlas. "+" y "−" de
+  Recetas/Crear son `boton-secundario` de 44 px; no cambiaron
+  `formnovalidate`, acción, `asp-route-indice` ni `asp-fragment`.

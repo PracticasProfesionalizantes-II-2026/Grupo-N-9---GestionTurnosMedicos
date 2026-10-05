@@ -7,7 +7,7 @@
 }
 
 <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+   class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
@@ -22,7 +22,7 @@
         Queda registrada en la historia clínica del paciente. No se puede editar ni borrar desde acá.
     </p>
 
-    <div class="mt-6 rounded-card border border-border bg-surface p-8">
+    <div class="mt-6 tarjeta p-8">
         @if (erroresGenerales is { Count: > 0 })
         {
             <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
@@ -73,11 +73,11 @@
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
                 <button type="submit"
-                        class="rounded-input bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-soft">
+                        class="boton boton-primario">
                     Guardar entrada
                 </button>
                 <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-                   class="rounded-input border border-border px-4 py-2.5 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                   class="boton boton-secundario">
                     Cancelar
                 </a>
             </div>
