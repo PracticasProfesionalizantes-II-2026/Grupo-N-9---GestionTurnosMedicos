@@ -1,4 +1,5 @@
 @model DoctoresIndexViewModel
+@inject AuthService Auth
 @{
     ViewData["Title"] = "Doctores";
 }
@@ -19,7 +20,7 @@
 
 @* Las opciones salen de GET /doctores/especialidades. *@
 <form method="get" asp-action="Index"
-      class="mt-6 flex flex-wrap items-end gap-4 rounded-card border border-border bg-surface p-5">
+      class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
     <div class="w-full sm:w-auto sm:min-w-56">
         <label for="especialidad" class="block text-sm font-medium text-ink">Especialidad</label>
         <select id="especialidad" name="especialidad" asp-items="Model.Especialidades"
@@ -30,13 +31,13 @@
 
     <div class="flex items-center gap-2">
         <button type="submit"
-                class="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+                class="boton boton-primario">
             Filtrar
         </button>
         @if (Model.HayFiltro)
         {
             <a asp-action="Index"
-               class="rounded-input border border-border px-4 py-2 text-sm font-semibold text-muted hover:bg-canvas hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+               class="boton boton-secundario">
                 Limpiar
             </a>
         }
@@ -45,56 +46,34 @@
 
 @if (Model.HuboError)
 {
-    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No se pudieron cargar los doctores</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
-        <a asp-action="Index"
-           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
-            Reintentar
-        </a>
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudieron cargar los doctores", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Doctores", Accion = "Index", Descripcion = "Reintentar" } }' />
     </div>
 }
 else if (Model.Doctores.Count == 0)
 {
-    <div class="mt-6 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-primary-line" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
-            <path d="M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4" />
-            <circle cx="20" cy="10" r="2" />
-        </svg>
+    <div class="tarjeta mt-6">
         @if (Model.SinResultados)
         {
-            <h2 class="mt-4 text-base font-semibold text-ink">Ningún doctor con esa especialidad</h2>
-            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">Probá con otra especialidad.</p>
-            <a asp-action="Index"
-               class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
-                Ver todos
-            </a>
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "estetoscopio", Nivel = 2, Titulo = "Ningún doctor con esa especialidad", Ayuda = "Probá con otra especialidad.", Accion = new EnlaceViewModel { Controlador = "Doctores", Accion = "Index", Descripcion = "Ver todos" } }' />
         }
         else
         {
-            <h2 class="mt-4 text-base font-semibold text-ink">No hay doctores cargados</h2>
-            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">
-                Cuando se registren profesionales van a aparecer en esta lista.
-            </p>
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "estetoscopio", Nivel = 2, Titulo = "No hay doctores cargados", Ayuda = "Cuando se registren profesionales van a aparecer en esta lista.", Accion = Auth.EsAdministrador ? new EnlaceViewModel { Controlador = "Admin", Accion = "NuevoDoctor", Descripcion = "Agregar doctor" } : null }' />
         }
     </div>
 }
 else
 {
-    <div class="mt-6 overflow-hidden rounded-card border border-border bg-surface">
+    <div class="mt-6 overflow-hidden tarjeta">
         <ul>
             @{ var fila = 0; }
             @foreach (var doctor in Model.Doctores)
             {
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-canvas"
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <partial name="_Avatar"
                              model="new AvatarViewModel { Nombre = doctor.Nombre, FotoUrl = doctor.FotoUrl, Tamano = TamanoAvatar.Chico, Tono = TonoAvatar.Terracota }" />

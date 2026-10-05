@@ -321,3 +321,6 @@ diferencias) antes de cada uno.
 - b. Pacientes: Index, Detalle, Crear y MiPerfil/CompletarPaciente. El
   grupo sanguíneo pasó de `text-accent` (2,77:1 sobre el beige) a
   `text-accent-ink`.
+- c. Doctores: Index y Detalle; Coberturas/Index. El listado vacío de
+  doctores ofrece "Agregar doctor" al administrador (la vista ahora
+  inyecta `AuthService`).

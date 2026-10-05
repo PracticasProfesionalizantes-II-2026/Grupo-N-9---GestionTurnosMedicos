@@ -4,7 +4,7 @@
 }
 
 <a asp-action="Index"
-   class="inline-flex items-center gap-1.5 rounded-badge text-sm font-medium text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-soft">
+   class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
@@ -15,19 +15,9 @@
 
 @if (Model.HuboError)
 {
-    <div class="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        <svg class="mx-auto h-8 w-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-        <h2 class="mt-4 text-base font-semibold text-ink">No se pudo cargar el doctor</h2>
-        <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
-        <a asp-action="Detalle" asp-route-id="@Model.IdDoctor"
-           class="mt-6 inline-block rounded-input border border-primary-line px-4 py-2 text-sm font-semibold text-primary hover:bg-primary-soft">
-            Reintentar
-        </a>
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudo cargar el doctor", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Doctores", Accion = "Detalle", Ruta = new Dictionary<string, string> { ["id"] = $"{Model.IdDoctor}" }, Descripcion = "Reintentar" } }' />
     </div>
 }
 else
@@ -43,8 +33,8 @@ else
         </div>
     </div>
 
-    <div class="mt-6 max-w-2xl rounded-card neu-elevado p-6">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted">Datos profesionales</h2>
+    <div class="mt-6 max-w-2xl tarjeta p-6">
+        <h2 class="text-base font-semibold text-ink">Datos profesionales</h2>
         <dl class="mt-4 grid gap-4 sm:grid-cols-3">
             <div>
                 <dt class="text-sm text-muted">Matrícula</dt>
@@ -66,14 +56,14 @@ else
 
     </div>
 
-    <section class="mt-6 max-w-2xl rounded-card border border-border bg-surface p-6" aria-labelledby="titulo-horario">
+    <section class="mt-6 max-w-2xl tarjeta p-6" aria-labelledby="titulo-horario">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="titulo-horario" class="text-sm font-semibold uppercase tracking-wide text-muted">Horario de atención</h2>
+            <h2 id="titulo-horario" class="text-base font-semibold text-ink">Horario de atención</h2>
             @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
             {
                 <a asp-controller="Turnos" asp-action="Crear"
                    asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
-                   class="rounded-input border border-primary-line px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                   class="boton boton-secundario">
                     Pedir turno con este doctor
                 </a>
             }
