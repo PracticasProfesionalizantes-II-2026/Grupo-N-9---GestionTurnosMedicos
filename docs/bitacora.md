@@ -226,3 +226,20 @@ en la capa utilities y le ganaban. Si se prefiere en base, es mover el
 bloque. En oscuro `on-primary` sigue blanco (4,23:1) hasta F5. Los campos
 viejos siguen con borde `primary-line` (1,59:1) hasta el barrido. El
 enlace a Google Fonts sigue en el layout hasta F2.
+
+## 2026-10-04 — rediseño, F2: layout, menú de cuenta y barra inferior
+**Hecho:** `_Layout` sin Google Fonts (la fuente ya es local), con
+enlace "Saltar al contenido", destinos en el encabezado desde 768 px,
+botón de cuenta con popover nativo (`_MenuCuenta`: nombre, rol, Ajustes,
+Cerrar sesión) y barra inferior en celular (`_BarraInferior`: cuatro
+destinos según el rol más "Más"). Los ítems salen de `MenuViewModel`,
+con las mismas banderas de `AuthService`. "Administración" pasó a
+"Cuentas". Íconos nuevos en `IconosLucide`. Compila, CSS recompilado.
+La API no se tocó; jQuery y `site.js` siguen como estaban.
+**A medias:** sin probar en navegador (lo prueba Francis).
+**Sigue:** F3 (inicios por rol).
+**Ojo:** decididas sin consulta: sin sesión ya no hay enlace "Inicio"
+(lleva el logo); "Más" repite Ajustes y Cerrar sesión, que también están
+en el menú de cuenta; los márgenes laterales siguen en `px-6`; Usuarios/*
+sigue sin marcar "Cuentas" como activo, igual que antes. En un navegador
+sin `popover` los dos menús quedan a la vista dentro de la página.

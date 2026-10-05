@@ -1,25 +1,24 @@
 @inject AuthService Auth
 @functions {
-    // Marca la sección activa. Si no se pasa acción, alcanza con el controlador
-    // (así "Turnos" sigue activo cuando se agreguen Crear o Detalle).
-    string ClaseNav(string controlador, string? accion = null)
-    {
-        var rutaControlador = ViewContext.RouteData.Values["controller"]?.ToString();
-        var rutaAccion = ViewContext.RouteData.Values["action"]?.ToString();
-
-        var activo = string.Equals(rutaControlador, controlador, StringComparison.OrdinalIgnoreCase)
-                     && (accion is null || string.Equals(rutaAccion, accion, StringComparison.OrdinalIgnoreCase));
-
-        return activo
-            ? "border-b-2 border-primary pb-1 text-primary"
-            : "border-b-2 border-transparent pb-1 hover:text-primary";
-    }
+    // Enlace del encabezado. Lo seleccionado va hundido y en negrita además de
+    // en teal, para que no dependa solo del color.
+    const string ClaseEnlace = "block rounded-input px-3 py-2 hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido";
 }
 @{
     // Tema y escala salen de la cookie del cliente y se emiten en el <html>,
     // donde app.css los espera. Si no hay cookie (o trae basura) quedan los
     // valores por defecto, que no matchean ninguna regla: el aspecto de siempre.
     var preferencias = Context.Request.LeerPreferencias();
+
+    var controlador = ViewContext.RouteData.Values["controller"]?.ToString();
+    var accion = ViewContext.RouteData.Values["action"]?.ToString();
+
+    // El menú se arma una sola vez: lo leen el encabezado, el menú de cuenta y
+    // la barra inferior del celular.
+    var menu = MenuViewModel.Armar(Auth, controlador, accion);
+
+    var enRegistro = string.Equals(controlador, "Cuenta", StringComparison.OrdinalIgnoreCase)
+                     && string.Equals(accion, "Registro", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="es" data-theme="@preferencias.Tema" data-scale="@preferencias.Escala">
@@ -33,59 +32,69 @@
 
     <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@@400;500;600;700&display=swap" />
-
     <link rel="stylesheet" href="~/css/app.build.css" asp-append-version="true" />
 </head>
-<body class="min-h-screen bg-canvas font-sans text-ink antialiased">
-    <header class="border-b border-border bg-surface">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-4">
-            <a class="text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">ChronoSalud</a>
-            <nav class="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-sm font-medium text-muted">
-                <a class="@ClaseNav("Home", "Index")" asp-controller="Home" asp-action="Index">Inicio</a>
-                @if (Auth.HaySesion)
-                {
-                    <a class="@ClaseNav("Turnos")" asp-controller="Turnos" asp-action="Index">Turnos</a>
-                    @if (Auth.PuedeVerPacientes)
-                    {
-                        <a class="@ClaseNav("Pacientes")" asp-controller="Pacientes" asp-action="Index">Pacientes</a>
-                    }
-                    <a class="@ClaseNav("Doctores")" asp-controller="Doctores" asp-action="Index">Doctores</a>
-                    <a class="@ClaseNav("Recetas")" asp-controller="Recetas" asp-action="Index">Recetas</a>
-                    <a class="@ClaseNav("Historial")" asp-controller="Historial" asp-action="Index">Historia clínica</a>
-                    @if (Auth.EsAdministrador)
-                    {
-                        <a class="@ClaseNav("Admin")" asp-controller="Admin" asp-action="Index">Administración</a>
-                    }
-                }
-                @* Fuera del bloque de sesión: el tema y el tamaño del texto
-                   son del navegador, así que también aplican sin estar logueado. *@
-                <a class="@ClaseNav("Ajustes")" asp-controller="Ajustes" asp-action="Index">Ajustes</a>
-                @if (Auth.SesionActual is { } sesion)
-                {
-                    <span class="hidden sm:inline">
-                        @sesion.Nombre <span class="text-primary-line">|</span>
-                        <span class="capitalize text-primary">@sesion.Rol</span>
-                    </span>
-                    <form asp-controller="Cuenta" asp-action="Logout" method="post">
-                        <button type="submit" class="rounded-badge px-2 py-1 hover:bg-accent-soft hover:text-accent">
-                            Cerrar sesión
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <a class="@ClaseNav("Cuenta", "Registro")" asp-controller="Cuenta" asp-action="Registro">Registrarse</a>
-                    <a class="rounded-input bg-primary px-3 py-1.5 font-semibold text-white hover:bg-primary-hover"
-                       asp-controller="Cuenta" asp-action="Login">Iniciar sesión</a>
-                }
-            </nav>
+@* Con sesión, en el celular hay una barra fija abajo: el margen inferior evita
+   que tape el final de la página (el botón de un formulario, por ejemplo). *@
+<body class="min-h-screen bg-canvas font-sans text-ink antialiased @(menu.HaySesion ? "pb-24 md:pb-0" : null)">
+    <a href="#contenido" class="saltar boton boton-primario">Saltar al contenido</a>
+
+    @* El encabezado no es fijo a propósito: hay pantallas que vuelven ancladas
+       a una fila (Recetas/Crear) y un encabezado fijo taparía el ancla. *@
+    <header class="border-b border-border">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-6 py-3 @(menu.HaySesion ? null : "flex-wrap")">
+            <a class="flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">
+                <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
+                    <rect width="32" height="32" rx="7" class="fill-primary" />
+                    <path d="M16 8v8l5 3" fill="none" class="stroke-on-primary" stroke-width="3"
+                          stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                ChronoSalud
+            </a>
+
+            @if (menu.HaySesion)
+            {
+                @* En el celular estos destinos van en la barra inferior. Si no
+                   entran en un renglón (tablet, texto grande) la lista baja a
+                   dos en vez de desbordar. *@
+                <nav aria-label="Principal" class="hidden min-w-0 flex-1 md:block">
+                    <ul class="flex flex-wrap items-center justify-center gap-x-1 text-sm font-medium text-muted">
+                        @foreach (var item in menu.Items)
+                        {
+                            <li>
+                                <a asp-controller="@item.Controlador" asp-action="@item.Accion"
+                                   aria-current="@(item.Activo ? "page" : null)" class="@ClaseEnlace">@item.Titulo</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+
+                <partial name="_MenuCuenta" model="menu" />
+            }
+            else
+            {
+                @* El tema y el tamaño del texto son del navegador, así que
+                   Ajustes también aplica sin estar logueado. *@
+                <nav aria-label="Principal">
+                    <ul class="flex flex-wrap items-center justify-end gap-x-1 gap-y-2 text-sm font-medium text-muted">
+                        <li>
+                            <a asp-controller="Ajustes" asp-action="Index"
+                               aria-current="@(menu.AjustesActivo ? "page" : null)" class="@ClaseEnlace">Ajustes</a>
+                        </li>
+                        <li>
+                            <a asp-controller="Cuenta" asp-action="Registro"
+                               aria-current="@(enRegistro ? "page" : null)" class="@ClaseEnlace">Registrarse</a>
+                        </li>
+                        <li>
+                            <a class="boton boton-primario ml-2" asp-controller="Cuenta" asp-action="Login">Ingresar</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
         </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-6 py-10">
+    <main id="contenido" class="mx-auto max-w-6xl px-6 py-10">
         @if (TempData["Exito"] is string mensajeExito)
         {
             <div class="mb-8 flex items-start gap-3 rounded-input border border-status-confirmado/40 bg-status-confirmado/10 px-4 py-3 text-sm text-status-confirmado">
@@ -118,6 +127,11 @@
             <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>
         </div>
     </footer>
+
+    @if (menu.HaySesion)
+    {
+        <partial name="_BarraInferior" model="menu" />
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

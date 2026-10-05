@@ -248,6 +248,55 @@
   .chip {
     @apply inline-flex items-center rounded-badge px-2 py-1 text-xs font-semibold;
   }
+
+  /* Enlace para saltar al contenido: fuera de pantalla hasta que recibe el
+     foco del teclado, que es cuando hace falta. */
+  .saltar {
+    position: absolute;
+    left: 1rem;
+    top: -6rem;
+    z-index: 50;
+  }
+
+  .saltar:focus {
+    top: 1rem;
+  }
+
+  /* Menús flotantes (atributo popover): el de la cuenta y el "Más" de la
+     barra inferior. No se les fija display, porque de eso se ocupa el
+     navegador: los oculta cerrados y los muestra abiertos, y un display
+     propio los dejaría siempre a la vista.
+     La posición fija va dentro del @supports: en un navegador sin popover
+     el menú queda en el flujo de la página, feo pero usable, en vez de
+     flotar para siempre encima del contenido. */
+  .menu-flotante {
+    @apply rounded-card border border-control bg-surface p-2 text-ink shadow-flotante;
+  }
+
+  @supports selector(:popover-open) {
+    .menu-flotante {
+      position: fixed;
+      inset: auto;
+      margin: 0;
+    }
+
+    /* Debajo del encabezado (3 de padding + 11 del botón = 4.25rem) y
+       alineado con el borde derecho del contenido: max-w-6xl son 72rem y el
+       padding lateral, 1.5rem. */
+    .menu-cuenta {
+      top: 4.25rem;
+      right: max(1rem, calc((100vw - 72rem) / 2 + 1.5rem));
+      width: min(18rem, calc(100vw - 2rem));
+    }
+
+    /* Arriba de la barra inferior, de lado a lado. */
+    .menu-mas {
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: 6.5rem;
+      width: auto;
+    }
+  }
 }
 
 /* Foco visible en todo el sitio: contorno sólido, solo con teclado. Es un
