@@ -95,6 +95,10 @@ Crea un administrador, 4 doctores, 6 pacientes y 15 turnos repartidos entre hoy 
 próximos 7 días. La contraseña de todos es `Chrono2026!` y el admin es
 `admin@chronosalud.demo`.
 
+Esas cuentas y esa contraseña son públicas, porque están escritas en este repo: sirven
+solo para la base local. El seeder completo no se corre contra Azure; para eso está
+`--solo-medicamentos` (más abajo), que no crea cuentas.
+
 También carga los medicamentos del Vademécum Nacional que están en los CSV de
 [`tools/Seed/data/`](tools/Seed/data/): son los que aparecen en el desplegable de
 "Nueva receta".

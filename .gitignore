@@ -29,3 +29,11 @@ desktop.ini
 # El CLI standalone es un .exe de ~112 MB: no va al repo.
 # Se baja solo la primera vez que se compila el CSS
 ChronoSaludWeb/tools/tailwindcss.exe
+
+# ---- Archivos locales con datos de Azure ----
+# Pruebas y scripts armados contra el entorno de Azure, y configuración de
+# producción: quedan en cada máquina. Los secretos van en los ajustes del
+# App Service o en user-secrets, nunca en el repo.
+*-azure.*
+appsettings.Production.json
+.env
