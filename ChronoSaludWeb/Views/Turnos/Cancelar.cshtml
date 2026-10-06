@@ -1,9 +1,13 @@
 @model TurnoDetalleViewModel
 @{
     ViewData["Title"] = $"Cancelar turno #{Model.IdTurno}";
+
+    // El listado tal como estaba cuando se tocó "Cancelar". El controlador ya
+    // lo validó como URL local; null si se llegó desde otro lado.
+    var volver = ViewData["Volver"] as string;
 }
 
-<a asp-action="Index"
+<a href="@(volver ?? Url.Action("Index"))"
    class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -54,6 +58,10 @@
         </dl>
 
         <form asp-action="Cancelar" asp-route-id="@Model.IdTurno" method="post" class="mt-7 flex flex-wrap items-center gap-3">
+            @if (volver is not null)
+            {
+                <input type="hidden" name="volver" value="@volver" />
+            }
             <button type="submit"
                     class="boton boton-peligro">
                 Sí, cancelar el turno
