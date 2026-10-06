@@ -117,6 +117,9 @@ dotnet run --project tools/Seed -- --email <administrador>
 Con `--email`, la contraseña que pide es la de esa cuenta; las cuentas de la demo se
 crean igual con `Chrono2026!`.
 
+Contra una API que no sea la de esta máquina (`--url` distinto de `localhost`), el seeder
+no usa esa contraseña para las cuentas de la demo: pide una por consola.
+
 Para cargar **solo los medicamentos** contra otra API (por ejemplo la de Azure), sin
 usuarios ni turnos de demo, entrando con una cuenta administrador o doctor que ya exista:
 

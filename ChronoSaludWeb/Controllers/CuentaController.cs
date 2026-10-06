@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using ChronoSaludWeb.Filters;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Controllers;
 
+// Login, registro y salir: por definición se usan sin sesión.
+[PermiteSinSesion]
 public class CuentaController : Controller
 {
     private readonly AuthService _auth;

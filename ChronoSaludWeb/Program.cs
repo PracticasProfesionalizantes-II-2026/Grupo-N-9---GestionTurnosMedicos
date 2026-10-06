@@ -13,6 +13,9 @@ builder.Services.AddControllersWithViews(opciones =>
     // Todo POST valida el token antifalsificación, lleve o no el atributo
     // [ValidateAntiForgeryToken]: una acción nueva queda cubierta sola.
     opciones.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+
+    // Sin sesión solo se entra a las acciones marcadas con [PermiteSinSesion].
+    opciones.Filters.Add<SesionRequeridaFilter>();
 });
 
 // Los services necesitan el HttpContext para leer y escribir la sesión.

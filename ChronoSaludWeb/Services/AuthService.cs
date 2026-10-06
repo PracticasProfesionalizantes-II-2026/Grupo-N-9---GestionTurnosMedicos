@@ -138,7 +138,7 @@ public class AuthService
         var respuesta = await RegistrarUsuarioAsync(nombre, apellido, email, contrasena, telefono, rol);
 
         var sesion = new SesionUsuario(respuesta.Token, respuesta.Rol, respuesta.IdUsuario, nombre);
-        _contexto.HttpContext!.Session.GuardarSesion(sesion);
+        AbrirSesion(sesion);
         return sesion;
     }
 
@@ -191,8 +191,21 @@ public class AuthService
         var sesion = new SesionUsuario(
             respuesta.Token, respuesta.Rol, respuesta.IdUsuario, respuesta.Nombre);
 
-        _contexto.HttpContext!.Session.GuardarSesion(sesion);
+        AbrirSesion(sesion);
         return sesion;
+    }
+
+    /// <summary>
+    /// Deja abierta la sesión de quien acaba de entrar. Antes vacía la que
+    /// hubiera: si en el mismo navegador ya había otra cuenta (dos pestañas,
+    /// botón atrás) no tiene que quedar nada suyo, en particular el id de
+    /// perfil que cachea PerfilService.
+    /// </summary>
+    private void AbrirSesion(SesionUsuario sesion)
+    {
+        var actual = _contexto.HttpContext!.Session;
+        actual.Clear();
+        actual.GuardarSesion(sesion);
     }
 
     public void Logout() => _contexto.HttpContext?.Session.CerrarSesion();

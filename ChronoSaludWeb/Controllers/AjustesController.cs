@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ChronoSaludWeb.Filters;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
@@ -9,6 +10,7 @@ namespace ChronoSaludWeb.Controllers;
 /// pide sesión ni habla con la API: el tema y la escala son del navegador, así
 /// que tienen que funcionar también para quien todavía no inició sesión.
 /// </summary>
+[PermiteSinSesion]
 public class AjustesController : ControladorBase
 {
     public IActionResult Index()

@@ -36,6 +36,10 @@ using ChronoSalud.Seed;
 //  la contrasena de siempre.
 //    dotnet run --project tools/Seed -- --email <administrador>
 //
+//  La contrasena de la demo es publica (esta escrita en el repo): solo se usa
+//  contra la API de esta maquina. Si --url apunta a otra, el seeder pide por
+//  consola la contrasena para las cuentas de la demo.
+//
 //  Solo los medicamentos, sin usuarios ni turnos de demo (pensado para Azure).
 //  Aca la cuenta de --email puede ser administrador o doctor.
 //    dotnet run --project tools/Seed -- --url <api> --solo-medicamentos --email <cuenta>
@@ -48,6 +52,7 @@ const string contrasenaDemo = "Chrono2026!";
 var baseUrl = "http://localhost:5001";
 var contrasena = contrasenaDemo;
 var contrasenaIndicada = false;
+var contrasenaPorConsola = false;
 var contrasenaCuenta = string.Empty;
 var soloMedicamentos = false;
 string? cuentaPropia = null;
@@ -83,6 +88,28 @@ if (cuentaPropia is not null)
     // cuentas de la demo ni se muestra al final.
     contrasenaCuenta = contrasenaIndicada ? contrasena : LeerContrasena(cuentaPropia);
     contrasena = contrasenaDemo;
+    contrasenaIndicada = false;
+}
+
+// La contrasena de la demo esta escrita en el repo, asi que solo sirve para la
+// API de esta maquina. Contra cualquier otra, las cuentas de la demo llevan
+// una que se pide por consola o que viene en --contrasena. Con
+// --solo-medicamentos y --email no se pide: no se toca ninguna cuenta de la demo.
+var tocaCuentasDemo = !soloMedicamentos || cuentaPropia is null;
+
+if (!EsApiLocal(baseUrl) && tocaCuentasDemo)
+{
+    if (!contrasenaIndicada)
+    {
+        contrasena = LeerContrasena("las cuentas de la demo");
+        contrasenaPorConsola = true;
+    }
+
+    if (contrasena.Length < 8 || contrasena == contrasenaDemo)
+    {
+        Morir("Contra una API que no es la de esta maquina, las cuentas de la demo necesitan una " +
+              "contrasena propia de al menos 8 caracteres: la de la demo es publica.");
+    }
 }
 
 using var api = new ApiCliente(baseUrl);
@@ -559,7 +586,9 @@ foreach (var (rol, nombre, email, detalle) in credenciales)
 }
 
 Console.WriteLine();
-Escribir($"Contrasena de los usuarios de la demo: {contrasena}", ConsoleColor.White);
+Escribir(contrasenaPorConsola
+    ? "Contrasena de los usuarios de la demo: la que ingresaste por consola."
+    : $"Contrasena de los usuarios de la demo: {contrasena}", ConsoleColor.White);
 Escribir($"Turnos: {creados} nuevo(s), {saltados} ya existente(s), " +
          $"{DatosDemo.Turnos.Length} en total para la demo.", ConsoleColor.White);
 Escribir($"Medicamentos: {medicamentosNuevos} nuevo(s), {medicamentosSaltados} ya existente(s).",
@@ -579,6 +608,11 @@ static string Clave(string doctor, string paciente, DateTime fecha)
 // concentraciones (LENALINOVA 5 MG y LENALINOVA 15 MG son dos medicamentos).
 static string ClaveMedicamento(string nombre, string generico, string concentracion, string forma)
     => $"{nombre.Trim()}|{generico.Trim()}|{concentracion.Trim()}|{forma.Trim()}";
+
+// La API es local si la URL apunta a esta misma maquina (localhost, 127.0.0.1
+// o ::1). Una URL que no se puede leer se trata como no local.
+static bool EsApiLocal(string url)
+    => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.IsLoopback;
 
 // Pide la contrasena sin mostrarla, para que no quede escrita en la terminal.
 static string LeerContrasena(string cuenta)
@@ -763,8 +797,9 @@ async Task<(int IdUsuario, string Token, bool Creado)> ResolverUsuarioAsync(
 
     if (!login.Ok)
     {
-        Morir($"El usuario {persona.Email} ya existe pero su contrasena no es '{contrasena}'. " +
-              "Borra ese usuario o corre el seeder con --contrasena.");
+        Morir($"El usuario {persona.Email} ya existe pero su contrasena no es " +
+              (contrasenaPorConsola ? "la que ingresaste" : $"'{contrasena}'") +
+              ". Borra ese usuario o corre el seeder con --contrasena.");
     }
 
     Ya($"{rol} {persona.NombreCompleto} <{persona.Email}> ya existia");

@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using ChronoSaludWeb.Filters;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Controllers;
 
+// Sin sesión el inicio muestra la portada; privacidad y error son públicas.
+[PermiteSinSesion]
 public class HomeController : Controller
 {
     // Cuántos turnos entran en el panel de contexto. La API pagina de a 20.
