@@ -4,12 +4,12 @@
    paciente. Tiene su propio estado de error porque se arma con dos llamadas
    que pueden fallar sin que eso deba voltear el tablero entero. *@
 <section aria-labelledby="titulo-actividad" class="tarjeta overflow-hidden">
-    <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border px-5 py-4">
-        <h2 id="titulo-actividad" class="text-base font-semibold text-ink">@Model.Titulo</h2>
+    <header class="tarjeta-encabezado flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 py-4">
+        <h2 id="titulo-actividad" class="text-base font-semibold text-primary-deep">@Model.Titulo</h2>
         @if (Model.VerMas is { } verMas)
         {
             <a asp-controller="@verMas.Controlador" asp-action="@verMas.Accion" asp-all-route-data="verMas.Ruta"
-               class="rounded-badge text-sm font-semibold text-primary hover:underline">@verMas.Descripcion</a>
+               class="rounded-badge text-sm font-semibold text-primary hover:text-primary-hover hover:underline">@verMas.Descripcion</a>
         }
     </header>
 

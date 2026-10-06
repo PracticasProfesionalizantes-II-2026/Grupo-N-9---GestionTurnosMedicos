@@ -1,12 +1,12 @@
 @model PanelTurnosViewModel
 
 <section aria-labelledby="titulo-turnos" class="tarjeta overflow-hidden">
-    <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border px-5 py-4">
-        <h2 id="titulo-turnos" class="text-base font-semibold text-ink">@Model.Titulo</h2>
+    <header class="tarjeta-encabezado flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 py-4">
+        <h2 id="titulo-turnos" class="text-base font-semibold text-primary-deep">@Model.Titulo</h2>
         @if (Model.VerMas is { } verMas)
         {
             <a asp-controller="@verMas.Controlador" asp-action="@verMas.Accion" asp-all-route-data="verMas.Ruta"
-               class="rounded-badge text-sm font-semibold text-primary hover:underline">@verMas.Descripcion</a>
+               class="rounded-badge text-sm font-semibold text-primary hover:text-primary-hover hover:underline">@verMas.Descripcion</a>
         }
     </header>
 
@@ -35,7 +35,7 @@
                     _                        => null
                 };
 
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">@(turno.Hora ?? "—")</span>
 

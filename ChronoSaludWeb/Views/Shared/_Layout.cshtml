@@ -1,8 +1,8 @@
 @inject AuthService Auth
 @functions {
-    // Enlace del encabezado. Lo seleccionado va hundido y en negrita además de
-    // en teal, para que no dependa solo del color.
-    const string ClaseEnlace = "block rounded-input px-3 py-2 hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido";
+    // Enlace del encabezado. Lo seleccionado va relleno en teal y en negrita,
+    // para que no dependa solo del color; el hover es un teal claro.
+    const string ClaseEnlace = "block rounded-input px-3 py-2 hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary aria-[current=page]:hover:bg-primary-hover";
 }
 @{
     // Tema y escala salen de la cookie del cliente y se emiten en el <html>,
@@ -46,7 +46,7 @@
 
     @* El encabezado no es fijo a propósito: hay pantallas que vuelven ancladas
        a una fila (Recetas/Crear) y un encabezado fijo taparía el ancla. *@
-    <header class="border-b border-border">
+    <header class="barra-superior">
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-6 py-3 @(menu.HaySesion ? null : "flex-wrap")">
             <a class="flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">
                 <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
@@ -102,7 +102,7 @@
     <main id="contenido" class="mx-auto max-w-6xl px-6 py-10">
         @if (TempData["Exito"] is string mensajeExito)
         {
-            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-confirmado/40 bg-status-confirmado/10 px-4 py-3 text-sm text-status-confirmado">
+            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-confirmado-line bg-status-confirmado-soft px-4 py-3 text-sm text-status-confirmado">
                 <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
@@ -113,7 +113,7 @@
         }
         @if (TempData["Error"] is string mensajeError)
         {
-            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+            <div class="mb-8 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
                 <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />

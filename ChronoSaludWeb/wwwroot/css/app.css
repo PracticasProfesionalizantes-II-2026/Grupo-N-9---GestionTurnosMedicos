@@ -43,224 +43,330 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  /* Teal de marca. 5,02:1 como texto sobre canvas, 4,72:1 sobre
-     primary-soft y 5,74:1 con on-primary encima. */
-  --color-primary: #0D717A;
-  --color-primary-hover: #0A5F67;
+
+  /* Teal de marca y sus dos escalones oscuros. primary: rellenos, enlaces,
+     íconos y foco (6,00:1 sobre card, 4,86:1 sobre canvas, 4,95:1 sobre
+     primary-soft, y 6,00:1 con on-primary encima). primary-hover es el teal
+     oscuro: hover del botón primario y números grandes de las métricas
+     (7,39:1 sobre card). primary-deep es el más oscuro: títulos dentro del
+     encabezado de una tarjeta (8,73:1 sobre primary-soft) y el botón
+     primario presionado. primary-border es el borde del botón primario. */
+  --color-primary: #0B6E75;
+  --color-primary-hover: #0B5F66;
+  --color-primary-deep: #08464B;
+  --color-primary-border: #08565C;
   /* Texto e íconos sobre primary. Token aparte para que el tema oscuro
      pueda cambiarlo sin tocar las vistas. */
   --color-on-primary: #FFFFFF;
-  --color-primary-soft: #D7EDF0;
-  /* Solo decorativo (1,4:1 sobre canvas): no delimita campos ni lleva
-     información. */
+  /* Fondo del encabezado de una tarjeta y hover de ítems de menú y filas. */
+  --color-primary-soft: #D6EEF0;
+  /* Solo decorativo (arcos del motivo de marca): no lleva información. No se
+     toca en el rediseño de color para que el reloj se vea igual. */
   --color-primary-line: #A8D5DB;
-  /* Castaño: accent es decorativo (2,94:1); para texto o ícono se usa
-     accent-ink (5,25:1 sobre canvas, 4,94:1 sobre accent-soft). */
+
+  /* Bordes de las tarjetas. contorno (teal claro) delimita las tarjetas
+     principales y el encabezado de una tarjeta; contorno-suave (arena), las
+     secundarias (accesos rápidos, ítems clicables), la barra superior y los
+     menús flotantes. Son decorativos: lo que separa de verdad la tarjeta del
+     fondo es el salto de blanco a canvas más la sombra. */
+  --color-contorno: #8CC4C9;
+  --color-contorno-suave: #D3C4B1;
+
+  /* Castaño: accent es decorativo (motivo de marca); para texto o ícono se
+     usa accent-ink (4,94:1 sobre accent-soft). Sin cambios en el rediseño. */
   --color-accent: #B08268;
   --color-accent-ink: #85593F;
   --color-accent-soft: #F2E7E1;
-  --color-canvas: #F4EFE9;
-  --color-surface: #FBF7F2;
-  /* border es solo divisor (1,2:1). El borde que delimita campos, botones
-     secundarios y componentes es control: 3,73:1 sobre canvas, 4,00:1 sobre
-     surface y 4,27:1 sobre field. */
-  --color-border: #E3DAD1;
-  --color-control: #7F7A70;
+
+  /* Fondo de página, más oscuro que las tarjetas para que estas se lean
+     como superficies apoyadas encima. */
+  --color-canvas: #EFE6DA;
+  /* Barra superior, barra inferior del celular y resaltados chicos. */
+  --color-surface: #FBF7F1;
+  /* Tarjetas, menús flotantes y botón secundario. */
+  --color-card: #FFFFFF;
+  /* Fondo del banner del inicio y de la portada: el crema de antes, para que
+     el motivo de marca se siga viendo igual. */
+  --color-hero: #F4EFE9;
+  /* border es solo divisor dentro de una tarjeta (no llega a 3:1 a
+     propósito). El borde que delimita campos y botones secundarios es
+     control: 4,01:1 sobre card y 3,24:1 sobre canvas. */
+  --color-border: #E3D8C8;
+  --color-control: #8F7C66;
   /* Fondo de los campos de formulario. Necesita token propio porque es la
      única superficie cuya relación con la tarjeta se invierte entre temas:
-     en claro el campo va por encima de surface (blanco puro) y en oscuro
-     por debajo. Con canvas o surface a secas, uno de los dos temas queda
-     mal. */
+     en claro el campo es blanco como la tarjeta y en oscuro va por debajo. */
   --color-field: #FFFFFF;
-  --color-ink: #1C2321;
-  /* 5,22:1 sobre canvas y 5,60:1 sobre surface. */
-  --color-muted: #5B6661;
-  /* Estados: cada uno pasa 4,5:1 como texto sobre su propio tinte al 10 %,
-     que es como se usan en los chips (5,05 / 5,02 / 5,26 / 4,81). */
+  /* 15,52:1 sobre card y 12,56:1 sobre canvas. */
+  --color-ink: #1B2627;
+  /* 7,38:1 sobre card, 5,98:1 sobre canvas y 6,10:1 sobre primary-soft. */
+  --color-muted: #5A554E;
+
+  /* Estados. El color base va en íconos, mensajes de error y avisos (pasa
+     4,5:1 sobre card y sobre su propio -soft). Los chips llevan fondo -soft,
+     borde -line y texto -ink, un escalón más oscuro que el base:
+     6,93 / 6,64 / 6,68 / 6,02 sobre su fondo. */
   --color-status-pendiente: #96450A;
+  --color-status-pendiente-soft: #F6DEC4;
+  --color-status-pendiente-line: #DDB27F;
+  --color-status-pendiente-ink: #7A3A06;
   --color-status-confirmado: #116B33;
+  --color-status-confirmado-soft: #CBE7D5;
+  --color-status-confirmado-line: #9CCBAF;
+  --color-status-confirmado-ink: #0E5330;
   --color-status-completado: #075E91;
+  --color-status-completado-soft: #CFE3F2;
+  --color-status-completado-line: #9DC2DF;
+  --color-status-completado-ink: #0A4E7A;
   --color-status-cancelado: #B91C1C;
+  --color-status-cancelado-soft: #F6D4D2;
+  --color-status-cancelado-line: #E3A5A1;
+  --color-status-cancelado-ink: #9B1818;
+
   --radius-badge: 6px;
   --radius-input: 10px;
-  --radius-card: 14px;
+  --radius-card: 16px;
   --radius-modal: 18px;
-  /* Sombras del neumorfismo de la home de admin: tintadas con la propia
-     paleta (accent/terracota para la oscura, un casi-blanco cálido para
-     la clara) en vez de gris neutro, que se vería sucio sobre el hueso.
-     La clara pesa menos en opacidad que la oscura porque un tono casi
-     blanco ya es cercano al lienzo: si se lo satura tanto como al oscuro,
-     se ve más pesada de lo que aporta en contraste real. */
-  --color-neu-shadow-dark: rgba(176, 130, 104, 0.28);
-  --color-neu-shadow-light: rgba(255, 252, 245, 0.85);
-  /* Niveles de relieve. Al estar en el @theme, Tailwind genera las
-     utilidades shadow-elevado, shadow-elevado-sm, shadow-flotante,
-     inset-shadow-hundido e inset-shadow-presionado, que ya se componen con
-     ring y con las variantes hover: y active:.
-     Offset chico + blur muy corto hace que la sombra clara no llegue a
-     degradarse: se ve casi opaca hasta el borde del blur y ahí "corta" en
-     vez de desvanecer. Por eso la clara lleva más blur que la oscura (se
-     nota menos su corte al ser casi del color del lienzo). */
-  --shadow-elevado: 5px 5px 16px var(--color-neu-shadow-dark), -5px -5px 22px var(--color-neu-shadow-light);
-  --shadow-elevado-sm: 3px 3px 8px var(--color-neu-shadow-dark), -3px -3px 10px var(--color-neu-shadow-light);
-  /* El hover de un botón: la misma sombra, más corta. La pieza se acerca al
-     lienzo pero no cambia de nivel. */
-  --shadow-elevado-xs: 2px 2px 5px var(--color-neu-shadow-dark), -2px -2px 6px var(--color-neu-shadow-light);
-  /* Menús que flotan sobre contenido cualquiera: una sola sombra hacia
-     abajo, porque la doble solo funciona sobre el lienzo liso. */
-  --shadow-flotante: 0 12px 32px var(--color-neu-shadow-dark);
-  --inset-shadow-hundido: inset 3px 3px 8px var(--color-neu-shadow-dark), inset -3px -3px 8px var(--color-neu-shadow-light);
-  /* Presionado del botón primario: sobre el teal la sombra de la paleta no
-     se ve, hace falta una oscura neutra. */
-  --inset-shadow-presionado: inset 2px 2px 6px rgb(0 0 0 / 0.3);
+
+  /* Colores de las sombras. Van como tokens de color y no escritos dentro de
+     cada sombra porque Tailwind copia la forma de la sombra en la utilidad y
+     solo deja el color como variable: así el tema oscuro las puede cambiar.
+     El teal tiñe la sombra de las tarjetas principales; el marrón cálido, el
+     resto. */
+  --color-sombra-teal: rgba(8, 70, 75, 0.20);
+  --color-sombra: rgba(70, 48, 25, 0.12);
+  --color-sombra-media: rgba(70, 48, 25, 0.16);
+  --color-sombra-barra: rgba(70, 48, 25, 0.10);
+  --color-sombra-flotante: rgba(70, 48, 25, 0.22);
+  --color-sombra-boton: rgba(11, 110, 117, 0.35);
+
+  /* Niveles de sombra. Al estar en el @theme, Tailwind genera las utilidades
+     shadow-elevado, shadow-elevado-sm, etc., que ya se componen con ring y
+     con las variantes hover: y active:.
+     elevado: tarjetas principales. elevado-sm: tarjetas secundarias.
+     elevado-xs: botón secundario y opciones. boton: botón primario. barra:
+     barra superior (y su espejo hacia arriba en la barra inferior). */
+  --shadow-elevado: 0 10px 24px var(--color-sombra-teal), 0 2px 4px var(--color-sombra);
+  --shadow-elevado-sm: 0 8px 18px var(--color-sombra-media), 0 1px 3px var(--color-sombra);
+  --shadow-elevado-xs: 0 1px 3px var(--color-sombra);
+  --shadow-boton: 0 3px 8px var(--color-sombra-boton);
+  --shadow-barra: 0 2px 8px var(--color-sombra-barra);
+  --shadow-barra-inferior: 0 -2px 8px var(--color-sombra-barra);
+  /* Menús que flotan sobre contenido cualquiera. */
+  --shadow-flotante: 0 12px 28px var(--color-sombra-flotante);
+  /* Campos y lo presionado o seleccionado: una sombra interior apenas
+     marcada arriba. */
+  --inset-shadow-hundido: inset 0 1px 2px var(--color-sombra);
+  /* Presionado del botón primario: sobre el teal hace falta una oscura
+     neutra. */
+  --inset-shadow-presionado: inset 0 2px 4px rgb(0 0 0 / 0.3);
 }
 
 /* Tema oscuro. Se redefinen los mismos tokens del @theme, no se agregan
-   nuevos: así todas las utilidades ya escritas en las vistas (bg-surface,
-   text-muted, border-border, etc.) cambian solas y no hace falta salpicar
+   nuevos: así todas las utilidades ya escritas en las vistas (bg-card,
+   text-muted, border-contorno, etc.) cambian solas y no hace falta salpicar
    las vistas de dark:. Las variables del @theme salen en @layer theme, y
    este bloque va sin capa, por lo que gana el override sin subir
    especificidad.
 
-   La paleta no se invierte sin más: el hueso cálido no se vuelve gris
-   neutro sino un marrón muy oscuro desaturado, para que el oscuro se lea
-   como la misma marca con otra luz. Se mantiene el criterio del claro: sin
-   gradientes, la separación la dan los bordes y el salto canvas/surface, y
-   ninguna sombra pasa de shadow-sm. */
+   Misma lógica que el claro, con otra luz: el fondo es el escalón más
+   oscuro, las tarjetas suben uno (card) con borde teal y sombra, y el
+   encabezado de una tarjeta es un teal oscuro con el título en teal claro.
+   La paleta no se invierte sin más: el hueso cálido se vuelve un marrón muy
+   oscuro desaturado, para que se lea como la misma marca. */
 [data-theme="dark"] {
   /* Controles nativos (scrollbars, date pickers, selects) en variante
      oscura; es lo único que no se puede resolver con los tokens. */
   color-scheme: dark;
 
-  /* Teal de marca. Con un solo token y texto blanco en los botones no había
-     valor que sirviera para las dos cosas: aclararlo para leerlo como texto
-     lo arruinaba como fondo. Con on-primary aparte sí: el teal se aclara
-     hasta leerse bien como texto (5,87:1 sobre canvas, 5,42:1 sobre surface
-     y 4,72:1 sobre primary-soft) y los botones llevan tinta oscura encima
-     (5,39:1). El hover va todavía más claro: 7,25:1 con la tinta y 7,88:1
-     como texto de enlace. */
+  /* Teal de marca. Con texto blanco en los botones no había valor que
+     sirviera como texto y como fondo, por eso on-primary va aparte: el teal
+     se aclara hasta leerse bien como texto (5,12:1 sobre card, 4,72:1 sobre
+     primary-soft) y los botones llevan tinta oscura encima (5,39:1). El
+     hover y el "más oscuro" van al revés que en claro: aclaran, porque acá
+     el contraste se gana subiendo la luz (7,25:1 y 10,80:1 con la tinta). */
   --color-primary: #2F9FA9;
   --color-primary-hover: #4DB8C1;
+  --color-primary-deep: #9ED8DD;
+  --color-primary-border: #237E87;
   --color-on-primary: #0B1F22;
   --color-primary-soft: #0F2B31;
   --color-primary-line: #1F5A62;
 
-  /* La terracota se aclara bastante más que el teal porque es decorativa
-     (bordes, iconos, detalles) y nunca fondo de texto chico: acá conviene
-     priorizar que se distinga del marrón del lienzo. 6.4:1 sobre canvas. */
+  --color-contorno: #2D6A70;
+  --color-contorno-suave: #4C4238;
+
+  /* La terracota se aclara bastante más que el teal porque es decorativa. */
   --color-accent: #C08F73;
-  /* En oscuro el mismo tono ya sirve como texto (6,54:1 sobre canvas). */
+  /* En oscuro el mismo tono ya sirve como texto (5,26:1 sobre accent-soft). */
   --color-accent-ink: #C08F73;
   --color-accent-soft: #33241C;
 
-  /* Lienzo y superficie: marrón casi negro, con la superficie apenas por
-     encima. El salto es chico a propósito; quien separa de verdad las
-     tarjetas del fondo es el borde, igual que en el tema claro. */
+  /* Lienzo, barras y tarjetas: marrón casi negro, cada uno un escalón
+     arriba del anterior. El hero no tiene crema en oscuro: va como una
+     tarjeta más. */
   --color-canvas: #16130F;
   --color-surface: #1F1B16;
-  --color-border: #322C25;
-  /* Borde de campos y componentes: 3,82:1 sobre canvas, 3,53:1 sobre
-     surface. */
-  --color-control: #7A7065;
+  --color-card: #25201A;
+  --color-hero: #25201A;
+  --color-border: #3A3229;
+  /* Borde de campos y componentes: 4,03:1 sobre card, 4,62:1 sobre field. */
+  --color-control: #8A7D6E;
 
   /* El campo baja al nivel del lienzo, un escalón por debajo de la tarjeta
-     que lo contiene: es el equivalente en oscuro del blanco sobre hueso del
-     tema claro, un campo que se lee como hueco y no como relieve. */
+     que lo contiene: se lee como hueco y no como relieve. */
   --color-field: #16130F;
 
-  /* Hueso cálido como tinta (12.9:1 sobre canvas) y un apagado que sigue
-     pasando AA para texto normal (5.6:1), que en oscuro es donde más se
-     suele fallar. */
+  /* Hueso cálido como tinta (13,66:1 sobre card) y un apagado que sigue
+     pasando AA para texto normal (6,00:1 sobre card). */
   --color-ink: #F2EBE2;
   --color-muted: #A79C90;
 
-  /* Estados: mismos hues que en claro, subidos en luminosidad hasta
-     6–7.7:1 sobre el lienzo. Se conserva el orden de saturación para que
-     un pendiente siga leyéndose más "cálido" que un completado. */
+  /* Estados: mismos hues que en claro, subidos en luminosidad. Los chips
+     invierten la lógica: fondo oscuro tintado y texto claro (7,4 a 8:1). */
   --color-status-pendiente: #E09B3D;
+  --color-status-pendiente-soft: #3E2810;
+  --color-status-pendiente-line: #7A5228;
+  --color-status-pendiente-ink: #F0B868;
   --color-status-confirmado: #4CAF6A;
+  --color-status-confirmado-soft: #173A25;
+  --color-status-confirmado-line: #2F6E47;
+  --color-status-confirmado-ink: #8FD6A6;
   --color-status-completado: #4FADE0;
+  --color-status-completado-soft: #102E44;
+  --color-status-completado-line: #2A5F85;
+  --color-status-completado-ink: #8CCBEE;
   --color-status-cancelado: #E8706B;
+  --color-status-cancelado-soft: #431816;
+  --color-status-cancelado-line: #8A3633;
+  --color-status-cancelado-ink: #F3A29E;
 
-  /* Neumorfismo de la home de admin. En oscuro se invierte la lógica de la
-     nota de arriba: ahora la sombra oscura casi no tiene con qué
-     contrastar (el lienzo ya es oscuro) así que se la lleva a negro puro y
-     se le sube la opacidad, mientras que la "luz" pasa a ser un reflejo
-     cálido muy tenue. Si se la dejara casi blanca como en el claro, la
-     tarjeta se vería con un halo recortado en vez de con volumen. */
-  --color-neu-shadow-dark: rgba(0, 0, 0, 0.55);
-  --color-neu-shadow-light: rgba(129, 111, 96, 0.22);
+  /* Sombras: sobre un fondo oscuro el tinte no se ve, así que van a negro
+     con más opacidad. */
+  --color-sombra-teal: rgba(0, 0, 0, 0.45);
+  --color-sombra: rgba(0, 0, 0, 0.35);
+  --color-sombra-media: rgba(0, 0, 0, 0.40);
+  --color-sombra-barra: rgba(0, 0, 0, 0.35);
+  --color-sombra-flotante: rgba(0, 0, 0, 0.55);
+  --color-sombra-boton: rgba(0, 0, 0, 0.40);
 }
 
-/* Soft UI: la pieza comparte fondo con el lienzo en vez de diferenciarse
-   por color y borde, y dos sombras opuestas simulan el volumen. Cada nivel
-   significa una cosa sola (docs/diseno.md): elevado para tarjetas y
-   botones; hundido para campos, botón presionado y lo seleccionado; plano
-   para lo deshabilitado.
-   Las clases se arman con @apply sobre las utilidades de sombra del @theme,
-   así usan la misma cadena de variables que "shadow" y "ring" de Tailwind y
-   un ring en el mismo elemento se sigue viendo encima. */
+/* Superficies con borde y sombra: las piezas son más claras que el fondo de
+   la página (blancas en claro) y se separan de él por el salto de color, un
+   borde de 1,5 px y una sombra. Hay dos pesos: la tarjeta principal
+   (estadísticas, listas, paneles, formularios) con borde teal y sombra
+   teñida de teal, y la secundaria (accesos rápidos, tarjetas que son un
+   enlace) con borde arena y sombra cálida. El teal queda como acento.
+   Las clases se arman con @apply sobre las utilidades del @theme, así usan
+   la misma cadena de variables que "shadow" y "ring" de Tailwind y un ring
+   en el mismo elemento se sigue viendo encima. */
 @layer components {
   .tarjeta {
-    @apply rounded-card bg-canvas shadow-elevado;
+    @apply rounded-card border-[1.5px] border-contorno bg-card shadow-elevado;
   }
 
-  /* Tarjeta que entera es un enlace (accesos rápidos, tarjetas de Cuentas):
-     al pasar el mouse la sombra se acorta, sin cambiar de nivel, y al
-     presionarla se hunde. Va junto con .tarjeta. */
+  /* Tarjeta secundaria, que entera es un enlace (accesos rápidos, tarjetas
+     de Cuentas). Va junto con .tarjeta y le cambia borde y sombra. Al pasar
+     el mouse el borde toma el teal de las principales; al presionarla la
+     sombra se achica, como si se apoyara. */
   .tarjeta-enlace {
-    @apply hover:shadow-elevado-sm active:shadow-none active:inset-shadow-hundido;
+    @apply border-contorno-suave shadow-elevado-sm hover:border-contorno active:shadow-elevado-xs;
   }
 
-  /* Botones: elevados en reposo, hundidos al presionar. El primario se
-     distingue por el relleno y el secundario por el borde de control,
-     porque la sombra sola no cuenta para el 3:1. min-h-11 son 44 px de
-     área táctil con el texto en tamaño normal, y acompaña la escala. */
+  /* El banner del inicio y la portada: tarjeta principal con el fondo crema
+     de siempre, para que el motivo de marca se siga viendo igual. Va junto
+     con .tarjeta. */
+  .tarjeta-hero {
+    @apply bg-hero;
+  }
+
+  /* Encabezado dentro de una tarjeta (título del panel y su enlace, o la
+     fila de títulos de una tabla): franja teal clara con borde inferior
+     teal. El título lleva text-primary-deep en la vista. */
+  .tarjeta-encabezado {
+    @apply border-b border-contorno bg-primary-soft;
+  }
+
+  /* Círculo de ícono: teal lleno con el ícono en on-primary. El trazo va un
+     poco más grueso que el 1,5 del resto del sitio para que el ícono no se
+     pierda sobre el relleno; el CSS le gana al atributo stroke-width del
+     SVG, así las vistas no cambian. Un estado vacío de error o de aviso le
+     suma bg-status-cancelado o bg-status-pendiente. */
+  .circulo-icono {
+    @apply bg-primary text-on-primary;
+  }
+
+  .circulo-icono svg {
+    stroke-width: 1.9;
+  }
+
+  /* Botones. El primario se distingue por el relleno teal con borde más
+     oscuro y el secundario por el fondo de tarjeta con borde de control,
+     porque la sombra sola no cuenta para el 3:1. Los dos llevan borde de
+     1 px para medir lo mismo. min-h-11 son 44 px de área táctil con el
+     texto en tamaño normal, y acompaña la escala. */
   .boton {
     @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-input px-4 py-2.5 text-center text-sm font-semibold no-underline;
   }
 
+  .boton:disabled,
+  .boton[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-60 shadow-none;
+  }
+
   .boton-primario {
-    @apply bg-primary text-on-primary shadow-elevado-sm hover:bg-primary-hover hover:shadow-elevado-xs active:bg-primary-hover active:shadow-none active:inset-shadow-presionado;
+    @apply border border-primary-border bg-primary text-on-primary shadow-boton hover:bg-primary-hover active:bg-primary-deep active:shadow-none active:inset-shadow-presionado;
   }
 
   .boton-secundario {
-    @apply border border-control bg-canvas text-ink shadow-elevado-sm hover:text-primary hover:shadow-elevado-xs active:shadow-none active:inset-shadow-hundido;
+    @apply border border-control bg-card text-ink shadow-elevado-xs hover:border-primary hover:bg-primary-soft hover:text-primary-hover active:shadow-none active:inset-shadow-hundido;
   }
 
   /* Acción destructiva (cancelar un turno). Usa on-primary para el texto
      porque el rojo cambia de luminosidad entre temas igual que el teal:
      blanco sobre el rojo claro da 6,47:1, y la tinta oscura sobre el rojo
-     del tema oscuro, 5,64:1 (el blanco ahí daría 3,02:1). */
+     del tema oscuro, 5,64:1. */
   .boton-peligro {
-    @apply bg-status-cancelado text-on-primary shadow-elevado-sm hover:bg-status-cancelado/90 hover:shadow-elevado-xs active:shadow-none active:inset-shadow-presionado;
+    @apply border border-status-cancelado-ink bg-status-cancelado text-on-primary shadow-elevado-xs hover:bg-status-cancelado-ink active:shadow-none active:inset-shadow-presionado;
   }
 
-  /* Botón de texto: sin relieve ni relleno, para acciones de poco peso
+  /* Botón de texto: sin relleno ni sombra, para acciones de poco peso
      (volver, acciones dentro de una fila). No lleva padding horizontal para
      que un "Volver" quede alineado con el título de abajo; quien lo use
      dentro de una fila le suma px-2. */
   .boton-texto {
-    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-badge text-sm font-semibold text-primary no-underline hover:underline;
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-badge text-sm font-semibold text-primary no-underline hover:text-primary-hover hover:underline;
   }
 
-  /* Campo: hundido y con borde de control. El borde de error se activa con
-     aria-invalid o con la clase que ASP.NET le pone al campo que no validó
-     en el servidor, así no depende de JavaScript. */
+  /* Campo: blanco con borde de control y una sombra interior apenas
+     marcada. En el hover el borde pasa a teal. El borde de error se activa
+     con aria-invalid o con la clase que ASP.NET le pone al campo que no
+     validó en el servidor, así no depende de JavaScript. Deshabilitado baja
+     al color del fondo de página. */
   .campo {
-    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-sm text-ink inset-shadow-hundido placeholder:text-muted;
+    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-sm text-ink inset-shadow-hundido placeholder:text-muted hover:border-primary;
   }
 
   .campo.input-validation-error,
   .campo[aria-invalid="true"] {
-    @apply border-status-cancelado;
+    @apply border-status-cancelado bg-status-cancelado-soft/40;
   }
 
-  /* Chip: la forma. El color lo pone quien lo usa (bg-status-X/10
-     text-status-X), con la clase completa escrita para que Tailwind la
-     encuentre. */
+  .campo:disabled {
+    @apply cursor-not-allowed border-border bg-canvas text-muted opacity-70;
+  }
+
+  /* Chip: la forma. El color lo pone quien lo usa (bg-status-X-soft
+     border-status-X-line text-status-X-ink), con la clase completa escrita
+     para que Tailwind la encuentre. */
   .chip {
     @apply inline-flex items-center rounded-badge px-2 py-1 text-xs font-semibold;
+  }
+
+  /* Barra superior: un escalón más clara que el fondo, con borde y sombra
+     hacia abajo. */
+  .barra-superior {
+    @apply border-b border-contorno-suave bg-surface shadow-barra;
   }
 
   /* Enlace para saltar al contenido: fuera de pantalla hasta que recibe el
@@ -284,7 +390,7 @@
      el menú queda en el flujo de la página, feo pero usable, en vez de
      flotar para siempre encima del contenido. */
   .menu-flotante {
-    @apply rounded-card border border-control bg-surface p-2 text-ink shadow-flotante;
+    @apply rounded-card border-[1.5px] border-contorno-suave bg-card p-2 text-ink shadow-flotante;
   }
 
   @supports selector(:popover-open) {
@@ -333,8 +439,8 @@
      pidió menos movimiento no recibe ninguna de estas reglas (y el bloque
      de reduce de más abajo queda como segunda red). */
   @media (prefers-reduced-motion: no-preference) {
-    /* Cambios de nivel suaves: la sombra que se acorta en el hover y la que
-       se hunde al presionar. No se anima nada que mueva el layout. */
+    /* Cambios de estado suaves: el borde y el fondo del hover y la sombra
+       que se achica al presionar. No se anima nada que mueva el layout. */
     .boton,
     .boton-texto,
     .tarjeta-enlace,

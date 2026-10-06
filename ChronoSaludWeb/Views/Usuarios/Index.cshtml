@@ -97,7 +97,7 @@ else
             @{ var fila = 0; }
             @foreach (var usuario in Model.Usuarios)
             {
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-surface"
+                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <partial name="_Avatar"
                              model='new AvatarViewModel { Nombre = usuario.NombreCrudo, FotoUrl = usuario.TieneFoto ? Url.Action("Foto", new { id = usuario.IdUsuario }) : null, Tamano = TamanoAvatar.Chico }' />

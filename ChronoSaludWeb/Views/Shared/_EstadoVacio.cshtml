@@ -5,9 +5,9 @@
     // completas para que las encuentre al compilar el CSS.
     static string ClaseCirculo(TonoVacio tono) => tono switch
     {
-        TonoVacio.Error => "bg-status-cancelado/10 text-status-cancelado",
-        TonoVacio.Aviso => "bg-status-pendiente/10 text-status-pendiente",
-        _               => "bg-primary-soft text-primary",
+        TonoVacio.Error => "circulo-icono bg-status-cancelado",
+        TonoVacio.Aviso => "circulo-icono bg-status-pendiente",
+        _               => "circulo-icono",
     };
 }
 
