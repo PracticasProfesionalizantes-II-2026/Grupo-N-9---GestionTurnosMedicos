@@ -21,7 +21,7 @@
 
         @if (erroresGenerales is { Count: > 0 })
         {
-            <div role="alert" class="mt-6 rounded-input border border-status-cancelado/40 bg-status-cancelado/10 px-4 py-3 text-sm text-status-cancelado">
+            <div role="alert" class="mt-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
                 @foreach (var error in erroresGenerales)
                 {
                     <p>@error.ErrorMessage</p>

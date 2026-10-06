@@ -109,7 +109,7 @@ else
                 </svg>
                 Confirmados
             </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-ink">@Model.Confirmados</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Confirmados</p>
         </div>
 
         <div class="tarjeta p-5">
@@ -121,7 +121,7 @@ else
                 </svg>
                 Pendientes
             </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-ink">@Model.Pendientes</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Pendientes</p>
         </div>
 
         <div class="tarjeta p-5">
@@ -133,7 +133,7 @@ else
                 </svg>
                 Completados
             </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-ink">@Model.Completados</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</p>
         </div>
 
         <div class="tarjeta p-5">
@@ -146,7 +146,7 @@ else
                 </svg>
                 Cancelados
             </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-ink">@Model.Cancelados</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Cancelados</p>
         </div>
     </div>
 
@@ -173,7 +173,7 @@ else
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead>
-                        <tr class="border-b border-border text-xs font-semibold text-muted">
+                        <tr class="tarjeta-encabezado text-xs font-semibold text-primary-deep">
                             <th scope="col" class="px-5 py-3 font-semibold">Hora</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Paciente</th>
                             <th scope="col" class="px-5 py-3 font-semibold">Fecha</th>
@@ -190,7 +190,7 @@ else
                         @{ var fila = 0; }
                         @foreach (var turno in Model.Turnos)
                         {
-                            <tr class="fila-animada border-b border-border last:border-0 hover:bg-surface"
+                            <tr class="fila-animada border-b border-border last:border-0 hover:bg-primary-soft/50"
                                 style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                                 <td class="whitespace-nowrap px-5 py-4 text-sm font-medium tabular-nums text-ink">
                                     @(turno.Hora ?? "—")

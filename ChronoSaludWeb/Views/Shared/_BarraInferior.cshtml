@@ -7,17 +7,17 @@
     // grande.
     const string ClaseItem = "flex min-h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-input px-1 py-1.5 text-center text-xs leading-tight wrap-anywhere";
 
-    // Lo seleccionado va hundido y en negrita además de en teal, para que no
-    // dependa solo del color.
-    const string ClaseEnlace = "font-medium text-muted aria-[current=page]:font-bold aria-[current=page]:text-primary aria-[current=page]:inset-shadow-hundido";
+    // Lo seleccionado va relleno en teal y en negrita, para que no dependa
+    // solo del color.
+    const string ClaseEnlace = "font-medium text-muted aria-[current=page]:bg-primary aria-[current=page]:font-bold aria-[current=page]:text-on-primary";
 
-    const string ClaseOpcion = "flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary aria-[current=page]:font-semibold aria-[current=page]:text-primary";
+    const string ClaseOpcion = "flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary";
 }
 
 @* Barra de navegación del celular. Html.Raw es seguro acá: IconosLucide.Trazos
    devuelve literales del código. *@
 <nav aria-label="Principal"
-     class="fixed inset-x-0 bottom-0 z-20 border-t border-control bg-canvas px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden">
+     class="fixed inset-x-0 bottom-0 z-20 border-t border-contorno-suave bg-surface shadow-barra-inferior px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden">
     <ul class="grid grid-cols-5 gap-1">
         @foreach (var item in Model.Barra)
         {
@@ -34,7 +34,7 @@
         }
         <li class="min-w-0">
             <button type="button" popovertarget="menu-mas"
-                    class="@ClaseItem @(Model.MasActivo ? "font-bold text-primary inset-shadow-hundido" : "font-medium text-muted")">
+                    class="@ClaseItem @(Model.MasActivo ? "bg-primary font-bold text-on-primary" : "font-medium text-muted")">
                 <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     @Html.Raw(IconosLucide.Trazos("menu"))
