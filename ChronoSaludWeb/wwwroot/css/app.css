@@ -273,6 +273,15 @@
     @apply border-contorno-suave shadow-elevado-sm hover:border-contorno active:shadow-elevado-xs;
   }
 
+  /* Tarjeta que funciona como filtro de un listado (las de estado en
+     Turnos): es un <button> con aria-pressed. En reposo se ve igual que una
+     .tarjeta; la activa toma el fondo teal claro y un anillo interior, que
+     no mueve el tamaño como lo haría un borde más grueso. Va junto con
+     .tarjeta. */
+  .tarjeta-filtro {
+    @apply cursor-pointer hover:border-primary aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:inset-ring-2 aria-pressed:inset-ring-primary;
+  }
+
   /* El banner del inicio y la portada: tarjeta principal con el fondo crema
      de siempre, para que el motivo de marca se siga viendo igual. Va junto
      con .tarjeta. */
@@ -444,6 +453,7 @@
     .boton,
     .boton-texto,
     .tarjeta-enlace,
+    .tarjeta-filtro,
     .campo {
       transition: box-shadow 150ms ease-out, background-color 150ms ease-out,
                   color 150ms ease-out, border-color 150ms ease-out;

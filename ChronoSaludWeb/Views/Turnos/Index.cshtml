@@ -2,6 +2,43 @@
 @inject AuthService Auth
 @{
     ViewData["Title"] = Model.Titulo;
+
+    // La URL de este mismo listado, con la tarjeta activa, el orden y las
+    // fechas. Viaja en "volver" al confirmar o cancelar un turno, para volver
+    // a esta vista y no al listado sin filtros.
+    var volver = Url.Action("Index", "Turnos", Model.Filtros.Ruta(Model.Filtros.Estado));
+
+    // Encabezado de una columna ordenable: un enlace que vuelve al listado
+    // ordenado por ella. En la que ya ordena la tabla lleva la flecha y el
+    // aria-sort, y tocarla de nuevo invierte la dirección.
+    async Task Encabezado(string columna, string titulo, string? alineacion = null)
+    {
+        var activa = Model.Filtros.OrdenaPor(columna);
+        var sentido = !activa ? null : Model.Filtros.Descendente ? "descending" : "ascending";
+
+        <th scope="col" aria-sort="@sentido" class="px-5 py-3 font-semibold @alineacion">
+            <a asp-action="Index" asp-all-route-data="Model.Filtros.RutaDeOrden(columna)"
+               class="inline-flex items-center gap-1 rounded-badge hover:text-primary">
+                @titulo
+                @if (activa)
+                {
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @if (Model.Filtros.Descendente)
+                        {
+                            <path d="M12 5v14" />
+                            <path d="m19 12-7 7-7-7" />
+                        }
+                        else
+                        {
+                            <path d="M12 19V5" />
+                            <path d="m5 12 7-7 7 7" />
+                        }
+                    </svg>
+                }
+            </a>
+        </th>
+    }
 }
 
 <div class="flex flex-wrap items-end justify-between gap-4">
@@ -38,16 +75,22 @@
 </div>
 
 @* Filtros por GET: los valores viajan en la query string, así el listado
-   filtrado se puede compartir o recargar. *@
+   filtrado se puede compartir o recargar. El estado se elige con las tarjetas
+   de abajo; acá viaja oculto para que "Filtrar" no lo pierda. *@
 <form method="get" asp-action="Index"
       class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
-    <div class="w-full sm:w-auto sm:min-w-40">
-        <label for="estado" class="block text-sm font-medium text-ink">Estado</label>
-        <select id="estado" name="estado" asp-items="Model.Filtros.Opciones()"
-                class="campo mt-1.5 capitalize">
-            <option value="">Todos</option>
-        </select>
-    </div>
+    @if (Model.Filtros.Estado is not null)
+    {
+        <input type="hidden" name="estado" value="@Model.Filtros.Estado" />
+    }
+    @if (Model.Filtros.Orden is not null)
+    {
+        <input type="hidden" name="orden" value="@Model.Filtros.Orden" />
+    }
+    @if (Model.Filtros.Descendente)
+    {
+        <input type="hidden" name="dir" value="desc" />
+    }
 
     <div>
         <label for="desde" class="block text-sm font-medium text-ink">Desde</label>
@@ -99,45 +142,79 @@ else if (Model.HuboError)
 }
 else
 {
-    <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div class="tarjeta p-5">
-            <div class="flex items-center gap-2 text-sm text-muted">
+    @* Las tarjetas son el filtro de estado: cada una es un botón de un
+       formulario GET que manda su estado, y la activa manda el valor vacío,
+       que es lo que la apaga. El formulario es la grilla misma y se cierra
+       antes de la tabla, así no queda anidado con los de las filas. Adentro
+       van <span> porque un <button> no admite elementos de bloque. *@
+    <form method="get" asp-action="Index" class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        @if (Model.Filtros.Desde is { } desde)
+        {
+            <input type="hidden" name="desde" value="@desde.ToString("yyyy-MM-dd")" />
+        }
+        @if (Model.Filtros.Hasta is { } hasta)
+        {
+            <input type="hidden" name="hasta" value="@hasta.ToString("yyyy-MM-dd")" />
+        }
+        @if (Model.Filtros.Orden is not null)
+        {
+            <input type="hidden" name="orden" value="@Model.Filtros.Orden" />
+        }
+        @if (Model.Filtros.Descendente)
+        {
+            <input type="hidden" name="dir" value="desc" />
+        }
+
+        <button type="submit" name="estado"
+                value="@(Model.Filtros.EstaActivo("confirmado") ? "" : "confirmado")"
+                aria-pressed="@(Model.Filtros.EstaActivo("confirmado") ? "true" : "false")"
+                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+            <span class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-confirmado" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <path d="m9 12 2 2 4-4" />
                 </svg>
                 Confirmados
-            </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Confirmados</p>
-        </div>
+            </span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Confirmados</span>
+        </button>
 
-        <div class="tarjeta p-5">
-            <div class="flex items-center gap-2 text-sm text-muted">
+        <button type="submit" name="estado"
+                value="@(Model.Filtros.EstaActivo("pendiente") ? "" : "pendiente")"
+                aria-pressed="@(Model.Filtros.EstaActivo("pendiente") ? "true" : "false")"
+                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+            <span class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-pendiente" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
                 Pendientes
-            </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Pendientes</p>
-        </div>
+            </span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Pendientes</span>
+        </button>
 
-        <div class="tarjeta p-5">
-            <div class="flex items-center gap-2 text-sm text-muted">
+        <button type="submit" name="estado"
+                value="@(Model.Filtros.EstaActivo("completado") ? "" : "completado")"
+                aria-pressed="@(Model.Filtros.EstaActivo("completado") ? "true" : "false")"
+                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+            <span class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-completado" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21.801 10A10 10 0 1 1 17 3.335" />
                     <path d="m9 11 3 3L22 4" />
                 </svg>
                 Completados
-            </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</p>
-        </div>
+            </span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</span>
+        </button>
 
-        <div class="tarjeta p-5">
-            <div class="flex items-center gap-2 text-sm text-muted">
+        <button type="submit" name="estado"
+                value="@(Model.Filtros.EstaActivo("cancelado") ? "" : "cancelado")"
+                aria-pressed="@(Model.Filtros.EstaActivo("cancelado") ? "true" : "false")"
+                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+            <span class="flex items-center gap-2 text-sm text-muted">
                 <svg class="h-4 w-4 text-status-cancelado" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
@@ -145,18 +222,25 @@ else
                     <path d="m9 9 6 6" />
                 </svg>
                 Cancelados
-            </div>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-primary-hover">@Model.Cancelados</p>
-        </div>
-    </div>
+            </span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Cancelados</span>
+        </button>
+    </form>
 
-    @if (Model.Turnos.Count == 0)
+    @if (Model.Visibles.Count == 0)
     {
         <div class="tarjeta mt-6">
-            @if (Model.SinResultados)
+            @if (Model.SinTurnosDelEstado)
+            {
+                @* Hay turnos, pero ninguno del estado de la tarjeta activa. "Ver
+                   todos" saca solo el estado: las fechas elegidas se conservan. *@
+                <partial name="_EstadoVacio"
+                         model='new EstadoVacioViewModel { Icono = "calendario", Nivel = 2, Titulo = $"No hay turnos {Model.Filtros.Estado}s", Ayuda = "Elegí otra tarjeta o volvé a ver todos los turnos.", Accion = new EnlaceViewModel { Controlador = "Turnos", Accion = "Index", Ruta = Model.Filtros.Ruta(null), Descripcion = "Ver todos" } }' />
+            }
+            else if (Model.SinResultados)
             {
                 <partial name="_EstadoVacio"
-                         model='new EstadoVacioViewModel { Icono = "calendario", Nivel = 2, Titulo = "Ningún turno coincide con los filtros", Ayuda = "Probá con otro estado o ampliá el rango de fechas.", Accion = new EnlaceViewModel { Controlador = "Turnos", Accion = "Index", Descripcion = "Limpiar filtros" } }' />
+                         model='new EstadoVacioViewModel { Icono = "calendario", Nivel = 2, Titulo = "Ningún turno coincide con los filtros", Ayuda = "Probá ampliando el rango de fechas.", Accion = new EnlaceViewModel { Controlador = "Turnos", Accion = "Index", Descripcion = "Limpiar filtros" } }' />
             }
             else
             {
@@ -174,10 +258,12 @@ else
                 <table class="w-full text-left">
                     <thead>
                         <tr class="tarjeta-encabezado text-xs font-semibold text-primary-deep">
-                            <th scope="col" class="px-5 py-3 font-semibold">Hora</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Paciente</th>
-                            <th scope="col" class="px-5 py-3 font-semibold">Fecha</th>
-                            <th scope="col" class="px-5 py-3 text-right font-semibold">Estado</th>
+                            @{
+                                await Encabezado("hora", "Hora");
+                                await Encabezado("paciente", "Paciente");
+                                await Encabezado("fecha", "Fecha");
+                                await Encabezado("estado", "Estado", "text-right");
+                            }
                             @if (Auth.PuedeCancelarTurnos)
                             {
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">
@@ -188,7 +274,7 @@ else
                     </thead>
                     <tbody>
                         @{ var fila = 0; }
-                        @foreach (var turno in Model.Turnos)
+                        @foreach (var turno in Model.Visibles)
                         {
                             <tr class="fila-animada border-b border-border last:border-0 hover:bg-primary-soft/50"
                                 style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
@@ -236,6 +322,7 @@ else
                                                 <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="relative z-10">
                                                     <input type="hidden" name="estado" value="confirmado" />
                                                     <input type="hidden" name="volverA" value="Index" />
+                                                    <input type="hidden" name="volver" value="@volver" />
                                                     <button type="submit"
                                                             class="boton-texto px-2 py-1">
                                                         Confirmar
@@ -245,7 +332,7 @@ else
                                             }
                                             @if (!turno.EstaCancelado)
                                             {
-                                                <a asp-action="Cancelar" asp-route-id="@turno.IdTurno"
+                                                <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1 text-status-cancelado">
                                                     Cancelar
                                                     <span class="sr-only">el turno de @turno.PacienteMostrado</span>
@@ -266,7 +353,7 @@ else
             <div class="mt-3 space-y-1 text-xs text-muted">
                 @if (Model.HayMas)
                 {
-                    <p>Mostrando @Model.Turnos.Count de @Model.Total turnos.</p>
+                    <p>Se cargaron los primeros @Model.Turnos.Count de @Model.Total turnos. Los contadores y el orden consideran solo esos.</p>
                 }
                 @if (Model.FaltaHora)
                 {

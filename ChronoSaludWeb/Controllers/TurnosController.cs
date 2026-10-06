@@ -34,20 +34,36 @@ public class TurnosController : ControladorBase
         _usuarios = usuarios;
     }
 
-    public async Task<IActionResult> Index(string? estado, DateTime? desde, DateTime? hasta)
+    public async Task<IActionResult> Index(string? estado, DateTime? desde, DateTime? hasta, string? orden, string? dir)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index)));
 
         // Un estado que la API no conoce se ignora, así nadie fuerza la query.
-        if (!string.IsNullOrWhiteSpace(estado) &&
+        if (string.IsNullOrWhiteSpace(estado) ||
             !TurnosFiltroViewModel.EstadosTurno.Contains(estado, StringComparer.OrdinalIgnoreCase))
         {
             estado = null;
         }
 
+        // Lo mismo con la columna de orden: una que no existe queda en null y
+        // se aplica el orden por defecto.
+        orden = TurnosFiltroViewModel.Columnas
+            .FirstOrDefault(c => string.Equals(c, orden, StringComparison.OrdinalIgnoreCase));
+
         var rol = _auth.SesionActual?.Rol;
-        var filtros = new TurnosFiltroViewModel { Estado = estado, Desde = desde, Hasta = hasta };
+        var filtros = new TurnosFiltroViewModel
+        {
+            Estado      = estado,
+            Desde       = desde,
+            Hasta       = hasta,
+            Orden       = orden,
+            Descendente = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase)
+        };
+
+        // Se calcula una sola vez: el orden y el encabezado de la página usan
+        // el mismo "hoy".
+        var hoy = FechaArgentina.Hoy();
 
         try
         {
@@ -67,10 +83,12 @@ public class TurnosController : ControladorBase
 
             // paciente_id y doctor_id salen del ámbito, no de la query string:
             // el usuario no puede ampliarse el alcance desde la URL.
+            // El estado no se le manda a la API: se filtra acá abajo, así el
+            // resumen de arriba sigue contando los cuatro estados aunque la
+            // tabla muestre uno solo.
             var pagina = await _turnos.ObtenerAsync(
                 pacienteId: ambito.PacienteId,
                 doctorId:   ambito.DoctorId,
-                estado:     filtros.Estado,
                 desde:      filtros.Desde,
                 hasta:      filtros.Hasta,
                 limite:     Limite);
@@ -79,14 +97,24 @@ public class TurnosController : ControladorBase
             // un solo pedido dice qué turnos tienen un paciente con foto.
             var fotos = await _usuarios.ObtenerFotosAsync(turnos: pagina.Turnos.Select(t => t.IdTurno));
 
+            var turnos = pagina.Turnos
+                .Select(t => TurnoFilaViewModel.DesdeConFoto(t, UrlDeFoto(fotos.Turnos, t.IdTurno)))
+                .ToList();
+
+            var visibles = filtros.Estado is null
+                ? turnos
+                : turnos
+                    .Where(t => string.Equals(t.Estado, filtros.Estado, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
             return View(new TurnosIndexViewModel
             {
-                Rol     = rol,
-                Total   = pagina.Total,
-                Turnos  = pagina.Turnos
-                    .Select(t => TurnoFilaViewModel.DesdeConFoto(t, UrlDeFoto(fotos.Turnos, t.IdTurno)))
-                    .ToList(),
-                Filtros = filtros
+                Rol      = rol,
+                Total    = pagina.Total,
+                Turnos   = turnos,
+                Visibles = OrdenTurnos.Aplicar(visibles, filtros.Orden, filtros.Descendente, hoy),
+                Filtros  = filtros,
+                Hoy      = hoy
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -122,10 +150,10 @@ public class TurnosController : ControladorBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Cancelar(int id)
+    public async Task<IActionResult> Cancelar(int id, string? volver)
     {
         if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(Cancelar), new { id }));
+            return AlLogin(Url.Action(nameof(Cancelar), new { id, volver }));
 
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
@@ -145,25 +173,29 @@ public class TurnosController : ControladorBase
             if (string.Equals(modelo.Estado, "cancelado", StringComparison.OrdinalIgnoreCase))
             {
                 TempData["Error"] = $"El turno #{id} ya estaba cancelado.";
-                return RedirectToAction(nameof(Index));
+                return VolverAlListado(volver);
             }
+
+            // La vista reenvía esta URL en el formulario. Solo se le pasa si es
+            // local: una de afuera se descarta acá y no llega al HTML.
+            ViewData["Volver"] = Url.IsLocalUrl(volver) ? volver : null;
 
             return View(modelo);
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             TempData["Error"] = error.Message;
-            return RedirectToAction(nameof(Index));
+            return VolverAlListado(volver);
         }
     }
 
     [HttpPost]
     [ActionName(nameof(Cancelar))]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CancelarConfirmado(int id)
+    public async Task<IActionResult> CancelarConfirmado(int id, string? volver)
     {
         if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(Cancelar), new { id }));
+            return AlLogin(Url.Action(nameof(Cancelar), new { id, volver }));
 
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
@@ -190,7 +222,7 @@ public class TurnosController : ControladorBase
             TempData["Error"] = error.Message;
         }
 
-        return RedirectToAction(nameof(Index));
+        return VolverAlListado(volver);
     }
 
     /// <summary>
@@ -199,7 +231,7 @@ public class TurnosController : ControladorBase
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CambiarEstado(int id, string estado, string? volverA)
+    public async Task<IActionResult> CambiarEstado(int id, string estado, string? volverA, string? volver)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Detalle), new { id }));
@@ -215,7 +247,7 @@ public class TurnosController : ControladorBase
         if (!EstadosQueSePuedenAplicar.Contains(estado))
         {
             TempData["Error"] = $"\"{estado}\" no es un estado que se pueda aplicar desde acá.";
-            return VolverDe(volverA, id);
+            return VolverDe(volverA, id, volver);
         }
 
         try
@@ -242,7 +274,7 @@ public class TurnosController : ControladorBase
             {
                 TempData["Error"] =
                     $"El turno #{id} está {turno.Estado} y no se puede pasar a {estado}.";
-                return VolverDe(volverA, id);
+                return VolverDe(volverA, id, volver);
             }
 
             await _turnos.CambiarEstadoAsync(id, estado);
@@ -255,7 +287,7 @@ public class TurnosController : ControladorBase
             TempData["Error"] = error.Message;
         }
 
-        return VolverDe(volverA, id);
+        return VolverDe(volverA, id, volver);
     }
 
     /// <summary>
@@ -268,10 +300,22 @@ public class TurnosController : ControladorBase
     /// Devuelve al usuario a donde estaba: al listado si apretó el botón desde
     /// ahí, al detalle del turno en cualquier otro caso.
     /// </summary>
-    private IActionResult VolverDe(string? volverA, int id) =>
+    private IActionResult VolverDe(string? volverA, int id, string? volver) =>
         volverA == nameof(Index)
-            ? RedirectToAction(nameof(Index))
+            ? VolverAlListado(volver)
             : RedirectToAction(nameof(Detalle), new { id });
+
+    /// <summary>
+    /// Vuelve al listado tal como estaba (tarjeta activa, orden y fechas), que
+    /// es la URL que el propio listado mandó en "volver". Solo se la sigue si
+    /// es local: sin ese chequeo, un enlace armado podría mandar al usuario a
+    /// otro sitio después de cancelar. Vacía o de afuera, se va al listado
+    /// sin filtros, como antes.
+    /// </summary>
+    private IActionResult VolverAlListado(string? volver) =>
+        Url.IsLocalUrl(volver)
+            ? LocalRedirect(volver!)
+            : RedirectToAction(nameof(Index));
 
     /// <summary>
     /// Trae el turno y le pega los nombres del paciente y del doctor, que
