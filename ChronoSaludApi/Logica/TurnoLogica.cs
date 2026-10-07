@@ -132,8 +132,24 @@ public class TurnoLogica : ITurnoLogica
         ), null);
     }
 
-    public async Task<(int? id, string? error)> Crear(TurnoCreateDto dto)
+    public async Task<(int? id, string? error)> Crear(TurnoCreateDto dto, Solicitante solicitante)
     {
+        if (solicitante.EsPaciente)
+        {
+            // El paciente reserva solo a su nombre: su perfil sale del token y
+            // el IdPaciente que venga en el cuerpo se ignora.
+            var propio = await _pacienteRepo.ObtenerPorIdUsuario(solicitante.IdUsuario);
+            if (propio == null)
+                return (null, "Tu usuario no tiene un perfil de paciente asociado.");
+
+            dto = dto with { IdPaciente = propio.Id };
+        }
+        else if (await _pacienteRepo.ObtenerPorId(dto.IdPaciente) == null)
+        {
+            // Sin este chequeo el alta fallaba recién en la base, con un 500.
+            return (null, "El paciente indicado no existe.");
+        }
+
         if (!TimeSpan.TryParse(dto.HoraInicio, out var horaInicio))
             return (null, "Formato de hora inicio inválido. Use HH:MM.");
         if (!TimeSpan.TryParse(dto.HoraFin, out var horaFin))
@@ -167,16 +183,16 @@ public class TurnoLogica : ITurnoLogica
     }
 
     public async Task<(bool ok, string? error, bool sinPerfilDoctor)> Actualizar(
-        int id, TurnoUpdateDto dto, int idUsuarioCaller, bool callerEsDoctor)
+        int id, TurnoUpdateDto dto, Solicitante solicitante)
     {
         var turno = await _repo.ObtenerPorId(id);
         if (turno == null) return (false, "Turno no encontrado.", false);
 
         // El doctor solo mueve su propia agenda. Un turno de otro doctor se
         // responde como inexistente, igual que en el resto de la fase.
-        if (callerEsDoctor)
+        if (solicitante.EsDoctor)
         {
-            var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+            var doctor = await _doctorRepo.ObtenerPorIdUsuario(solicitante.IdUsuario);
             if (doctor == null)
                 return (false, "Tu usuario no tiene un perfil de doctor asociado.", true);
             if (doctor.Id != turno.IdDoctor)
@@ -222,10 +238,18 @@ public class TurnoLogica : ITurnoLogica
         return (true, null, false);
     }
 
-    public async Task<(bool ok, string? error)> Cancelar(int id)
+    public async Task<(bool ok, string? error)> Cancelar(int id, Solicitante solicitante)
     {
         var turno = await _repo.ObtenerPorId(id);
         if (turno == null) return (false, "Turno no encontrado.");
+
+        // Primero el dueño y después el estado: un turno ajeno se responde
+        // como inexistente y nunca llega a revelar en qué estado está.
+        if (!await PuedeCancelar(turno, solicitante))
+            return (false, "Turno no encontrado.");
+
+        if (turno.Estado != "pendiente" && turno.Estado != "confirmado")
+            return (false, $"Conflicto de estado: el turno está {turno.Estado} y no se puede cancelar.");
 
         turno.Estado = "cancelado";
         await _repo.Eliminar(turno);
@@ -234,5 +258,29 @@ public class TurnoLogica : ITurnoLogica
             $"Tu turno del {turno.FechaInicio:dd/MM/yyyy} fue cancelado.");
 
         return (true, null);
+    }
+
+    /// <summary>
+    /// El administrador cancela cualquier turno; el paciente, los suyos; el
+    /// doctor, los de su agenda. Un rol que no es ninguno de esos, o un
+    /// paciente o doctor sin perfil, no cancela nada.
+    /// </summary>
+    private async Task<bool> PuedeCancelar(Turno turno, Solicitante solicitante)
+    {
+        if (solicitante.EsAdministrador) return true;
+
+        if (solicitante.EsPaciente)
+        {
+            var paciente = await _pacienteRepo.ObtenerPorIdUsuario(solicitante.IdUsuario);
+            return paciente != null && paciente.Id == turno.IdPaciente;
+        }
+
+        if (solicitante.EsDoctor)
+        {
+            var doctor = await _doctorRepo.ObtenerPorIdUsuario(solicitante.IdUsuario);
+            return doctor != null && doctor.Id == turno.IdDoctor;
+        }
+
+        return false;
     }
 }

@@ -57,5 +57,11 @@ public class TurnoDetalleViewModel
 
     public bool PuedeConfirmarse => EstadoEs("pendiente");
 
+    /// <summary>
+    /// La API solo cancela un turno pendiente o confirmado (DELETE /turnos/{id}
+    /// contesta 409 con cualquier otro estado).
+    /// </summary>
+    public bool PuedeCancelarse => EstadoEs("pendiente") || EstadoEs("confirmado");
+
     public bool PuedeCompletarse => EstadoEs("pendiente") || EstadoEs("confirmado");
 }

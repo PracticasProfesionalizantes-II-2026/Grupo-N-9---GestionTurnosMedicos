@@ -169,10 +169,11 @@ public class TurnosController : ControladorBase
                 return NoEncontrado(id, "Turno no encontrado", "turno");
             }
 
-            // Ya está cancelado: no tiene sentido volver a preguntar.
-            if (string.Equals(modelo.Estado, "cancelado", StringComparison.OrdinalIgnoreCase))
+            // Completado o ya cancelado: no se muestra la confirmación, porque
+            // la API no lo va a cancelar.
+            if (!modelo.PuedeCancelarse)
             {
-                TempData["Error"] = $"El turno #{id} ya estaba cancelado.";
+                TempData["Error"] = MensajeNoSeCancela(id, modelo.Estado);
                 return VolverAlListado(volver);
             }
 
@@ -214,6 +215,14 @@ public class TurnosController : ControladorBase
                 return NoEncontrado(id, "Turno no encontrado", "turno");
             }
 
+            // Se mira el estado real que devolvió la API: el turno pudo
+            // completarse o cancelarse después de abrir la confirmación.
+            if (!new TurnoDetalleViewModel { Estado = turno.Estado }.PuedeCancelarse)
+            {
+                TempData["Error"] = MensajeNoSeCancela(id, turno.Estado);
+                return VolverAlListado(volver);
+            }
+
             await _turnos.CancelarAsync(id);
             TempData["Exito"] = $"Turno #{id} cancelado correctamente.";
         }
@@ -224,6 +233,11 @@ public class TurnosController : ControladorBase
 
         return VolverAlListado(volver);
     }
+
+    private static string MensajeNoSeCancela(int id, string estado) =>
+        string.Equals(estado, "cancelado", StringComparison.OrdinalIgnoreCase)
+            ? $"El turno #{id} ya estaba cancelado."
+            : $"El turno #{id} está {estado} y no se puede cancelar.";
 
     /// <summary>
     /// Mueve el turno a "confirmado" o a "completado". La cancelación no pasa por
