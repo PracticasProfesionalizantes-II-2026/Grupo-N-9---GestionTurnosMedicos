@@ -13,7 +13,8 @@ public record DoctorListaDto(
     int IdDoctor,
     string Nombre,
     string Especialidad,
-    string Matricula
+    string Matricula,
+    bool TieneHorario
 );
 
 public record DoctorCreateDto(

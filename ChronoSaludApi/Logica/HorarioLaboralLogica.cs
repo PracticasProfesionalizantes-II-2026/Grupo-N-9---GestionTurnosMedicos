@@ -14,15 +14,18 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
     private readonly IHorarioLaboralRepository _repo;
     private readonly IDoctorRepository _doctorRepo;
     private readonly ITurnoRepository _turnoRepo;
+    private readonly ILogger<HorarioLaboralLogica> _logger;
 
     public HorarioLaboralLogica(
         IHorarioLaboralRepository repo,
         IDoctorRepository doctorRepo,
-        ITurnoRepository turnoRepo)
+        ITurnoRepository turnoRepo,
+        ILogger<HorarioLaboralLogica> logger)
     {
         _repo = repo;
         _doctorRepo = doctorRepo;
         _turnoRepo = turnoRepo;
+        _logger = logger;
     }
 
     public async Task<(IEnumerable<HorarioLaboralDto>? horarios, string? error)> ObtenerPorDoctor(int idDoctor)
@@ -38,11 +41,83 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         )), null);
     }
 
-    public async Task<(bool ok, string? error)> Reemplazar(int idDoctor, HorarioSemanalDto dto)
+    // El solicitante todavía no decide nada acá: el endpoint solo deja pasar al
+    // administrador. Se recibe para no volver a cambiar la firma cuando el
+    // doctor pueda editar su propio horario.
+    public async Task<(bool ok, string? error, IReadOnlyList<TurnoEnConflictoDto> conflictos, bool reintentar)> Reemplazar(
+        int idDoctor, HorarioSemanalDto dto, Solicitante solicitante)
+    {
+        var (nuevos, error) = await Validar(idDoctor, dto);
+        if (nuevos == null)
+            return (false, error, SinConflictos, false);
+
+        IReadOnlyList<Turno> frenan;
+        try
+        {
+            frenan = await _repo.ReemplazarHorarios(idDoctor, nuevos, FechaArgentina.Hoy(), TurnosQueQuedanFuera(nuevos));
+        }
+        catch (BaseOcupadaException ex)
+        {
+            _logger.LogWarning(ex, "Bloqueo al reemplazar el horario del doctor {IdDoctor}.", idDoctor);
+            return (false,
+                "No se pudo guardar el horario porque en ese instante se estaba registrando un turno del doctor. " +
+                "No se guardó nada: probá de nuevo.",
+                SinConflictos, true);
+        }
+
+        if (frenan.Count == 0)
+            return (true, null, SinConflictos, false);
+
+        var conflictos = frenan
+            .Select(t => new TurnoEnConflictoDto(
+                t.Id,
+                t.FechaInicio,
+                t.HoraInicio.ToString(@"hh\:mm"),
+                t.Estado,
+                $"{t.Paciente?.Usuario?.Nombre} {t.Paciente?.Usuario?.Apellido}".Trim()))
+            .ToList();
+
+        return (false,
+            conflictos.Count == 1
+                ? "Hay 1 turno reservado que quedaría fuera del horario. No se guardó nada."
+                : $"Hay {conflictos.Count} turnos reservados que quedarían fuera del horario. No se guardó nada.",
+            conflictos, false);
+    }
+
+    private static readonly IReadOnlyList<TurnoEnConflictoDto> SinConflictos = Array.Empty<TurnoEnConflictoDto>();
+
+    // Un turno en estos estados sigue en pie: es el que no puede quedar fuera
+    // del horario. Los completados y los cancelados ya no ocupan la agenda.
+    private static readonly string[] EstadosReservados = ["pendiente", "confirmado"];
+
+    /// <summary>
+    /// La regla del control: frenan los turnos pendientes o confirmados que
+    /// entran en el horario actual y dejarían de entrar en el nuevo. Uno que
+    /// ya está fuera del horario actual no frena: no es este cambio el que lo
+    /// deja ahí. Se compara con la hora de fin real de cada turno.
+    /// </summary>
+    private static Func<IReadOnlyList<HorarioLaboral>, IReadOnlyList<Turno>, IReadOnlyList<Turno>> TurnosQueQuedanFuera(
+        IReadOnlyList<HorarioLaboral> nuevos) =>
+        (actuales, turnos) => turnos
+            .Where(t => EstadosReservados.Contains(t.Estado))
+            .Where(t => EntraEn(actuales, t) && !EntraEn(nuevos, t))
+            .OrderBy(t => t.FechaInicio)
+            .ThenBy(t => t.HoraInicio)
+            .ThenBy(t => t.Id)
+            .ToList();
+
+    private static bool EntraEn(IReadOnlyList<HorarioLaboral> horario, Turno turno)
+    {
+        var dia = horario.FirstOrDefault(h => h.DiaSemana == (int)turno.FechaInicio.DayOfWeek);
+        return dia != null && turno.HoraInicio >= dia.HoraInicio && turno.HoraFin <= dia.HoraFin;
+    }
+
+    /// <summary>Las filas a guardar, o null con el motivo si el pedido no es válido.</summary>
+    private async Task<(List<HorarioLaboral>? nuevos, string? error)> Validar(int idDoctor, HorarioSemanalDto dto)
     {
         var doctor = await _doctorRepo.ObtenerPorId(idDoctor);
-        if (doctor == null) return (false, "Doctor no encontrado.");
-        if (!doctor.Activo) return (false, "El doctor no está activo.");
+        if (doctor == null) return (null, "Doctor no encontrado.");
+        if (!doctor.Activo) return (null, "El doctor no está activo.");
 
         // Una lista vacía es válida: el doctor deja de atender todos los días.
         var items = dto.Horarios ?? new List<HorarioLaboralDto>();
@@ -51,15 +126,17 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         foreach (var item in items)
         {
             if (item.DiaSemana < 0 || item.DiaSemana > 6)
-                return (false, "DiaSemana debe estar entre 0 (domingo) y 6 (sábado).");
+                return (null, "DiaSemana debe estar entre 0 (domingo) y 6 (sábado).");
             if (nuevos.Any(n => n.DiaSemana == item.DiaSemana))
-                return (false, $"El día {item.DiaSemana} está repetido en el horario.");
+                return (null, $"El día {item.DiaSemana} está repetido en el horario.");
             if (!TryParseHora(item.HoraInicio, out var horaInicio))
-                return (false, "Formato de hora inicio inválido. Use HH:MM.");
+                return (null, "Formato de hora inicio inválido. Use HH:MM.");
             if (!TryParseHora(item.HoraFin, out var horaFin))
-                return (false, "Formato de hora fin inválido. Use HH:MM.");
+                return (null, "Formato de hora fin inválido. Use HH:MM.");
             if (horaFin <= horaInicio)
-                return (false, "La hora de fin debe ser posterior a la hora de inicio.");
+                return (null, "La hora de fin debe ser posterior a la hora de inicio.");
+            if (!EsEnPuntoOYMedia(horaInicio) || !EsEnPuntoOYMedia(horaFin))
+                return (null, "Las horas del horario tienen que ser en punto o y media (por ejemplo, 08:00 u 08:30).");
 
             nuevos.Add(new HorarioLaboral
             {
@@ -70,8 +147,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             });
         }
 
-        await _repo.ReemplazarHorarios(idDoctor, nuevos);
-        return (true, null);
+        return (nuevos, null);
     }
 
     public async Task<(IEnumerable<FranjaDisponibleDto>? franjas, string? error)> ObtenerDisponibilidad(int idDoctor, DateTime fecha)
@@ -142,6 +218,12 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
 
         return (true, null);
     }
+
+    // Las franjas de turno se cuentan de a DuracionFranjaMinutos desde la hora
+    // de inicio: un horario que no cae en punto o y media deja minutos que
+    // nadie puede reservar.
+    private static bool EsEnPuntoOYMedia(TimeSpan hora) =>
+        hora.Minutes % DuracionFranjaMinutos == 0 && hora.Seconds == 0;
 
     private static bool TryParseHora(string? texto, out TimeSpan hora)
     {
