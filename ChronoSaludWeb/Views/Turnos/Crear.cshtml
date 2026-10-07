@@ -83,7 +83,9 @@
             </div>
         </form>
 
-        @if (Model.HorarioDoctor is not null)
+        @* Sin horario cargado no hay semana que mostrar: el aviso va abajo, en
+           el lugar de las franjas. *@
+        @if (Model.HorarioDoctor is { TieneHorario: true })
         {
             var nombreDoctor = Model.Doctores.FirstOrDefault(d => d.Selected)?.Text;
 
@@ -146,6 +148,15 @@
                             <div class="mt-3 rounded-input border border-border px-4 py-5 text-center">
                                 <p class="text-sm font-semibold text-ink">No hay doctores activos en esa especialidad</p>
                                 <p class="mt-1 text-sm text-muted">Probá con otra especialidad.</p>
+                            </div>
+                        }
+                        else if (Model.HorarioDoctor is { TieneHorario: false })
+                        {
+                            @* Con este doctor no sirve cambiar la fecha: no
+                               atiende ningún día hasta que le carguen el horario. *@
+                            <div class="mt-3 rounded-input border border-border px-4 py-5 text-center">
+                                <p class="text-sm font-semibold text-ink">Este doctor todavía no tiene horario de atención cargado</p>
+                                <p class="mt-1 text-sm text-muted">Elegí otro doctor o "Cualquiera".</p>
                             </div>
                         }
                         else if (Model.Franjas.Count == 0)
