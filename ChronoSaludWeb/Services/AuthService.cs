@@ -98,6 +98,14 @@ public class AuthService
     public bool EsAdministrador => SesionActual?.Rol is "administrador";
 
     /// <summary>
+    /// PUT /doctores/{id}/horarios lo acepta la API de administrador y de
+    /// secretario (HorarioLaboralEndpoints). Acá queda en administrador:
+    /// "secretario" hoy es inalcanzable, y que el doctor edite su propio
+    /// horario necesita primero que la API se lo permita.
+    /// </summary>
+    public bool PuedeEditarHorarios => EsAdministrador;
+
+    /// <summary>
     /// Registra un paciente nuevo y deja la sesión abierta...
     public Task<SesionUsuario> RegistrarPacienteAsync(
         string nombre, string apellido, string email, string contrasena, string? telefono)

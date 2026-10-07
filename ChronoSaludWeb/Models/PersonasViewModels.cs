@@ -150,6 +150,9 @@ public class DoctorDetalleViewModel
     /// <summary>Muestra el atajo a pedir turno con este doctor.</summary>
     public bool PuedePedirTurno { get; init; }
 
+    /// <summary>Muestra el botón "Editar horario". El permiso lo vuelve a revisar la acción Horario.</summary>
+    public bool PuedeEditarHorario { get; init; }
+
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
 

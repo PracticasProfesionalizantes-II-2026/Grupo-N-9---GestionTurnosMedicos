@@ -10,12 +10,15 @@ public class DoctoresController : ControladorBase
     private const int Limite = 100;
 
     private readonly DoctorService _doctores;
+    private readonly HorarioService _horarios;
     private readonly UsuarioService _usuarios;
     private readonly AuthService _auth;
 
-    public DoctoresController(DoctorService doctores, UsuarioService usuarios, AuthService auth)
+    public DoctoresController(
+        DoctorService doctores, HorarioService horarios, UsuarioService usuarios, AuthService auth)
     {
         _doctores = doctores;
+        _horarios = horarios;
         _usuarios = usuarios;
         _auth = auth;
     }
@@ -28,6 +31,15 @@ public class DoctoresController : ControladorBase
     // mañana la API restringe el endpoint, el cambio sea solo en AuthService.
     private const string MotivoSinPermiso =
         "Tu usuario no tiene permiso para ver el padrón de doctores.";
+
+    private const string TituloSinPermisoHorario = "No podés editar horarios con tu rol";
+    private const string MotivoSinPermisoHorario =
+        "Cargar y editar el horario de atención de un doctor está reservado a los administradores.";
+
+    // La API contesta el 403 con el cuerpo vacío, así que el mensaje se arma acá.
+    private const string SinPermisoDeLaApi =
+        "No pudimos guardar el horario porque tu sesión no tiene permiso de administrador. " +
+        "Cerrá la sesión y volvé a ingresar.";
 
     public async Task<IActionResult> Index(string? especialidad)
     {
@@ -104,7 +116,8 @@ public class DoctoresController : ControladorBase
                 Consultorio = doctor.Consultorio,
                 Horario = horario,
                 ErrorHorario = errorHorario,
-                PuedePedirTurno = _auth.PuedeCargarTurnos
+                PuedePedirTurno = _auth.PuedeCargarTurnos,
+                PuedeEditarHorario = _auth.PuedeEditarHorarios
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -112,6 +125,128 @@ public class DoctoresController : ControladorBase
             return View(new DoctorDetalleViewModel { IdDoctor = id, Error = error.Message });
         }
     }
+
+    /// <summary>
+    /// Pantalla para cargar o editar el horario semanal de un doctor: siete
+    /// filas, de lunes a domingo, con lo que tiene cargado hoy.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Horario(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Horario), new { id }));
+
+        if (!_auth.PuedeEditarHorarios)
+            return SinPermiso(TituloSinPermisoHorario, MotivoSinPermisoHorario);
+
+        try
+        {
+            var doctor = await _doctores.ObtenerPorIdAsync(id);
+            var horarios = doctor is null ? null : await _doctores.ObtenerHorariosAsync(id);
+
+            if (doctor is null || horarios is null)
+                return NoEncontrado(id, "Doctor no encontrado", "doctor");
+
+            return View(new HorarioEditarViewModel
+            {
+                IdDoctor = doctor.IdDoctor,
+                NombreDoctor = NombreDe(doctor),
+                Dias = HorarioEditarViewModel.DiasDesde(horarios)
+            });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // Sin el horario actual a la vista no se ofrece el formulario:
+            // guardarlo en blanco pisaría el que el doctor ya tiene.
+            TempData["Error"] = $"No se pudo cargar el horario para editarlo: {error.Message}";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+    }
+
+    /// <summary>
+    /// Guarda la semana completa en un solo envío. Del formulario solo se
+    /// toman las filas y la confirmación; el doctor sale de la ruta.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Horario(
+        int id,
+        [Bind(nameof(HorarioEditarViewModel.Dias), nameof(HorarioEditarViewModel.ConfirmaSinHorario))]
+        HorarioEditarViewModel modelo)
+    {
+        // Los mismos dos chequeos que el GET, antes de mirar el formulario:
+        // que el botón no se muestre no frena a quien arma el POST a mano.
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Horario), new { id }));
+
+        if (!_auth.PuedeEditarHorarios)
+            return SinPermiso(TituloSinPermisoHorario, MotivoSinPermisoHorario);
+
+        // Las filas son siete y fijas, porque el día sale de la posición. Con
+        // otra cantidad el formulario no es el nuestro: no se interpreta.
+        if (modelo.Dias.Count != HorarioEditarViewModel.DiasPorSemana)
+        {
+            TempData["Error"] = "El formulario del horario llegó incompleto. Cargalo de nuevo.";
+            return RedirectToAction(nameof(Horario), new { id });
+        }
+
+        modelo.IdDoctor = id;
+
+        try
+        {
+            var doctor = await _doctores.ObtenerPorIdAsync(id);
+            if (doctor is null)
+                return NoEncontrado(id, "Doctor no encontrado", "doctor");
+
+            modelo.NombreDoctor = NombreDe(doctor);
+
+            if (!ModelState.IsValid)
+                return View(modelo);
+
+            var nuevo = modelo.AHorarios();
+
+            // Ningún día marcado deja al doctor sin horario y sin turnos: no se
+            // guarda hasta que lo confirmen con el botón aparte.
+            if (nuevo.Count == 0 && !modelo.ConfirmaSinHorario)
+            {
+                modelo.PideConfirmarSinHorario = true;
+                return View(modelo);
+            }
+
+            // El botón de confirmar solo vale para la semana vacía. Si llegó
+            // junto con días marcados no se adivina cuál de los dos se quiso.
+            if (nuevo.Count > 0 && modelo.ConfirmaSinHorario)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Marcaste días de atención y a la vez elegiste dejar al doctor sin horario. " +
+                    "No se guardó nada: destildá esos días, o usá \"Guardar horario\".");
+                return View(modelo);
+            }
+
+            await _horarios.GuardarAsync(id, nuevo);
+
+            TempData["Exito"] = nuevo.Count == 0
+                ? $"{modelo.NombreDoctor} quedó sin horario de atención."
+                : $"Horario de atención de {modelo.NombreDoctor} actualizado.";
+
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // 400 si el doctor está inactivo o la API rechaza un rango, 0 si no
+            // responde. El mensaje va arriba y el formulario vuelve con lo cargado.
+            ModelState.AddModelError(
+                string.Empty,
+                error.Status == StatusCodes.Status403Forbidden ? SinPermisoDeLaApi : error.Message);
+            return View(modelo);
+        }
+    }
+
+    private static string NombreDe(DoctorDetalle doctor) =>
+        string.IsNullOrWhiteSpace($"{doctor.Nombre}{doctor.Apellido}")
+            ? "Este doctor"
+            : $"{doctor.Nombre} {doctor.Apellido}".Trim();
 
     /// <summary>
     /// /Usuarios/Foto/{idUsuario} si la API informó que ese doctor tiene foto;
