@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using ChronoSaludWeb.Filters;
 using ChronoSaludWeb.Services;
@@ -75,11 +76,44 @@ builder.Services.AddScoped<PerfilService>();
 builder.Services.AddScoped<CoberturaService>();
 builder.Services.AddScoped<UsuarioService>();
 
+// Tope de intentos de login por IP. Singleton: el contador es uno solo para
+// toda la aplicación.
+builder.Services.AddSingleton<LimiteLogin>();
+
+// Detrás del App Service la conexión llega desde el frente de Azure, que
+// anota la IP del visitante en X-Forwarded-For. Sin esto el tope de login
+// contaría a todos como una sola IP. En Development no hay proxy delante.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(opciones =>
+    {
+        // Solo la IP. El esquema (X-Forwarded-Proto) no se toca: el manejo
+        // de HTTPS de hoy funciona y no depende de esto.
+        opciones.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+
+        // Se toma solo la última entrada, que es la que agrega Azure. Lo que
+        // el visitante escriba en el encabezado queda antes y se ignora, así
+        // que no puede inventarse una IP para saltear el tope.
+        opciones.ForwardLimit = 1;
+
+        // Por defecto solo se confía en un proxy en loopback, y el frente de
+        // Azure no lo es. OJO: vaciar estas dos listas es seguro solo mientras
+        // la aplicación sea alcanzable únicamente detrás del frente de Azure.
+        // Si algún día se publica de otra forma (acceso directo, otro proxy
+        // delante), hay que cargar acá los proxies de confianza.
+        opciones.KnownIPNetworks.Clear();
+        opciones.KnownProxies.Clear();
+    });
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
+    // Primero de todo: el resto del pipeline ya ve la IP real del visitante.
+    app.UseForwardedHeaders();
+
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();

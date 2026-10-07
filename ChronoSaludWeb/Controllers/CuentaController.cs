@@ -10,8 +10,15 @@ namespace ChronoSaludWeb.Controllers;
 public class CuentaController : Controller
 {
     private readonly AuthService _auth;
+    private readonly LimiteLogin _limite;
+    private readonly ILogger<CuentaController> _logger;
 
-    public CuentaController(AuthService auth) => _auth = auth;
+    public CuentaController(AuthService auth, LimiteLogin limite, ILogger<CuentaController> logger)
+    {
+        _auth = auth;
+        _limite = limite;
+        _logger = logger;
+    }
 
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -29,6 +36,19 @@ public class CuentaController : Controller
     {
         if (!ModelState.IsValid)
             return View(modelo);
+
+        // Tope de intentos por IP. Va después de validar el formulario (uno
+        // vacío no gasta cupo) y antes de la API (uno bloqueado no llega).
+        var ip = HttpContext.Connection.RemoteIpAddress;
+        if (!_limite.PermiteIntento(ip))
+        {
+            // Solo la IP: nada de lo que escribió el usuario va al log.
+            _logger.LogWarning("Login bloqueado por límite de intentos desde {Ip}", ip);
+
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ModelState.AddModelError(string.Empty, "Demasiados intentos. Esperá unos minutos y volvé a probar.");
+            return View(modelo);
+        }
 
         try
         {
