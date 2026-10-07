@@ -64,7 +64,9 @@ else
                 {
                     <a asp-action="Horario" asp-route-id="@Model.IdDoctor"
                        class="boton boton-secundario">
-                        Editar horario
+                        @* "Cargar" solo cuando se sabe que no tiene ninguno; si
+                           el horario no se pudo leer, queda "Editar". *@
+                        @(Model.Horario is { TieneHorario: false } ? "Cargar horario" : "Editar horario")
                     </a>
                 }
                 @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
