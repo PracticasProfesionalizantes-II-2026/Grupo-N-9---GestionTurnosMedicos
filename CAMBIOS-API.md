@@ -1,3 +1,39 @@
+# Cambios en la API — Un solo rol de personal: se va "secretario"
+
+**Fecha:** 2026-10-07 · **Rama:** `feature/rol-unico`
+
+La API nombraba un rol `secretario` en sus chequeos de permisos, siempre al lado de
+`administrador`, pero nunca se pudo crear un usuario con ese rol: el registro solo
+acepta `paciente`, `doctor` y `administrador`, y el seeder tampoco lo crea. Se quitó
+de todos los chequeos. El personal administrativo es `administrador`.
+
+**No cambia ninguna respuesta.** Se verificó antes que no hay usuarios con rol
+`secretario` ni en la base local ni en Azure. No hay migración.
+
+Lo único a tener en cuenta: si alguien insertara a mano un usuario con ese rol, ya no
+tendría permisos de personal. Hay que crearlo como `administrador`.
+
+## Dónde estaba
+
+| Archivo | Endpoints |
+|---|---|
+| `ChronoSaludApi/Endpoints/HorarioLaboralEndpoints.cs` | `PUT /doctores/{id}/horarios` |
+| `ChronoSaludApi/Endpoints/TurnoEndpoints.cs` | `GET /turnos/{id}`, `PUT /turnos/{id}` |
+| `ChronoSaludApi/Endpoints/PacienteEndpoints.cs` | Lectura y edición de la ficha del paciente |
+| `ChronoSaludApi/Endpoints/CoberturaEndpoints.cs` | Coberturas de un paciente |
+| `ChronoSaludApi/Endpoints/HistorialClinicoEndpoints.cs` | Lectura del historial clínico |
+| `ChronoSaludApi/Endpoints/EstudioEndpoints.cs` | Estudios de un paciente |
+| `ChronoSaludApi/Endpoints/RecetaEndpoints.cs` | Recetas |
+| `ChronoSaludApi/Endpoints/NotificacionEndpoints.cs` | `GET /usuarios/{id}/notificaciones` |
+
+En la Web se quitó de dos permisos (`AuthService.cs`), de dos textos
+(`TurnosController.cs`) y de comentarios.
+
+Los archivos `pruebas-*.http` de la raíz todavía mencionan el rol en sus comentarios y
+en un caso de prueba; no se tocaron.
+
+---
+
 # Cambios en la API — Dueño del turno al reservar y al cancelar
 
 **Fecha:** 2026-10-07 · **Rama:** `feature/turnos-dueno`

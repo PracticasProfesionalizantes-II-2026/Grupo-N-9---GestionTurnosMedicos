@@ -39,7 +39,7 @@ public static class HorarioLaboralEndpoints
             return Results.Ok(new { mensaje = "Horario actualizado correctamente." });
         })
         .WithSummary("Reemplazar horario semanal del doctor")
-        .RequireAuthorization(p => p.RequireRole("administrador", "secretario"));
+        .RequireAuthorization(p => p.RequireRole("administrador"));
 
         // GET /doctores/{id}/disponibilidad?fecha=YYYY-MM-DD
         grupo.MapGet("/{id:int}/disponibilidad", async (int id, DateTime? fecha, IHorarioLaboralLogica logica) =>

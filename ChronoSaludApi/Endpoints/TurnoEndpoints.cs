@@ -48,7 +48,7 @@ public static class TurnoEndpoints
 
             var callerEsPaciente = ctx.User.IsInRole("paciente");
             var callerEsDoctor   = ctx.User.IsInRole("doctor");
-            var callerEsStaff    = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff    = ctx.User.IsInRole("administrador");
 
             var (turno, error) = await logica.ObtenerPorId(id, idUsuario, callerEsPaciente, callerEsDoctor, callerEsStaff);
             return turno == null
@@ -102,7 +102,7 @@ public static class TurnoEndpoints
             return Results.Ok(new { mensaje = "Turno actualizado correctamente." });
         })
         .WithSummary("Modificar turno")
-        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador"));
 
         // DELETE /turnos/{id}
         grupo.MapDelete("/{id:int}", async (int id, HttpContext ctx, ITurnoLogica logica) =>

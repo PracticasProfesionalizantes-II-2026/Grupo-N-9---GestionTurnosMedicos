@@ -72,25 +72,24 @@ public class AuthService
     public bool PuedeElegirPaciente => SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
-    /// Ojo: DELETE /turnos/{id} no pide ningún rol, solo estar autenticado, así
-    /// que esto es una restricción nuestra de interfaz y no la aplica la API.
-    /// Se eligieron los roles del personal, los mismos que ya maneja el PUT
-    /// (administrador y secretario) más doctor.
+    /// DELETE /turnos/{id} lo acepta la API del administrador sobre cualquier
+    /// turno, del doctor sobre los de su agenda y del paciente sobre los
+    /// suyos. Acá queda en el personal (doctor y administrador): que el
+    /// paciente cancele desde la Web es una decisión aparte.
     /// </summary>
     public bool PuedeCancelarTurnos =>
-        SesionActual?.Rol is "doctor" or "administrador" or "secretario";
+        SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
     /// PUT /turnos/{id} es el único camino para mover el estado de un turno, y la
-    /// API lo acepta del doctor sobre sus propios turnos, y de administrador y
-    /// secretario sobre cualquiera (TurnoEndpoints, MapPut). Espejamos esa regla
-    /// tal cual. Ojo con dos cosas: "secretario" hoy es inalcanzable, porque el
-    /// registro solo acepta paciente, doctor y administrador; y el "sobre los
-    /// propios" del doctor no lo decide este flag, que solo mira el rol, sino la
-    /// revalidación de ámbito de TurnosController.CambiarEstado (y la API).
+    /// API lo acepta del doctor sobre sus propios turnos y del administrador
+    /// sobre cualquiera (TurnoEndpoints, MapPut). Espejamos esa regla tal cual.
+    /// Ojo: el "sobre los propios" del doctor no lo decide este flag, que solo
+    /// mira el rol, sino la revalidación de ámbito de
+    /// TurnosController.CambiarEstado (y la API).
     /// </summary>
     public bool PuedeCambiarEstadoTurno =>
-        SesionActual?.Rol is "doctor" or "administrador" or "secretario";
+        SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
     /// POST /doctores solo lo acepta con este rol.
@@ -98,10 +97,9 @@ public class AuthService
     public bool EsAdministrador => SesionActual?.Rol is "administrador";
 
     /// <summary>
-    /// PUT /doctores/{id}/horarios lo acepta la API de administrador y de
-    /// secretario (HorarioLaboralEndpoints). Acá queda en administrador:
-    /// "secretario" hoy es inalcanzable, y que el doctor edite su propio
-    /// horario necesita primero que la API se lo permita.
+    /// PUT /doctores/{id}/horarios lo acepta la API solo del administrador
+    /// (HorarioLaboralEndpoints). Que el doctor edite su propio horario
+    /// necesita primero que la API se lo permita.
     /// </summary>
     public bool PuedeEditarHorarios => EsAdministrador;
 
