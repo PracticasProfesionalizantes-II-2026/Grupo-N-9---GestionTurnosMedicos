@@ -1,0 +1,127 @@
+@model HorarioEditarViewModel
+@{
+    ViewData["Title"] = $"Horario de {Model.NombreDoctor}";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseEtiqueta = "block text-sm font-medium text-ink";
+    const string claseCampo = "campo mt-1.5 tabular-nums";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+
+    // La fila entera se marca sola cuando "Atiende" está tildado, con
+    // has-[:checked] (CSS puro, igual que las opciones de Ajustes).
+    const string claseFila = "grid grid-cols-2 gap-x-4 gap-y-3 rounded-input border border-control bg-card px-4 py-3 has-[:checked]:border-primary has-[:checked]:bg-primary-soft sm:grid-cols-[minmax(0,1fr)_9rem_9rem] sm:items-start";
+}
+
+<a asp-action="Detalle" asp-route-id="@Model.IdDoctor"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver a la ficha
+</a>
+
+<div class="mt-6 max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Horario de atención</h1>
+    <p class="mt-1 text-sm text-muted">
+        <span class="font-medium text-ink">@Model.NombreDoctor</span>.
+        Marcá los días en que atiende y el rango de cada uno. Las horas van en
+        punto o y media, porque los turnos duran 30 minutos. Un día sin marcar
+        queda como "No atiende".
+    </p>
+
+    <div class="mt-6 tarjeta p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div role="alert"
+                 class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <span>
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <span class="block">@error.ErrorMessage</span>
+                    }
+                </span>
+            </div>
+        }
+
+        @if (Model.PideConfirmarSinHorario)
+        {
+            @* El texto va en tinta y no en el color del estado, como el aviso
+               del inicio: el estado lo marcan el ícono y el borde. *@
+            <div role="alert"
+                 class="mb-6 flex items-start gap-3 rounded-input border border-status-pendiente-line bg-status-pendiente-soft px-4 py-3 text-sm text-ink">
+                <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <span>
+                    <span class="block font-semibold">Este doctor quedará sin horario de atención</span>
+                    <span class="mt-1 block">
+                        No marcaste ningún día. Si lo guardás así, nadie le va a
+                        poder pedir turnos hasta que se le cargue un horario.
+                        Todavía no se guardó nada: para confirmarlo usá el botón
+                        "Sí, dejar sin horario", al final del formulario.
+                    </span>
+                </span>
+            </div>
+        }
+
+        <form asp-action="Horario" asp-route-id="@Model.IdDoctor" method="post" novalidate>
+            <div class="grid gap-3">
+                @for (var i = 0; i < Model.Dias.Count; i++)
+                {
+                    <div role="group" aria-labelledby="dia-@i" class="@claseFila">
+                        <div class="col-span-2 sm:col-span-1">
+                            <p id="dia-@i" class="text-sm font-semibold text-ink">@HorarioEditarViewModel.NombreDeDia(i)</p>
+                            <label class="mt-1 inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
+                                <input asp-for="Dias[i].Atiende" class="h-4 w-4 shrink-0 accent-primary" />
+                                Atiende
+                            </label>
+                        </div>
+
+                        <div>
+                            <label asp-for="Dias[i].Desde" class="@claseEtiqueta">Desde</label>
+                            <input asp-for="Dias[i].Desde" type="time" step="1800" class="@claseCampo" />
+                            <span asp-validation-for="Dias[i].Desde" class="@claseError"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Dias[i].Hasta" class="@claseEtiqueta">Hasta</label>
+                            <input asp-for="Dias[i].Hasta" type="time" step="1800" class="@claseCampo" />
+                            <span asp-validation-for="Dias[i].Hasta" class="@claseError"></span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit"
+                        class="boton boton-primario">
+                    Guardar horario
+                </button>
+                @if (Model.PideConfirmarSinHorario)
+                {
+                    @* Va después de "Guardar horario" a propósito: con Enter en
+                       un campo el navegador usa el primer botón de envío del
+                       formulario, y la confirmación no tiene que salir sola. *@
+                    <button type="submit" name="ConfirmaSinHorario" value="true"
+                            class="boton boton-peligro">
+                        Sí, dejar sin horario
+                    </button>
+                }
+                <a asp-action="Detalle" asp-route-id="@Model.IdDoctor"
+                   class="boton boton-secundario">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

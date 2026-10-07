@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using ChronoSaludWeb.Services;
 
@@ -56,7 +57,8 @@ public record DiaHorario(string Dia, string? Rango);
 public class HorarioSemanalViewModel
 {
     // La API numera como DayOfWeek (0 = domingo); acá se muestra empezando el lunes.
-    private static readonly (int Numero, string Nombre)[] Semana =
+    // La pantalla de edición usa este mismo orden para sus filas.
+    internal static readonly (int Numero, string Nombre)[] Semana =
     [
         (1, "Lunes"), (2, "Martes"), (3, "Miércoles"), (4, "Jueves"),
         (5, "Viernes"), (6, "Sábado"), (0, "Domingo")
@@ -80,5 +82,141 @@ public class HorarioSemanalViewModel
                     porDia.TryGetValue(d.Numero, out var h) ? $"{h.HoraInicio} a {h.HoraFin}" : null))
                 .ToList()
         };
+    }
+}
+
+/// <summary>
+/// Una fila de la pantalla de edición del horario. No lleva el número de día:
+/// sale de la posición de la fila (ver <see cref="HorarioEditarViewModel.Dias"/>).
+/// </summary>
+public class HorarioDiaEditarViewModel
+{
+    public bool Atiende { get; set; }
+
+    /// <summary>"HH:mm", como lo postea un input type="time".</summary>
+    public string? Desde { get; set; }
+
+    /// <summary>"HH:mm", como lo postea un input type="time".</summary>
+    public string? Hasta { get; set; }
+}
+
+/// <summary>
+/// Pantalla para cargar o editar el horario semanal de un doctor: siete filas
+/// fijas, de lunes a domingo, que se guardan todas juntas.
+/// </summary>
+public class HorarioEditarViewModel : IValidatableObject
+{
+    /// <summary>
+    /// Las franjas de turno duran 30 minutos y la API las cuenta desde la hora
+    /// de inicio (DuracionFranjaMinutos en HorarioLaboralLogica): un horario que
+    /// no cae en punto o y media deja minutos que nadie puede reservar.
+    /// </summary>
+    public const int MinutosPorFranja = 30;
+
+    public static int DiasPorSemana => HorarioSemanalViewModel.Semana.Length;
+
+    /// <summary>
+    /// Una fila por día, en el orden de la semana (lunes primero). El día de
+    /// cada fila es su posición y no un campo del formulario, así no se puede
+    /// cambiar desde el navegador.
+    /// </summary>
+    public List<HorarioDiaEditarViewModel> Dias { get; set; } = new();
+
+    /// <summary>
+    /// Lo manda solo el botón "Sí, dejar sin horario": guardar los siete días
+    /// destildados pide esa confirmación aparte.
+    /// </summary>
+    public bool ConfirmaSinHorario { get; set; }
+
+    // Lo que sigue lo completa el controlador en cada render. No se postea.
+    public int IdDoctor { get; set; }
+    public string? NombreDoctor { get; set; }
+
+    /// <summary>
+    /// Se quiso guardar sin ningún día marcado: la vista muestra el aviso y el
+    /// botón para confirmarlo.
+    /// </summary>
+    public bool PideConfirmarSinHorario { get; set; }
+
+    public static string NombreDeDia(int posicion) => HorarioSemanalViewModel.Semana[posicion].Nombre;
+
+    /// <summary>Las siete filas a partir del horario que devuelve la API.</summary>
+    public static List<HorarioDiaEditarViewModel> DiasDesde(IEnumerable<HorarioLaboral> horarios)
+    {
+        var porDia = horarios
+            .GroupBy(h => h.DiaSemana)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return HorarioSemanalViewModel.Semana
+            .Select(d => porDia.TryGetValue(d.Numero, out var h)
+                ? new HorarioDiaEditarViewModel { Atiende = true, Desde = h.HoraInicio, Hasta = h.HoraFin }
+                : new HorarioDiaEditarViewModel())
+            .ToList();
+    }
+
+    /// <summary>
+    /// Los días marcados, como los espera la API. Un día sin marcar no se
+    /// manda: así es como queda en "No atiende". Usar con el modelo ya validado.
+    /// </summary>
+    public IReadOnlyList<HorarioLaboral> AHorarios()
+    {
+        var horarios = new List<HorarioLaboral>();
+
+        for (var i = 0; i < Dias.Count; i++)
+        {
+            if (Dias[i].Atiende)
+                horarios.Add(new HorarioLaboral(HorarioSemanalViewModel.Semana[i].Numero, Dias[i].Desde!, Dias[i].Hasta!));
+        }
+
+        return horarios;
+    }
+
+    /// <summary>
+    /// Solo se validan los días marcados: las horas de un día sin marcar se
+    /// ignoran. La API controla que el fin sea posterior al inicio, pero no
+    /// que las horas caigan en punto o y media.
+    /// </summary>
+    public IEnumerable<ValidationResult> Validate(ValidationContext contexto)
+    {
+        for (var i = 0; i < Dias.Count; i++)
+        {
+            var dia = Dias[i];
+            if (!dia.Atiende) continue;
+
+            var claveDesde = $"{nameof(Dias)}[{i}].{nameof(HorarioDiaEditarViewModel.Desde)}";
+            var claveHasta = $"{nameof(Dias)}[{i}].{nameof(HorarioDiaEditarViewModel.Hasta)}";
+
+            var errorDesde = ErrorDeHora(dia.Desde, "Indicá la hora de inicio.", out var desde);
+            var errorHasta = ErrorDeHora(dia.Hasta, "Indicá la hora de fin.", out var hasta);
+
+            if (errorDesde is not null)
+                yield return new ValidationResult(errorDesde, new[] { claveDesde });
+
+            if (errorHasta is not null)
+                yield return new ValidationResult(errorHasta, new[] { claveHasta });
+
+            if (errorDesde is null && errorHasta is null && hasta <= desde)
+            {
+                yield return new ValidationResult(
+                    "La hora de fin tiene que ser posterior a la de inicio.",
+                    new[] { claveHasta });
+            }
+        }
+    }
+
+    /// <summary>Null si la hora sirve; si no, el mensaje para mostrar bajo el campo.</summary>
+    private static string? ErrorDeHora(string? texto, string mensajeVacia, out TimeOnly hora)
+    {
+        hora = default;
+
+        if (string.IsNullOrWhiteSpace(texto))
+            return mensajeVacia;
+
+        if (!TimeOnly.TryParseExact(texto, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out hora))
+            return "Usá el formato HH:MM.";
+
+        return hora.Minute % MinutosPorFranja == 0
+            ? null
+            : "Tiene que ser en punto o y media (por ejemplo, 08:00 u 08:30).";
     }
 }

@@ -59,14 +59,23 @@ else
     <section class="mt-6 max-w-2xl tarjeta p-6" aria-labelledby="titulo-horario">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titulo-horario" class="text-base font-semibold text-ink">Horario de atención</h2>
-            @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
-            {
-                <a asp-controller="Turnos" asp-action="Crear"
-                   asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
-                   class="boton boton-secundario">
-                    Pedir turno con este doctor
-                </a>
-            }
+            <div class="flex flex-wrap items-center gap-2">
+                @if (Model.PuedeEditarHorario)
+                {
+                    <a asp-action="Horario" asp-route-id="@Model.IdDoctor"
+                       class="boton boton-secundario">
+                        Editar horario
+                    </a>
+                }
+                @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
+                {
+                    <a asp-controller="Turnos" asp-action="Crear"
+                       asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
+                       class="boton boton-secundario">
+                        Pedir turno con este doctor
+                    </a>
+                }
+            </div>
         </div>
 
         <div class="mt-4">
