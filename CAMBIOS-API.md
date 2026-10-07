@@ -1,3 +1,92 @@
+# Cambios en la API — Horarios: control de turnos, horas en punto o y media y `tieneHorario`
+
+**Fecha:** 2026-10-07 · **Rama:** `feature/horarios-api`
+
+Tres cambios alrededor del horario semanal del doctor. **Dos cambian respuestas de
+`PUT /doctores/{id}/horarios`** si usan la API directo por Scalar o Postman. El tercero
+solo agrega un campo. No hay migración.
+
+## 1. `PUT /doctores/{id}/horarios` ya no deja turnos fuera de horario
+
+Antes reemplazaba la semana sin mirar los turnos: si se achicaba un día, los turnos
+reservados quedaban en un horario en que el doctor ya no atiende y nadie se enteraba.
+
+Ahora, antes de guardar, revisa los turnos del doctor. **Frenan el cambio** los turnos
+`pendiente` o `confirmado`, de hoy en adelante, que entran en el horario actual y
+quedarían fuera del nuevo. No frenan los `completado`, los `cancelado`, los de fechas
+pasadas, ni los que ya estaban fuera del horario actual.
+
+Si hay alguno contesta **`409`** y no guarda nada:
+
+```json
+{
+  "error": "Hay 1 turno reservado que quedaría fuera del horario. No se guardó nada.",
+  "conflictos": [
+    {
+      "idTurno": 29,
+      "fechaInicio": "2026-10-08T00:00:00",
+      "horaInicio": "16:00",
+      "estado": "confirmado",
+      "paciente": "Facundo Molina"
+    }
+  ]
+}
+```
+
+Para resolverlo: cancelar esos turnos (`DELETE /turnos/{id}`) o mandar un horario que
+los siga incluyendo, y repetir el PUT.
+
+Detalles:
+- Un turno "entra" si empieza y termina dentro del rango de su día de la semana. Se usa
+  su hora de fin real.
+- "De hoy en adelante" es la fecha de Argentina, no la del servidor.
+- El control y el guardado van en una sola transacción. Si justo en ese instante se está
+  registrando un turno del mismo doctor y la base bloquea la operación, contesta
+  **`503`** con `Retry-After: 1` y `{ "error": "... probá de nuevo." }`. No se guardó
+  nada: repetir el mismo pedido es seguro.
+
+## 2. Las horas del horario van en punto o y media
+
+`horaInicio` y `horaFin` tienen que caer en `:00` o `:30`. Si no, **`400`**:
+`"Las horas del horario tienen que ser en punto o y media (por ejemplo, 08:00 u 08:30)."`
+
+Motivo: las franjas de turno son de 30 minutos y se cuentan desde la hora de inicio.
+Con 08:15 a 14:00 quedaban 15 minutos que nadie podía reservar. Los horarios ya
+guardados no se tocan; el rechazo aparece al volver a guardarlos.
+
+## 3. `GET /doctores` informa si cada doctor tiene horario
+
+Cada fila suma, al final, `tieneHorario` (`true` / `false`). Es un campo agregado: los
+clientes que no lo miran siguen igual.
+
+## Sin cambios
+
+`GET /doctores/{id}/horarios`, `GET /doctores/{id}/disponibilidad` y el resto de
+`/doctores`. El PUT sigue siendo solo para `administrador`.
+
+## Orden de despliegue
+
+Primero la API, después la Web. La Web anterior funciona contra la API nueva. La Web
+nueva contra la API anterior guarda horarios sin control de turnos, porque ese control
+se mudó a la API.
+
+## Archivos tocados
+
+| Archivo | Qué cambió |
+|---|---|
+| `ChronoSaludApi/Logica/FechaArgentina.cs` | Nuevo: "hoy" en hora de Argentina |
+| `ChronoSaludApi/Logica/HorarioLaboralLogica.cs`, `IHorarioLaboralLogica.cs` | La regla de conflictos, la validación de :00 y :30; `Reemplazar` recibe al solicitante |
+| `ChronoSaludApi/Logica/DTOs/HorarioLaboralDTOs.cs` | `TurnoEnConflictoDto` |
+| `ChronoSaludApi/Repositorios/HorarioLaboralRepository.cs`, `IHorarioLaboralRepository.cs` | Control y guardado en una transacción; `BaseOcupadaException` |
+| `ChronoSaludApi/Endpoints/HorarioLaboralEndpoints.cs` | El PUT lee el token y contesta `409` y `503` |
+| `ChronoSaludApi/Logica/DTOs/DoctorDTOs.cs`, `Logica/DoctorLogica.cs` | `tieneHorario` en el listado |
+| `ChronoSaludApi/Repositorios/DoctorRepository.cs`, `IDoctorRepository.cs` | `ObtenerTodosConHorario` |
+| `ChronoSaludWeb/Services/ApiClient.cs` | `ApiException` conserva el cuerpo de la respuesta |
+| `ChronoSaludWeb/Services/HorarioService.cs`, `TurnoService.cs` | La Web deja de calcular los conflictos y lee el `409` |
+| `ChronoSaludWeb` (listado de doctores) | Etiqueta "Sin horario" para el administrador |
+
+---
+
 # Cambios en la API — Un solo rol de personal: se va "secretario"
 
 **Fecha:** 2026-10-07 · **Rama:** `feature/rol-unico`

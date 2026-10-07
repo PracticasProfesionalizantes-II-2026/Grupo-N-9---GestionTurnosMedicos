@@ -28,13 +28,31 @@ public static class HorarioLaboralEndpoints
         .WithSummary("Obtener horario semanal del doctor");
 
         // PUT /doctores/{id}/horarios
-        grupo.MapPut("/{id:int}/horarios", async (int id, HorarioSemanalDto dto, IHorarioLaboralLogica logica) =>
+        grupo.MapPut("/{id:int}/horarios", async (int id, HorarioSemanalDto dto, HttpContext ctx, IHorarioLaboralLogica logica) =>
         {
-            var (ok, error) = await logica.Reemplazar(id, dto);
+            var solicitante = Solicitante.Desde(ctx.User);
+            if (solicitante == null)
+                return Results.Unauthorized();
+
+            var (ok, error, conflictos, reintentar) = await logica.Reemplazar(id, dto, solicitante);
             if (!ok)
+            {
+                // Turnos reservados que quedarían fuera: no se guardó nada.
+                if (conflictos.Count > 0)
+                    return Results.Conflict(new { error, conflictos });
+
+                // La base estaba ocupada: 503 con Retry-After, para que quien
+                // llama sepa que repetir el mismo pedido es seguro.
+                if (reintentar)
+                {
+                    ctx.Response.Headers.RetryAfter = "1";
+                    return Results.Json(new { error }, statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
+            }
 
             return Results.Ok(new { mensaje = "Horario actualizado correctamente." });
         })

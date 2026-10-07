@@ -101,6 +101,12 @@ public class DoctorFilaViewModel
     /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
     public string? FotoUrl { get; init; }
 
+    /// <summary>
+    /// Muestra la etiqueta "Sin horario". Solo se carga para el administrador,
+    /// que es quien puede cargárselo.
+    /// </summary>
+    public bool SinHorario { get; init; }
+
     public string NombreMostrado =>
         string.IsNullOrWhiteSpace(Nombre) ? "Sin datos" : Nombre.Trim();
 

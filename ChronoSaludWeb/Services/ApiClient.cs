@@ -14,7 +14,18 @@ public class ApiException : Exception
 {
     public int Status { get; }
 
-    public ApiException(string mensaje, int status) : base(mensaje) => Status = status;
+    /// <summary>
+    /// El cuerpo crudo de la respuesta de error, cuando lo hubo. Sirve para los
+    /// pocos errores que traen algo más que el mensaje (por ejemplo, la lista
+    /// de turnos del 409 al guardar un horario).
+    /// </summary>
+    public string? Cuerpo { get; }
+
+    public ApiException(string mensaje, int status, string? cuerpo = null) : base(mensaje)
+    {
+        Status = status;
+        Cuerpo = cuerpo;
+    }
 }
 
 /// <summary>
@@ -89,7 +100,7 @@ public class ApiClient
             var texto = await respuesta.Content.ReadAsStringAsync();
 
             if (!respuesta.IsSuccessStatusCode)
-                throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+                throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado, texto);
 
             if (string.IsNullOrWhiteSpace(texto))
                 return default;
@@ -122,7 +133,7 @@ public class ApiClient
 
         var estado = (int)respuesta.StatusCode;
         var texto = await respuesta.Content.ReadAsStringAsync();
-        throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+        throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado, texto);
     }
 
     /// <summary>
@@ -149,7 +160,7 @@ public class ApiClient
         if (!respuesta.IsSuccessStatusCode)
         {
             var texto = await respuesta.Content.ReadAsStringAsync();
-            throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado);
+            throw new ApiException(LeerError(texto) ?? $"Error {estado}", estado, texto);
         }
 
         var contenido = await respuesta.Content.ReadAsByteArrayAsync();

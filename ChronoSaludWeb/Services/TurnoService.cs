@@ -97,28 +97,6 @@ public class TurnoService
     }
 
     /// <summary>
-    /// Todos los turnos de un doctor desde una fecha, en cualquier estado.
-    /// GET /turnos pagina, así que se recorren las páginas hasta juntar el
-    /// total que informa la API: acá no puede quedar ninguno afuera. Pensado
-    /// para el administrador; a un doctor la API le devuelve siempre su propia
-    /// agenda, sin mirar <paramref name="doctorId"/>.
-    /// </summary>
-    public async Task<IReadOnlyList<TurnoLista>> ObtenerDeDoctorDesdeAsync(int doctorId, DateTime desde)
-    {
-        const int porPagina = 200;
-        var turnos = new List<TurnoLista>();
-
-        for (var pagina = 1; ; pagina++)
-        {
-            var lote = await ObtenerAsync(doctorId: doctorId, desde: desde, pagina: pagina, limite: porPagina);
-            turnos.AddRange(lote.Turnos);
-
-            if (lote.Turnos.Count == 0 || turnos.Count >= lote.Total)
-                return turnos;
-        }
-    }
-
-    /// <summary>
     /// GET /turnos/{id}. Devuelve null si la API contesta 404, para que el
     /// controlador muestre la vista de "no encontrado" en vez de un error.
     /// </summary>

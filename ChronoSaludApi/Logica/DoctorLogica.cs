@@ -13,16 +13,17 @@ public class DoctorLogica : IDoctorLogica
     public async Task<(int total, IEnumerable<DoctorListaDto> doctores)> ObtenerTodos(
         string? especialidad, int? coberturaId, int pagina, int limite)
     {
-        var todos = await _repo.ObtenerTodos(especialidad, coberturaId);
+        var todos = await _repo.ObtenerTodosConHorario(especialidad, coberturaId);
         var total = todos.Count();
         var resultado = todos
             .Skip((pagina - 1) * limite)
             .Take(limite)
-            .Select(d => new DoctorListaDto(
-                d.Id,
-                $"{d.Usuario?.Nombre} {d.Usuario?.Apellido}",
-                d.Especialidad,
-                d.Matricula
+            .Select(f => new DoctorListaDto(
+                f.Doctor.Id,
+                $"{f.Doctor.Usuario?.Nombre} {f.Doctor.Usuario?.Apellido}",
+                f.Doctor.Especialidad,
+                f.Doctor.Matricula,
+                f.TieneHorario
             ));
         return (total, resultado);
     }
