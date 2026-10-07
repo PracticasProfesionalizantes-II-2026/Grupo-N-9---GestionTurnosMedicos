@@ -158,7 +158,7 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
                 "No podés cancelar turnos con tu rol",
-                "La cancelación está reservada al personal: doctor, administrador y secretario.");
+                "La cancelación está reservada al personal: doctor y administrador.");
 
         try
         {
@@ -201,7 +201,7 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
                 "No podés cancelar turnos con tu rol",
-                "La cancelación está reservada al personal: doctor, administrador y secretario.");
+                "La cancelación está reservada al personal: doctor y administrador.");
 
         try
         {

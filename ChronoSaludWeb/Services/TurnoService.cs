@@ -150,7 +150,7 @@ public class TurnoService
 
     /// <summary>
     /// PUT /turnos/{id} para mover el estado del turno. La API lo reserva a los
-    /// roles administrador y secretario, y no valida el estado contra ninguna
+    /// roles doctor y administrador, y no valida el estado contra ninguna
     /// lista: guarda el string tal cual llega, así que el que valida somos
     /// nosotros. Contesta 200 con { mensaje }, que no nos interesa.
     /// Deja pasar la ApiException para que el controlador muestre el mensaje.

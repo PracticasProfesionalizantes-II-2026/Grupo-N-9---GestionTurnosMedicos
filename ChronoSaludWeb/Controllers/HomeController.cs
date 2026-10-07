@@ -548,7 +548,7 @@ public class HomeController : Controller
 
     /// <summary>
     /// Por las dudas: hoy la API solo emite tres roles, pero si aparece otro
-    /// (secretario, por ejemplo) mostramos algo usable en vez de una pantalla vacía.
+    /// mostramos algo usable en vez de una pantalla vacía.
     /// </summary>
     private static DashboardViewModel ArmarRolDesconocido(SesionUsuario sesion) => new()
     {

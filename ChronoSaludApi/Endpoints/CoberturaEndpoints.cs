@@ -30,7 +30,7 @@ public static class CoberturaEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (coberturas, error, prohibido) = await logica.ObtenerDePaciente(id, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();
@@ -51,9 +51,9 @@ public static class CoberturaEndpoints
                 return Results.Unauthorized();
 
             // Cambiar la cobertura de un paciente es administrativo, no clínico:
-            // acá el doctor no cuenta como staff, sólo administrador/secretario.
+            // acá el doctor no cuenta como staff, sólo el administrador.
             var callerEsPaciente = ctx.User.IsInRole("paciente");
-            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("administrador");
 
             var (ok, error, sinPerfil, prohibido) = await logica.AsociarAPaciente(id, dto, idUsuario, callerEsPaciente, callerEsStaff);
             if (prohibido) return Results.Forbid();
@@ -79,7 +79,7 @@ public static class CoberturaEndpoints
                 return Results.Unauthorized();
 
             var callerEsPaciente = ctx.User.IsInRole("paciente");
-            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("administrador");
 
             var (ok, error, sinPerfil, prohibido) = await logica.ActualizarDePaciente(id, dto, idUsuario, callerEsPaciente, callerEsStaff);
             if (prohibido) return Results.Forbid();
@@ -101,7 +101,7 @@ public static class CoberturaEndpoints
                 return Results.Unauthorized();
 
             var callerEsPaciente = ctx.User.IsInRole("paciente");
-            var callerEsStaff = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("administrador");
 
             var (ok, error, sinPerfil, prohibido) = await logica.DesvincularDePaciente(id, cobertura_id, idUsuario, callerEsPaciente, callerEsStaff);
             if (prohibido) return Results.Forbid();

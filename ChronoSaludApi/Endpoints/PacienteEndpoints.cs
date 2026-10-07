@@ -46,7 +46,7 @@ public static class PacienteEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (paciente, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();
@@ -64,7 +64,7 @@ public static class PacienteEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (ok, error, prohibido, conflictoDni) = await logica.Actualizar(id, dto, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();

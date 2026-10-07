@@ -21,7 +21,7 @@ public static class NotificacionEndpoints
                 return Results.Unauthorized();
 
             var esPropio = idUsuario == id;
-            var esStaff  = ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var esStaff  = ctx.User.IsInRole("administrador");
             if (!esPropio && !esStaff)
                 return Results.Forbid();
 

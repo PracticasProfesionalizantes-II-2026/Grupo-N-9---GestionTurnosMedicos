@@ -15,7 +15,7 @@ public static class RecetaEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (recetas, error, prohibido) = await logica.ObtenerDePaciente(id, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();
@@ -61,7 +61,7 @@ public static class RecetaEndpoints
             });
         })
         .WithSummary("Emitir receta médica")
-        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador"));
 
         // PUT /recetas/{id}
         grupo.MapPut("/{id:int}", async (int id, RecetaCreateDto dto, HttpContext ctx, IRecetaLogica logica) =>
@@ -84,7 +84,7 @@ public static class RecetaEndpoints
             return Results.Ok(new { mensaje = "Receta modificada correctamente." });
         })
         .WithSummary("Modificar receta médica")
-        .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
+        .RequireAuthorization(p => p.RequireRole("doctor", "administrador"));
 
         // GET /recetas/{id}/descargar  (placeholder PDF)
         grupo.MapGet("/{id:int}/descargar", async (int id, HttpContext ctx, IRecetaLogica logica) =>
@@ -93,7 +93,7 @@ public static class RecetaEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (receta, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();

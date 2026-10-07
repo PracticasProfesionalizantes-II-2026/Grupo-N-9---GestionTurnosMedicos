@@ -24,7 +24,7 @@ public static class HistorialClinicoEndpoints
             if (!int.TryParse(idClaim, out var idUsuario))
                 return Results.Unauthorized();
 
-            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador") || ctx.User.IsInRole("secretario");
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
 
             var (idPaciente, historiales, error, prohibido) = await logica.ObtenerDePaciente(id, fecha_desde, fecha_hasta, idUsuario, callerEsStaff);
             if (prohibido) return Results.Forbid();
