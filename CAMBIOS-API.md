@@ -1,3 +1,62 @@
+# Cambios en la API — Dueño del turno al reservar y al cancelar
+
+**Fecha:** 2026-10-07 · **Rama:** `feature/turnos-dueno`
+
+Hasta ahora `POST /turnos` y `DELETE /turnos/{id}` no miraban quién llamaba: cualquier
+usuario autenticado reservaba a nombre de cualquier paciente y cancelaba cualquier
+turno. Lo frenaba solo la Web. Ahora lo controla la API. **Cambian respuestas que antes
+andaban** si usan la API directo por Scalar o Postman. La Web y el seeder no necesitan
+cambios. No hay migración.
+
+## 1. `DELETE /turnos/{id}`: solo el dueño, y solo turnos en pie
+
+| Quién llama | Qué puede cancelar |
+|---|---|
+| `paciente` | Sus propios turnos |
+| `doctor` | Los turnos de su agenda |
+| `administrador` | Cualquiera |
+
+| Caso | Antes | Ahora |
+|---|---|---|
+| El turno es de otro paciente o de otra agenda | `204` | `404` `"Turno no encontrado."` |
+| El turno está `completado` o ya `cancelado` | `204` (y avisaba de nuevo al paciente) | `409` `"Conflicto de estado: el turno está completado y no se puede cancelar."` |
+| Turno propio `pendiente` o `confirmado` | `204` | `204` (igual) |
+
+Primero se revisa el dueño y después el estado: un turno ajeno contesta siempre `404`,
+esté en el estado que esté. Un paciente o un doctor sin perfil cargado también recibe
+`404`.
+
+## 2. `POST /turnos`: el paciente reserva solo a su nombre
+
+- Con token de `paciente`, el `idPaciente` del cuerpo **se ignora**: el turno queda a
+  nombre del paciente del token. Ya no hace falta mandarlo. Si ese usuario no tiene
+  perfil de paciente: `400` `"Tu usuario no tiene un perfil de paciente asociado."`.
+- Con token de `doctor` o `administrador` no cambia: reservan para el `idPaciente`
+  que manden.
+- Si ese `idPaciente` no existe, ahora contesta `400` `"El paciente indicado no existe."`.
+  Antes fallaba en la base y devolvía `500`.
+
+## 3. Token incompleto
+
+En `POST`, `PUT` y `DELETE` de turnos, un token sin id de usuario o sin rol contesta
+`401`.
+
+## Sin cambios
+
+`GET /turnos`, `GET /turnos/{id}` y `PUT /turnos/{id}` se comportan igual que antes.
+En el `PUT` cambió solo cómo recibe la lógica al usuario que llama.
+
+## Archivos tocados
+
+| Archivo | Qué cambió |
+|---|---|
+| `ChronoSaludApi/Logica/Solicitante.cs` | Nuevo: usuario y rol del token, armados una sola vez por el endpoint |
+| `ChronoSaludApi/Logica/ITurnoLogica.cs` | `Crear`, `Actualizar` y `Cancelar` reciben al solicitante |
+| `ChronoSaludApi/Logica/TurnoLogica.cs` | Reglas de dueño y de estado al cancelar; paciente del token y paciente inexistente al crear |
+| `ChronoSaludApi/Endpoints/TurnoEndpoints.cs` | `POST`, `PUT` y `DELETE` leen el token; el `DELETE` suma el `409` |
+
+---
+
 # Cambios en la API — Registro cerrado y lectura de cuentas
 
 **Fecha:** 2026-10-05 · **Rama:** `feature-a0-registro`

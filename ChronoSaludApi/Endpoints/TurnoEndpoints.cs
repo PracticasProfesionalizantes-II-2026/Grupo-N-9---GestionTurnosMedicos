@@ -58,13 +58,18 @@ public static class TurnoEndpoints
         .WithSummary("Obtener detalle de turno");
 
         // POST /turnos
-        grupo.MapPost("/", async (TurnoCreateDto dto, ITurnoLogica logica) =>
+        grupo.MapPost("/", async (TurnoCreateDto dto, HttpContext ctx, ITurnoLogica logica) =>
         {
-            if (dto.IdPaciente == 0 || dto.IdDoctor == 0 ||
+            var solicitante = Solicitante.Desde(ctx.User);
+            if (solicitante == null)
+                return Results.Unauthorized();
+
+            // Al paciente no se le exige el IdPaciente: el suyo sale del token.
+            if ((!solicitante.EsPaciente && dto.IdPaciente == 0) || dto.IdDoctor == 0 ||
                 string.IsNullOrEmpty(dto.HoraInicio) || string.IsNullOrEmpty(dto.HoraFin))
                 return Results.BadRequest(new { error = "Datos inválidos o incompletos." });
 
-            var (id, error) = await logica.Crear(dto);
+            var (id, error) = await logica.Crear(dto, solicitante);
             if (error != null)
                 return error.Contains("Conflicto")
                     ? Results.Conflict(new { error })
@@ -83,13 +88,11 @@ public static class TurnoEndpoints
         // PUT /turnos/{id}
         grupo.MapPut("/{id:int}", async (int id, TurnoUpdateDto dto, HttpContext ctx, ITurnoLogica logica) =>
         {
-            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(idClaim, out var idUsuario))
+            var solicitante = Solicitante.Desde(ctx.User);
+            if (solicitante == null)
                 return Results.Unauthorized();
 
-            var callerEsDoctor = ctx.User.IsInRole("doctor");
-
-            var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, dto, idUsuario, callerEsDoctor);
+            var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, dto, solicitante);
             if (!ok)
             {
                 if (sinPerfilDoctor || error!.Contains("no encontrado")) return Results.NotFound(new { error });
@@ -102,13 +105,19 @@ public static class TurnoEndpoints
         .RequireAuthorization(p => p.RequireRole("doctor", "administrador", "secretario"));
 
         // DELETE /turnos/{id}
-        grupo.MapDelete("/{id:int}", async (int id, ITurnoLogica logica) =>
+        grupo.MapDelete("/{id:int}", async (int id, HttpContext ctx, ITurnoLogica logica) =>
         {
-            var (ok, error) = await logica.Cancelar(id);
+            var solicitante = Solicitante.Desde(ctx.User);
+            if (solicitante == null)
+                return Results.Unauthorized();
+
+            var (ok, error) = await logica.Cancelar(id, solicitante);
             if (!ok)
-                return error!.Contains("no encontrado")
-                    ? Results.NotFound(new { error })
-                    : Results.BadRequest(new { error });
+            {
+                if (error!.Contains("no encontrado")) return Results.NotFound(new { error });
+                if (error.Contains("Conflicto"))      return Results.Conflict(new { error });
+                return Results.BadRequest(new { error });
+            }
 
             return Results.NoContent();
         })

@@ -330,7 +330,7 @@ else
                                                     </button>
                                                 </form>
                                             }
-                                            @if (!turno.EstaCancelado)
+                                            @if (turno.PuedeCancelarse)
                                             {
                                                 <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1 text-status-cancelado">

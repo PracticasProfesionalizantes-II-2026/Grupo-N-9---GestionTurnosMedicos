@@ -79,6 +79,14 @@ public class TurnoFilaViewModel
         string.Equals(Estado, "cancelado", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Solo se ofrece cancelar un turno pendiente o confirmado, que son los
+    /// únicos que la API acepta cancelar.
+    /// </summary>
+    public bool PuedeCancelarse =>
+        string.Equals(Estado, "pendiente", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Estado, "confirmado", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Solo un turno pendiente se puede confirmar desde el listado. El resto de
     /// las transiciones se hacen desde el detalle, que tiene todo el contexto.
     /// </summary>

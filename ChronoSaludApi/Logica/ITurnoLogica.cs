@@ -9,8 +9,8 @@ public interface ITurnoLogica
         int idUsuarioCaller, bool callerEsPaciente, bool callerEsDoctor);
     Task<(TurnoDto? turno, string? error)> ObtenerPorId(
         int id, int idUsuarioCaller, bool callerEsPaciente, bool callerEsDoctor, bool callerEsStaff);
-    Task<(int? id, string? error)> Crear(TurnoCreateDto dto);
+    Task<(int? id, string? error)> Crear(TurnoCreateDto dto, Solicitante solicitante);
     Task<(bool ok, string? error, bool sinPerfilDoctor)> Actualizar(
-        int id, TurnoUpdateDto dto, int idUsuarioCaller, bool callerEsDoctor);
-    Task<(bool ok, string? error)> Cancelar(int id);
+        int id, TurnoUpdateDto dto, Solicitante solicitante);
+    Task<(bool ok, string? error)> Cancelar(int id, Solicitante solicitante);
 }
