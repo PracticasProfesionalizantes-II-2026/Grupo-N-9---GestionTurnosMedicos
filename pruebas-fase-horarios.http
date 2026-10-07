@@ -148,7 +148,7 @@ Content-Type: application/json
 
 
 ### 1.4 [Duarte] Un paciente intenta cambiar el horario
-### ESPERADO: 403 (solo administrador y secretario).
+### ESPERADO: 403 (solo administrador).
 PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
 Authorization: Bearer {{tokenDuarte}}
 Content-Type: application/json

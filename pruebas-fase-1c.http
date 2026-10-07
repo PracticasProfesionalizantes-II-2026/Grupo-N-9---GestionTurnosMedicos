@@ -852,10 +852,9 @@ Content-Type: application/json
 ### la de Doctor. Para probarlo hay que insertar a mano por SQL un Usuario con
 ### Rol='paciente' (o 'doctor') sin su fila correspondiente, y loguearse con él.
 ###
-### Nota sobre el rol "secretario": todas las reglas de esta fase lo tratan como
-### staff, igual que administrador, pero sigue siendo inalcanzable porque el
-### registro solo acepta paciente, doctor y administrador. No hay forma de
-### probarlo por HTTP hasta que exista un alta con ese rol.
+### Nota sobre el rol "secretario": ya no existe. Estas reglas lo trataban como
+### staff, igual que administrador, pero nunca se pudo crear un usuario con ese
+### rol. Se quitó de todos los chequeos de la API: el personal es "administrador".
 
 
 ### ============================================================

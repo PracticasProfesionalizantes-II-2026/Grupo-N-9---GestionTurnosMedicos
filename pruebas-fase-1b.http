@@ -433,7 +433,7 @@ Authorization: Bearer {{tokenSalas}}
 
 
 ### 6.3 [Gómez, doctor] GET las notificaciones de Duarte
-### AHORA: 403 Forbidden — acá "staff" es sólo administrador/secretario, el
+### AHORA: 403 Forbidden — acá "staff" es sólo el administrador, el
 ### doctor NO tiene pase libre (a diferencia de Pacientes/Historiales/Recetas/Estudios).
 ### ANTES: 200.
 GET {{baseUrl}}/usuarios/{{idUsuarioDuarte}}/notificaciones
@@ -472,7 +472,7 @@ Authorization: Bearer {{tokenGomez}}
 
 ### 7.4 [Gómez, doctor] POST asociar cobertura a Duarte
 ### AHORA: 403 Forbidden — a diferencia del GET, acá "staff" es sólo
-### administrador/secretario: cambiar la cobertura médica de un paciente se
+### el administrador: cambiar la cobertura médica de un paciente se
 ### trató como administrativo, no clínico, y el doctor quedó afuera.
 ### ANTES: 201 Created — cualquier doctor podía asociar coberturas.
 POST {{baseUrl}}/pacientes/{{idPacienteDuarte}}/coberturas
