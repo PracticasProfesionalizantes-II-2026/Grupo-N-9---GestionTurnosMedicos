@@ -88,6 +88,10 @@ else
                             <span class="block truncate text-sm capitalize text-muted">@doctor.EspecialidadMostrada</span>
                         }
                     </span>
+                    @if (doctor.SinHorario)
+                    {
+                        <partial name="_Chip" model='new ChipViewModel { Texto = "Sin horario", Tono = TonoChip.Aviso }' />
+                    }
                     @if (doctor.MatriculaMostrada is not null)
                     {
                         <span class="shrink-0 text-sm tabular-nums text-muted">@doctor.MatriculaMostrada</span>

@@ -1,4 +1,4 @@
-using System.Globalization;
+using System.Text.Json;
 
 namespace ChronoSaludWeb.Services;
 
@@ -22,117 +22,74 @@ public class HorarioService
     /// </summary>
     public const int MinutosPorFranja = 30;
 
-    // Un turno en estos estados sigue en pie: es el que no puede quedar fuera
-    // del horario. Los completados y los cancelados ya no ocupan la agenda.
-    private static readonly string[] EstadosReservados = ["pendiente", "confirmado"];
+    private static readonly JsonSerializerOptions JsonOpciones = new(JsonSerializerDefaults.Web);
 
     private readonly ApiClient _api;
-    private readonly DoctorService _doctores;
-    private readonly TurnoService _turnos;
 
-    public HorarioService(ApiClient api, DoctorService doctores, TurnoService turnos)
-    {
-        _api = api;
-        _doctores = doctores;
-        _turnos = turnos;
-    }
+    public HorarioService(ApiClient api) => _api = api;
 
     /// <summary>
     /// Único punto de la Web que escribe un horario: todo guardado pasa por acá.
-    /// Primero revisa los turnos reservados de hoy en adelante; si el cambio
-    /// dejaría alguno fuera de horario, no guarda y los devuelve.
-    /// Si no, PUT /doctores/{id}/horarios reemplaza la semana entera por la
-    /// lista que recibe: un día que no viene deja de atenderse, y la lista
-    /// vacía deja al doctor sin horario. Reservado a administrador.
-    /// Deja pasar la ApiException (400 si el doctor está inactivo o un rango es
-    /// inválido, 404 si no existe, o la de no haber podido leer el horario
-    /// actual) para que el controlador muestre el mensaje sin perder lo que se
-    /// había cargado.
+    /// PUT /doctores/{id}/horarios reemplaza la semana entera por la lista que
+    /// recibe: un día que no viene deja de atenderse, y la lista vacía deja al
+    /// doctor sin horario. Reservado a administrador.
+    /// El control de turnos lo hace la API: si el cambio dejaría fuera turnos
+    /// pendientes o confirmados contesta 409 con la lista, y acá se devuelve
+    /// sin guardar nada.
+    /// Deja pasar el resto de las ApiException (400 si el doctor está inactivo
+    /// o una hora es inválida, 404 si no existe, 503 si la base estaba
+    /// ocupada) para que el controlador muestre el mensaje sin perder lo que
+    /// se había cargado.
     /// </summary>
     public async Task<ResultadoGuardarHorario> GuardarAsync(int idDoctor, IReadOnlyList<HorarioLaboral> nuevo)
     {
-        var conflictos = await BuscarConflictosAsync(idDoctor, nuevo);
-        if (conflictos.Count > 0)
-            return new ResultadoGuardarHorario(false, conflictos);
-
-        await _api.PutAsync($"/doctores/{idDoctor}/horarios", new { horarios = nuevo });
-        return new ResultadoGuardarHorario(true, Array.Empty<TurnoLista>());
-    }
-
-    /// <summary>
-    /// Turnos pendientes o confirmados, de hoy en adelante, que entran en el
-    /// horario que el doctor tiene hoy y dejarían de entrar en
-    /// <paramref name="nuevo"/>. Uno que ya está fuera del horario actual no
-    /// frena: no es este cambio el que lo deja ahí. La API no hace este
-    /// control: su PUT reemplaza el horario sin mirar los turnos.
-    /// </summary>
-    private async Task<IReadOnlyList<TurnoLista>> BuscarConflictosAsync(int idDoctor, IReadOnlyList<HorarioLaboral> nuevo)
-    {
-        var actual = await LeerHorarioActualAsync(idDoctor);
-        var turnos = await _turnos.ObtenerDeDoctorDesdeAsync(idDoctor, FechaArgentina.Hoy());
-
-        return turnos
-            .Where(t => EstadosReservados.Contains(t.Estado, StringComparer.OrdinalIgnoreCase))
-            .Where(t => QuedaFuera(t, actual, nuevo))
-            .OrderBy(t => t.FechaInicio)
-            .ThenBy(t => t.HoraInicio, StringComparer.Ordinal)
-            .ThenBy(t => t.IdTurno)
-            .ToList();
-    }
-
-    /// <summary>
-    /// El horario que el doctor tiene cargado hoy. Sin él no se sabe qué turnos
-    /// deja fuera el cambio, así que si no se puede leer se corta con el
-    /// motivo en lugar de guardar a ciegas.
-    /// </summary>
-    private async Task<IReadOnlyList<HorarioLaboral>> LeerHorarioActualAsync(int idDoctor)
-    {
-        const string motivo = "No se pudo leer el horario actual del doctor, así que no se guardó nada";
-
-        IReadOnlyList<HorarioLaboral>? actual;
         try
         {
-            actual = await _doctores.ObtenerHorariosAsync(idDoctor);
+            await _api.PutAsync($"/doctores/{idDoctor}/horarios", new { horarios = nuevo });
+            return new ResultadoGuardarHorario(true, Array.Empty<TurnoLista>());
         }
-        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        catch (ApiException error) when (error.Status == StatusCodes.Status409Conflict
+                                         && LeerConflictos(error.Cuerpo) is { Count: > 0 } conflictos)
         {
-            throw new ApiException($"{motivo}: {error.Message}", error.Status);
+            return new ResultadoGuardarHorario(false, conflictos);
         }
-
-        // ObtenerHorariosAsync devuelve null cuando la API contesta 404.
-        return actual ?? throw new ApiException($"{motivo}: el doctor no existe.", StatusCodes.Status404NotFound);
     }
 
     /// <summary>
-    /// El turno entra en el horario actual y dejaría de entrar en el nuevo.
-    /// Uno sin hora, o con una que no se entiende, no se puede ubicar en
-    /// ningún horario: no frena.
+    /// La lista "conflictos" del cuerpo del 409. Vacía si el cuerpo no la trae
+    /// o no se entiende: en ese caso el 409 sigue de largo como un error común
+    /// y el controlador muestra su mensaje.
     /// </summary>
-    private static bool QuedaFuera(
-        TurnoLista turno, IReadOnlyList<HorarioLaboral> actual, IReadOnlyList<HorarioLaboral> nuevo)
+    private static IReadOnlyList<TurnoLista> LeerConflictos(string? cuerpo)
     {
-        if (!TryHora(turno.HoraInicio, out var inicio)) return false;
+        if (string.IsNullOrWhiteSpace(cuerpo))
+            return Array.Empty<TurnoLista>();
 
-        var diaSemana = (int)turno.FechaInicio.DayOfWeek;
-        return EntraEn(actual, diaSemana, inicio) && !EntraEn(nuevo, diaSemana, inicio);
+        try
+        {
+            var respuesta = JsonSerializer.Deserialize<RespuestaConConflictos>(cuerpo, JsonOpciones);
+
+            return (respuesta?.Conflictos ?? new List<TurnoEnConflicto>())
+                .Select(c => new TurnoLista(
+                    c.IdTurno,
+                    c.FechaInicio,
+                    c.HoraInicio ?? string.Empty,
+                    c.Estado ?? string.Empty,
+                    Doctor: string.Empty,
+                    Especialidad: string.Empty,
+                    c.Paciente ?? string.Empty))
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<TurnoLista>();
+        }
     }
 
-    /// <summary>
-    /// La hora cae en un día que el horario atiende y dentro de su rango. El
-    /// listado de turnos no trae la hora de fin, así que al turno se le supone
-    /// la duración de una franja, que es lo único que reserva la Web.
-    /// </summary>
-    private static bool EntraEn(IReadOnlyList<HorarioLaboral> horario, int diaSemana, TimeSpan inicio)
-    {
-        var dia = horario.FirstOrDefault(h => h.DiaSemana == diaSemana);
+    /// <summary>Cuerpo del 409 de PUT /doctores/{id}/horarios: { error, conflictos }.</summary>
+    private sealed record RespuestaConConflictos(List<TurnoEnConflicto>? Conflictos);
 
-        return dia is not null
-            && TryHora(dia.HoraInicio, out var desde)
-            && TryHora(dia.HoraFin, out var hasta)
-            && inicio >= desde
-            && inicio + TimeSpan.FromMinutes(MinutosPorFranja) <= hasta;
-    }
-
-    private static bool TryHora(string? texto, out TimeSpan hora) =>
-        TimeSpan.TryParseExact(texto, @"hh\:mm", CultureInfo.InvariantCulture, out hora);
+    /// <summary>Espeja TurnoEnConflictoDto de la API.</summary>
+    private sealed record TurnoEnConflicto(
+        int IdTurno, DateTime FechaInicio, string? HoraInicio, string? Estado, string? Paciente);
 }

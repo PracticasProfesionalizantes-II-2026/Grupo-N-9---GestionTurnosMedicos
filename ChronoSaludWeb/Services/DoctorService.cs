@@ -13,9 +13,11 @@ public record DoctorDetalle(
 
 /// <summary>
 /// Una fila del listado. Espeja DoctorListaDto: Nombre ya viene armado
-/// como "Nombre Apellido".
+/// como "Nombre Apellido". TieneHorario queda en null si la API no lo informa
+/// (una versión anterior a ese campo): no es lo mismo que "no tiene".
 /// </summary>
-public record DoctorLista(int IdDoctor, string Nombre, string Especialidad, string Matricula);
+public record DoctorLista(
+    int IdDoctor, string Nombre, string Especialidad, string Matricula, bool? TieneHorario = null);
 
 /// <summary>
 /// Respuesta de GET /doctores: { total, doctores }.

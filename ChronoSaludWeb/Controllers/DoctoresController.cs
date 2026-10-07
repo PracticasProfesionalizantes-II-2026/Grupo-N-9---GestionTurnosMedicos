@@ -64,7 +64,9 @@ public class DoctoresController : ControladorBase
             {
                 Especialidad = filtro,
                 Total = pagina.Total,
-                Doctores = pagina.Doctores.Select(d => Mapear(d, UrlDeFoto(fotos, d.IdDoctor))).ToList(),
+                Doctores = pagina.Doctores
+                    .Select(d => Mapear(d, UrlDeFoto(fotos, d.IdDoctor), _auth.EsAdministrador))
+                    .ToList(),
                 Especialidades = OpcionesDeEspecialidad(especialidades, filtro)
             });
         }
@@ -270,13 +272,16 @@ public class DoctoresController : ControladorBase
             ? Url.Action("Foto", "Usuarios", new { id = idUsuario })
             : null;
 
-    private static DoctorFilaViewModel Mapear(DoctorLista doctor, string? fotoUrl) => new()
+    private static DoctorFilaViewModel Mapear(DoctorLista doctor, string? fotoUrl, bool avisarSinHorario) => new()
     {
         FotoUrl = fotoUrl,
         IdDoctor = doctor.IdDoctor,
         Nombre = doctor.Nombre,
         Especialidad = doctor.Especialidad,
-        Matricula = doctor.Matricula
+        Matricula = doctor.Matricula,
+        // Solo cuando la API dice que no tiene: si no informa el dato (null)
+        // no se avisa nada.
+        SinHorario = avisarSinHorario && doctor.TieneHorario == false
     };
 
     /// <summary>
