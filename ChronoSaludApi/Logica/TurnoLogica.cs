@@ -12,6 +12,7 @@ public class TurnoLogica : ITurnoLogica
     private readonly INotificacionRepository _notifRepo;
     private readonly ILogger<TurnoLogica> _logger;
     private readonly IHorarioLaboralLogica _horarioLogica;
+    private readonly IRegistroMovimientos _movimientos;
 
     public TurnoLogica(
         ITurnoRepository repo,
@@ -19,7 +20,8 @@ public class TurnoLogica : ITurnoLogica
         IDoctorRepository doctorRepo,
         INotificacionRepository notifRepo,
         ILogger<TurnoLogica> logger,
-        IHorarioLaboralLogica horarioLogica)
+        IHorarioLaboralLogica horarioLogica,
+        IRegistroMovimientos movimientos)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
@@ -27,6 +29,7 @@ public class TurnoLogica : ITurnoLogica
         _notifRepo = notifRepo;
         _logger = logger;
         _horarioLogica = horarioLogica;
+        _movimientos = movimientos;
     }
 
     // Un fallo al insertar la notificación nunca puede hacer fracasar ni
@@ -176,6 +179,9 @@ public class TurnoLogica : ITurnoLogica
 
         await _repo.Agregar(turno);
 
+        await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCreado, "turno", turno.Id, turno.IdDoctor,
+            $"Turno #{turno.Id} del {Cuando(turno)}: creado.");
+
         await NotificarPaciente(turno.IdPaciente,
             $"Se creó tu turno para el {turno.FechaInicio:dd/MM/yyyy} a las {dto.HoraInicio}.");
 
@@ -200,6 +206,7 @@ public class TurnoLogica : ITurnoLogica
         }
 
         var estadoAnterior = turno.Estado;
+        var cuandoAnterior = Cuando(turno);
 
         if (dto.FechaInicio.HasValue) turno.FechaInicio = dto.FechaInicio.Value;
 
@@ -229,6 +236,8 @@ public class TurnoLogica : ITurnoLogica
 
         await _repo.Actualizar(turno);
 
+        await RegistrarCambios(turno, estadoAnterior, cuandoAnterior, solicitante);
+
         if (!string.IsNullOrEmpty(dto.Estado) && dto.Estado != estadoAnterior)
         {
             await NotificarPaciente(turno.IdPaciente,
@@ -251,14 +260,68 @@ public class TurnoLogica : ITurnoLogica
         if (turno.Estado != "pendiente" && turno.Estado != "confirmado")
             return (false, $"Conflicto de estado: el turno está {turno.Estado} y no se puede cancelar.");
 
+        var estadoPrevio = turno.Estado;
+
         turno.Estado = "cancelado";
         await _repo.Eliminar(turno);
+
+        await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCancelado, "turno", turno.Id, turno.IdDoctor,
+            $"Turno #{turno.Id} del {Cuando(turno)}: {EstadoParaResumen(estadoPrevio)} a cancelado.");
 
         await NotificarPaciente(turno.IdPaciente,
             $"Tu turno del {turno.FechaInicio:dd/MM/yyyy} fue cancelado.");
 
         return (true, null);
     }
+
+    /// <summary>
+    /// Lo que deja en el historial un PUT de turno: "reprogramado" si cambió el
+    /// día o la hora, y la acción del estado nuevo si cambió el estado. Pueden
+    /// ser las dos. Un estado nuevo que no es confirmado, completado ni
+    /// cancelado se registra como "estado cambiado".
+    /// </summary>
+    private async Task RegistrarCambios(Turno turno, string estadoAnterior, string cuandoAnterior, Solicitante solicitante)
+    {
+        var cuandoNuevo = Cuando(turno);
+
+        if (cuandoNuevo != cuandoAnterior)
+        {
+            await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoReprogramado, "turno", turno.Id, turno.IdDoctor,
+                $"Turno #{turno.Id}: del {cuandoAnterior} al {cuandoNuevo}.");
+        }
+
+        var accionDelEstado = turno.Estado == estadoAnterior
+            ? null
+            : turno.Estado switch
+            {
+                "confirmado" => AccionesMovimiento.TurnoConfirmado,
+                "completado" => AccionesMovimiento.TurnoCompletado,
+                "cancelado"  => AccionesMovimiento.TurnoCancelado,
+                _            => AccionesMovimiento.TurnoEstadoCambiado
+            };
+
+        if (accionDelEstado != null)
+        {
+            await _movimientos.Registrar(solicitante, accionDelEstado, "turno", turno.Id, turno.IdDoctor,
+                $"Turno #{turno.Id} del {cuandoNuevo}: {EstadoParaResumen(estadoAnterior)} a {EstadoParaResumen(turno.Estado)}.");
+        }
+    }
+
+    // Los únicos estados que se nombran en el historial.
+    private static readonly string[] EstadosConocidos = ["pendiente", "confirmado", "completado", "cancelado"];
+
+    /// <summary>
+    /// El estado de un turno para el resumen del historial. PUT /turnos guarda
+    /// cualquier texto como estado, y ese texto puede traer cualquier cosa: al
+    /// historial solo llegan los cuatro estados conocidos. Cualquier otro se
+    /// anota como "otro estado", sin copiar nada de lo que se escribió.
+    /// </summary>
+    private static string EstadoParaResumen(string? estado) =>
+        EstadosConocidos.Contains(estado) ? estado! : "otro estado";
+
+    /// <summary>Día y horas del turno para el resumen del historial: "14/10/2026 de 13:00 a 13:30".</summary>
+    private static string Cuando(Turno turno) =>
+        $"{turno.FechaInicio:dd/MM/yyyy} de {turno.HoraInicio:hh\\:mm} a {turno.HoraFin:hh\\:mm}";
 
     /// <summary>
     /// El administrador cancela cualquier turno; el paciente, los suyos; el

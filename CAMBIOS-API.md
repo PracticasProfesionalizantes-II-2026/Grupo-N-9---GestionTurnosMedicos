@@ -1,3 +1,119 @@
+# Cambios en la API — Historial de movimientos (lleva migración)
+
+**Fecha:** 2026-10-07 · **Rama:** `feature/historial-movimientos`
+
+La API ahora deja registro de quién cambia un horario y quién crea, confirma, cancela,
+completa o reprograma un turno, y suma un endpoint para leerlo. **No cambia ninguna
+respuesta existente, pero agrega una tabla: hay que aplicar la migración en cada base.**
+
+## Qué tienen que hacer en su base local
+
+Con la API cerrada, desde la raíz del repo:
+
+```bash
+dotnet ef database update --project ChronoSaludApi
+```
+
+Aplica `20261007174135_AgregarMovimientos`, que solo crea la tabla `Movimientos`. No
+toca ninguna tabla existente ni sus datos. Para deshacerla:
+`dotnet ef database update AgregarUsuarioFoto --project ChronoSaludApi`.
+
+Si levantan la API sin aplicarla, turnos y horarios siguen funcionando (un fallo al
+registrar no rompe la operación), pero no queda historial y `GET /movimientos` da error.
+
+## La tabla `Movimientos`
+
+| Columna | Tipo | Qué guarda |
+|---|---|---|
+| `Id` | `int`, identidad | |
+| `FechaUtc` | `datetime2` | Cuándo, siempre en UTC |
+| `IdUsuario` | `int`, FK a `Usuarios` | Quién lo hizo |
+| `RolUsuario` | `nvarchar(20)` | El rol que tenía en ese momento |
+| `Accion` | `nvarchar(40)` | Ver la lista de abajo |
+| `Entidad` | `nvarchar(20)` | `turno` u `horario` |
+| `IdEntidad` | `int` | Id del turno, o del doctor si es su horario |
+| `IdDoctor` | `int`, admite nulo, FK a `Doctores` | Doctor involucrado, para filtrar |
+| `Resumen` | `nvarchar(300)` | Texto corto: número de turno, día y horas |
+
+Índices: `FechaUtc`; `IdDoctor` + `FechaUtc`; `Accion` + `FechaUtc`; y el de la clave
+foránea `IdUsuario`. Las dos claves foráneas son `ON DELETE NO ACTION`.
+
+Solo se agregan filas: no hay endpoint ni código que las edite o las borre. El resumen
+no lleva observaciones, diagnósticos ni nombres de pacientes.
+
+## Qué se registra
+
+| Acción | Cuándo |
+|---|---|
+| `turno.creado` | `POST /turnos` |
+| `turno.confirmado`, `turno.completado` | `PUT /turnos/{id}` que cambia el estado |
+| `turno.cancelado` | `DELETE /turnos/{id}`, o un `PUT` que lo pasa a cancelado |
+| `turno.reprogramado` | `PUT /turnos/{id}` que cambia la fecha o las horas |
+| `turno.estado_cambiado` | `PUT /turnos/{id}` que lo pasa a cualquier otro estado |
+| `horario.cambiado` | `PUT /doctores/{id}/horarios`, si el horario quedó distinto |
+
+Un `PUT` de turno que cambia día y estado deja dos filas. Guardar un horario igual al
+que había no deja ninguna.
+
+## `GET /movimientos`
+
+Parámetros, todos opcionales: `doctor_id`, `accion`, `fecha_desde`, `fecha_hasta`,
+`pagina` (1) y `limite` (20, tope 100). Del más nuevo al más viejo. `fecha_desde` y
+`fecha_hasta` son días de Argentina, los dos incluidos.
+
+```json
+{
+  "total": 1,
+  "movimientos": [
+    {
+      "idMovimiento": 12,
+      "fechaUtc": "2026-10-07T18:02:11.4Z",
+      "accion": "turno.confirmado",
+      "entidad": "turno",
+      "idEntidad": 29,
+      "idDoctor": 2,
+      "resumen": "Turno #29 del 08/10/2026 de 16:00 a 16:30: pendiente a confirmado.",
+      "rolUsuario": "administrador",
+      "idUsuario": 1,
+      "usuario": "Admin ChronoSalud"
+    }
+  ]
+}
+```
+
+| Quién llama | Qué ve |
+|---|---|
+| `administrador` | Todo, con quién fue (`idUsuario` y `usuario`) |
+| `doctor` | Solo lo de su agenda y su horario; su id sale del token y pisa `doctor_id`. De quien actuó ve el rol: `idUsuario` y `usuario` llegan en `null` |
+| `paciente` | `403` |
+
+`fechaUtc` viene en UTC, con la `Z` al final.
+
+## Despliegue en Azure
+
+1. Correr `AgregarMovimientos.sql` (script idempotente, en la raíz del repo) en la base.
+2. Recién después, el push de la API.
+
+La API anterior ignora la tabla nueva, así que el script puede ir antes sin riesgo.
+
+## Archivos tocados
+
+| Archivo | Qué cambió |
+|---|---|
+| `ChronoSaludApi/Entidades/Movimiento.cs` | Nuevo: la entidad y la lista de acciones |
+| `ChronoSaludApi/Datos/AppDbContext.cs` | `DbSet`, largos, índices y claves foráneas |
+| `ChronoSaludApi/Migrations/20261007174135_AgregarMovimientos.*` | La migración |
+| `ChronoSaludApi/Repositorios/MovimientoRepository.cs`, `IMovimientoRepository.cs` | Nuevo: agregar y buscar |
+| `ChronoSaludApi/Logica/RegistroMovimientos.cs` | Nuevo: escribe el historial sin hacer fallar la operación |
+| `ChronoSaludApi/Logica/MovimientoLogica.cs`, `IMovimientoLogica.cs`, `DTOs/MovimientoDTOs.cs` | Nuevo: la lectura y su alcance por rol |
+| `ChronoSaludApi/Endpoints/MovimientoEndpoints.cs` | Nuevo: `GET /movimientos` |
+| `ChronoSaludApi/Logica/TurnoLogica.cs`, `HorarioLaboralLogica.cs` | Registran cada movimiento después de guardar |
+| `ChronoSaludApi/Repositorios/HorarioLaboralRepository.cs`, `IHorarioLaboralRepository.cs` | Devuelven también el horario anterior |
+| `ChronoSaludApi/Logica/FechaArgentina.cs` | Convierte un día de Argentina a su comienzo en UTC |
+| `ChronoSaludApi/Program.cs` | Registro de los servicios y del endpoint |
+
+---
+
 # Cambios en la API — Horarios: control de turnos, horas en punto o y media y `tieneHorario`
 
 **Fecha:** 2026-10-07 · **Rama:** `feature/horarios-api`

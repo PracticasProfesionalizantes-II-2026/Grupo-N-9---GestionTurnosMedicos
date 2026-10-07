@@ -29,7 +29,7 @@ public class HorarioLaboralRepository : IHorarioLaboralRepository
     // Serializable: mientras dura la transacción nadie puede sumarle un turno
     // a este doctor ni tocarle el horario, así que lo que se controló es lo
     // que se guarda. El borrado y el alta van en un único SaveChanges.
-    public async Task<IReadOnlyList<Turno>> ReemplazarHorarios(
+    public async Task<(IReadOnlyList<HorarioLaboral> anteriores, IReadOnlyList<Turno> frenan)> ReemplazarHorarios(
         int idDoctor,
         IReadOnlyList<HorarioLaboral> nuevos,
         DateTime desde,
@@ -52,7 +52,7 @@ public class HorarioLaboralRepository : IHorarioLaboralRepository
             if (frenan.Count > 0)
             {
                 await transaccion.RollbackAsync();
-                return frenan;
+                return (actuales, frenan);
             }
 
             _db.HorariosLaborales.RemoveRange(actuales);
@@ -60,7 +60,7 @@ public class HorarioLaboralRepository : IHorarioLaboralRepository
             await _db.SaveChangesAsync();
             await transaccion.CommitAsync();
 
-            return Array.Empty<Turno>();
+            return (actuales, Array.Empty<Turno>());
         }
         catch (Exception error) when (EsBloqueo(error))
         {

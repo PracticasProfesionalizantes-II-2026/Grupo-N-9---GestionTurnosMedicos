@@ -23,10 +23,11 @@ public interface IHorarioLaboralRepository
     /// no encuentra ninguno. La función recibe el horario actual y los turnos
     /// del doctor desde <paramref name="desde"/>, y devuelve los que impiden el
     /// cambio. Lectura, control y guardado van en una sola transacción.
-    /// Devuelve esos turnos (con el paciente cargado); vacío si guardó.
+    /// Devuelve el horario que había antes y esos turnos (con el paciente
+    /// cargado); sin turnos, guardó.
     /// Tira <see cref="BaseOcupadaException"/> si la base estaba bloqueada.
     /// </summary>
-    Task<IReadOnlyList<Turno>> ReemplazarHorarios(
+    Task<(IReadOnlyList<HorarioLaboral> anteriores, IReadOnlyList<Turno> frenan)> ReemplazarHorarios(
         int idDoctor,
         IReadOnlyList<HorarioLaboral> nuevos,
         DateTime desde,
