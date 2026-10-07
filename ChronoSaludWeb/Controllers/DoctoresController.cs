@@ -128,10 +128,12 @@ public class DoctoresController : ControladorBase
 
     /// <summary>
     /// Pantalla para cargar o editar el horario semanal de un doctor: siete
-    /// filas, de lunes a domingo, con lo que tiene cargado hoy.
+    /// filas, de lunes a domingo, con lo que tiene cargado hoy. Con
+    /// <paramref name="estandar"/> las filas llegan con el horario estándar en
+    /// lugar del actual; es solo una precarga, no guarda nada.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Horario(int id)
+    public async Task<IActionResult> Horario(int id, bool estandar = false)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Horario), new { id }));
@@ -151,7 +153,10 @@ public class DoctoresController : ControladorBase
             {
                 IdDoctor = doctor.IdDoctor,
                 NombreDoctor = NombreDe(doctor),
-                Dias = HorarioEditarViewModel.DiasDesde(horarios)
+                Dias = estandar
+                    ? HorarioEditarViewModel.DiasEstandar()
+                    : HorarioEditarViewModel.DiasDesde(horarios),
+                EsEstandar = estandar
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -224,7 +229,15 @@ public class DoctoresController : ControladorBase
                 return View(modelo);
             }
 
-            await _horarios.GuardarAsync(id, nuevo);
+            var resultado = await _horarios.GuardarAsync(id, nuevo);
+
+            // Hay turnos reservados que quedarían fuera del horario: no se
+            // guardó nada. Se listan sobre el formulario, que vuelve con lo cargado.
+            if (!resultado.Guardado)
+            {
+                modelo.Conflictos = resultado.Conflictos.Select(TurnoFilaViewModel.Desde).ToList();
+                return View(modelo);
+            }
 
             TempData["Exito"] = nuevo.Count == 0
                 ? $"{modelo.NombreDoctor} quedó sin horario de atención."

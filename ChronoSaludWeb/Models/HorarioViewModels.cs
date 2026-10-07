@@ -106,12 +106,9 @@ public class HorarioDiaEditarViewModel
 /// </summary>
 public class HorarioEditarViewModel : IValidatableObject
 {
-    /// <summary>
-    /// Las franjas de turno duran 30 minutos y la API las cuenta desde la hora
-    /// de inicio (DuracionFranjaMinutos en HorarioLaboralLogica): un horario que
-    /// no cae en punto o y media deja minutos que nadie puede reservar.
-    /// </summary>
-    public const int MinutosPorFranja = 30;
+    /// <summary>Horario estándar que precarga "Cargar horario estándar": de lunes a viernes.</summary>
+    public const string EstandarDesde = "08:00";
+    public const string EstandarHasta = "14:00";
 
     public static int DiasPorSemana => HorarioSemanalViewModel.Semana.Length;
 
@@ -138,7 +135,24 @@ public class HorarioEditarViewModel : IValidatableObject
     /// </summary>
     public bool PideConfirmarSinHorario { get; set; }
 
+    /// <summary>
+    /// Las filas son el horario estándar recién precargado, todavía sin
+    /// guardar: la vista lo avisa.
+    /// </summary>
+    public bool EsEstandar { get; set; }
+
+    /// <summary>
+    /// Turnos reservados que quedarían fuera del horario que se quiso guardar.
+    /// Si hay alguno, el horario no se guardó.
+    /// </summary>
+    public IReadOnlyList<TurnoFilaViewModel> Conflictos { get; set; } = Array.Empty<TurnoFilaViewModel>();
+
     public static string NombreDeDia(int posicion) => HorarioSemanalViewModel.Semana[posicion].Nombre;
+
+    /// <summary>Las siete filas del horario estándar: lunes a viernes, sábado y domingo sin atención.</summary>
+    public static List<HorarioDiaEditarViewModel> DiasEstandar() =>
+        DiasDesde(Enumerable.Range((int)DayOfWeek.Monday, 5)
+            .Select(dia => new HorarioLaboral(dia, EstandarDesde, EstandarHasta)));
 
     /// <summary>Las siete filas a partir del horario que devuelve la API.</summary>
     public static List<HorarioDiaEditarViewModel> DiasDesde(IEnumerable<HorarioLaboral> horarios)
@@ -174,7 +188,8 @@ public class HorarioEditarViewModel : IValidatableObject
     /// <summary>
     /// Solo se validan los días marcados: las horas de un día sin marcar se
     /// ignoran. La API controla que el fin sea posterior al inicio, pero no
-    /// que las horas caigan en punto o y media.
+    /// que las horas caigan en punto o y media; un horario que no lo hace deja
+    /// minutos que nadie puede reservar.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext contexto)
     {
@@ -215,7 +230,7 @@ public class HorarioEditarViewModel : IValidatableObject
         if (!TimeOnly.TryParseExact(texto, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out hora))
             return "Usá el formato HH:MM.";
 
-        return hora.Minute % MinutosPorFranja == 0
+        return hora.Minute % HorarioService.MinutosPorFranja == 0
             ? null
             : "Tiene que ser en punto o y media (por ejemplo, 08:00 u 08:30).";
     }
