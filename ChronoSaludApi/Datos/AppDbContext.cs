@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<HorarioLaboral> HorariosLaborales => Set<HorarioLaboral>();
     public DbSet<UsuarioFoto> UsuarioFotos => Set<UsuarioFoto>();
+    public DbSet<Movimiento> Movimientos => Set<Movimiento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -187,6 +188,33 @@ public class AppDbContext : DbContext
                 .WithOne()
                 .HasForeignKey<UsuarioFoto>(f => f.IdUsuario)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Movimiento: historial de quién hizo qué. Sin navegación desde
+        // Usuario ni Doctor, y sin borrado en cascada: una fila del historial
+        // no desaparece porque se borre lo que nombra.
+        modelBuilder.Entity<Movimiento>(e =>
+        {
+            e.Property(m => m.RolUsuario).HasMaxLength(20);
+            e.Property(m => m.Accion).HasMaxLength(40);
+            e.Property(m => m.Entidad).HasMaxLength(20);
+            e.Property(m => m.Resumen).HasMaxLength(AccionesMovimiento.LargoMaximoDelResumen);
+
+            e.HasOne(m => m.Usuario)
+                .WithMany()
+                .HasForeignKey(m => m.IdUsuario)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(m => m.Doctor)
+                .WithMany()
+                .HasForeignKey(m => m.IdDoctor)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Los tres caminos de lectura de GET /movimientos: todo por fecha,
+            // por doctor y por acción.
+            e.HasIndex(m => m.FechaUtc);
+            e.HasIndex(m => new { m.IdDoctor, m.FechaUtc });
+            e.HasIndex(m => new { m.Accion, m.FechaUtc });
         });
     }
 }

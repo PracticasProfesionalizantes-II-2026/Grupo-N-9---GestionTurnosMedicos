@@ -14,6 +14,13 @@ public static class FechaArgentina
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Zona).Date;
 
     /// <summary>
+    /// El instante UTC en que empieza ese día en Argentina. Solo se mira la
+    /// fecha: la hora que traiga se descarta.
+    /// </summary>
+    public static DateTime ComienzoDelDiaEnUtc(DateTime dia) =>
+        TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dia.Date, DateTimeKind.Unspecified), Zona);
+
+    /// <summary>
     /// El id de la zona cambia según el sistema: IANA en Linux, el nombre de
     /// Windows en Windows. Si no está ninguno de los dos se arma una fija en
     /// UTC-3, que es correcta porque Argentina no cambia la hora desde 2009.

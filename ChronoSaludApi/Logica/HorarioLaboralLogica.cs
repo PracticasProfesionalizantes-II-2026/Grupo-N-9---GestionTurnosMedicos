@@ -15,17 +15,20 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
     private readonly IDoctorRepository _doctorRepo;
     private readonly ITurnoRepository _turnoRepo;
     private readonly ILogger<HorarioLaboralLogica> _logger;
+    private readonly IRegistroMovimientos _movimientos;
 
     public HorarioLaboralLogica(
         IHorarioLaboralRepository repo,
         IDoctorRepository doctorRepo,
         ITurnoRepository turnoRepo,
-        ILogger<HorarioLaboralLogica> logger)
+        ILogger<HorarioLaboralLogica> logger,
+        IRegistroMovimientos movimientos)
     {
         _repo = repo;
         _doctorRepo = doctorRepo;
         _turnoRepo = turnoRepo;
         _logger = logger;
+        _movimientos = movimientos;
     }
 
     public async Task<(IEnumerable<HorarioLaboralDto>? horarios, string? error)> ObtenerPorDoctor(int idDoctor)
@@ -41,9 +44,9 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         )), null);
     }
 
-    // El solicitante todavía no decide nada acá: el endpoint solo deja pasar al
-    // administrador. Se recibe para no volver a cambiar la firma cuando el
-    // doctor pueda editar su propio horario.
+    // El solicitante todavía no decide permisos acá (el endpoint solo deja
+    // pasar al administrador): se usa para dejar en el historial quién cambió
+    // el horario.
     public async Task<(bool ok, string? error, IReadOnlyList<TurnoEnConflictoDto> conflictos, bool reintentar)> Reemplazar(
         int idDoctor, HorarioSemanalDto dto, Solicitante solicitante)
     {
@@ -51,10 +54,11 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         if (nuevos == null)
             return (false, error, SinConflictos, false);
 
+        IReadOnlyList<HorarioLaboral> anteriores;
         IReadOnlyList<Turno> frenan;
         try
         {
-            frenan = await _repo.ReemplazarHorarios(idDoctor, nuevos, FechaArgentina.Hoy(), TurnosQueQuedanFuera(nuevos));
+            (anteriores, frenan) = await _repo.ReemplazarHorarios(idDoctor, nuevos, FechaArgentina.Hoy(), TurnosQueQuedanFuera(nuevos));
         }
         catch (BaseOcupadaException ex)
         {
@@ -66,7 +70,16 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         }
 
         if (frenan.Count == 0)
+        {
+            // Un guardado que deja el horario igual que estaba no es un movimiento.
+            var cambios = DescribirCambios(anteriores, nuevos);
+            if (cambios.Length > 0)
+            {
+                await _movimientos.Registrar(solicitante, AccionesMovimiento.HorarioCambiado, "horario", idDoctor, idDoctor, cambios);
+            }
+
             return (true, null, SinConflictos, false);
+        }
 
         var conflictos = frenan
             .Select(t => new TurnoEnConflictoDto(
@@ -83,6 +96,41 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
                 : $"Hay {conflictos.Count} turnos reservados que quedarían fuera del horario. No se guardó nada.",
             conflictos, false);
     }
+
+    // Orden de la semana para el resumen del historial: de lunes a domingo.
+    private static readonly (int Numero, string Nombre)[] Semana =
+    [
+        (1, "Lunes"), (2, "Martes"), (3, "Miércoles"), (4, "Jueves"),
+        (5, "Viernes"), (6, "Sábado"), (0, "Domingo")
+    ];
+
+    /// <summary>
+    /// Qué cambió entre un horario y otro, día por día, para el historial:
+    /// "Jueves: 08:00-14:00 a 10:00-14:00; Sábado: se agrega 09:00-12:00".
+    /// Vacío si los dos horarios son iguales.
+    /// </summary>
+    private static string DescribirCambios(IReadOnlyList<HorarioLaboral> anteriores, IReadOnlyList<HorarioLaboral> nuevos)
+    {
+        var cambios = new List<string>();
+
+        foreach (var (numero, nombre) in Semana)
+        {
+            var antes = anteriores.FirstOrDefault(h => h.DiaSemana == numero);
+            var ahora = nuevos.FirstOrDefault(h => h.DiaSemana == numero);
+
+            if (antes == null && ahora != null)
+                cambios.Add($"{nombre}: se agrega {Rango(ahora)}");
+            else if (antes != null && ahora == null)
+                cambios.Add($"{nombre}: se quita (era {Rango(antes)})");
+            else if (antes != null && ahora != null && Rango(antes) != Rango(ahora))
+                cambios.Add($"{nombre}: {Rango(antes)} a {Rango(ahora)}");
+        }
+
+        return string.Join("; ", cambios);
+    }
+
+    private static string Rango(HorarioLaboral horario) =>
+        $"{horario.HoraInicio:hh\\:mm}-{horario.HoraFin:hh\\:mm}";
 
     private static readonly IReadOnlyList<TurnoEnConflictoDto> SinConflictos = Array.Empty<TurnoEnConflictoDto>();
 
