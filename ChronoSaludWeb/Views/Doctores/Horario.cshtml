@@ -50,6 +50,54 @@
             </div>
         }
 
+        @if (Model.Conflictos.Count > 0)
+        {
+            @* Lleva enlaces, así que el texto va en tinta y el rojo queda para
+               el título, el ícono y el borde. *@
+            <div role="alert"
+                 class="mb-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-ink">
+                <p class="flex items-start gap-3 font-semibold text-status-cancelado">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                        <path d="M12 9v4" />
+                        <path d="M12 17h.01" />
+                    </svg>
+                    <span>No se guardó el horario</span>
+                </p>
+                <p class="mt-1">
+                    @(Model.Conflictos.Count == 1
+                        ? "Hay 1 turno reservado que quedaría"
+                        : $"Hay {Model.Conflictos.Count} turnos reservados que quedarían")
+                    fuera del horario que cargaste. Cancelalos, o volvé a incluir
+                    esos días y horas, y guardá de nuevo.
+                </p>
+
+                <ul class="mt-3 divide-y divide-status-cancelado-line border-y border-status-cancelado-line">
+                    @foreach (var turno in Model.Conflictos)
+                    {
+                        <li class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
+                            <span class="min-w-0 flex-1 basis-56">
+                                <span class="block font-medium first-letter:uppercase">
+                                    @turno.FechaInicio.ToString("dddd d 'de' MMMM 'de' yyyy", TurnosIndexViewModel.Cultura),
+                                    <span class="tabular-nums">@(turno.Hora ?? "sin hora")</span>
+                                </span>
+                                <span class="block truncate">@turno.PacienteMostrado</span>
+                            </span>
+                            <partial name="_BadgeEstado" model="turno.Estado" />
+                            <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                               target="_blank" rel="noopener"
+                               class="rounded-badge font-semibold underline hover:no-underline">
+                                Ver turno<span class="sr-only"> de @turno.PacienteMostrado, en otra pestaña</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+
+                <p class="mt-2 text-xs">Cada turno se abre en otra pestaña, así no se pierde lo que cargaste acá.</p>
+            </div>
+        }
+
         @if (Model.PideConfirmarSinHorario)
         {
             @* El texto va en tinta y no en el color del estado, como el aviso
@@ -73,6 +121,42 @@
                 </span>
             </div>
         }
+
+        @if (Model.EsEstandar)
+        {
+            <div role="status"
+                 class="mb-6 flex items-start gap-3 rounded-input border border-status-pendiente-line bg-status-pendiente-soft px-4 py-3 text-sm text-ink">
+                <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                </svg>
+                <span>
+                    <span class="block font-semibold">Horario estándar precargado. Todavía no está guardado</span>
+                    <span class="mt-1 block">
+                        Las filas muestran lunes a viernes de @HorarioEditarViewModel.EstandarDesde a
+                        @HorarioEditarViewModel.EstandarHasta, no el horario que el doctor tiene hoy.
+                        Ajustá lo que haga falta y tocá "Guardar horario" para confirmarlo.
+                    </span>
+                </span>
+            </div>
+        }
+
+        @* Es un enlace GET a esta misma pantalla: precarga las filas y no
+           guarda nada. Va arriba, antes de las filas, porque reemplaza lo que
+           haya en pantalla. *@
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
+            <p class="min-w-0 flex-1 basis-56 text-sm text-muted">
+                ¿Atiende en el horario habitual? Precargá lunes a viernes de
+                @HorarioEditarViewModel.EstandarDesde a @HorarioEditarViewModel.EstandarHasta
+                y ajustalo antes de guardar.
+            </p>
+            <a asp-action="Horario" asp-route-id="@Model.IdDoctor" asp-route-estandar="true"
+               class="boton boton-secundario">
+                Cargar horario estándar
+            </a>
+        </div>
 
         <form asp-action="Horario" asp-route-id="@Model.IdDoctor" method="post" novalidate>
             <div class="grid gap-3">
