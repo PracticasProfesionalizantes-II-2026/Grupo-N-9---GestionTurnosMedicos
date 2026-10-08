@@ -504,3 +504,14 @@ Tailwind 4.3.3. Probado contra una API de mentira: los tres pasos,
 "Cualquiera", la confirmación del personal y la del paciente.
 **Ojo:** sin migración. Si la Web llega antes que la API al desplegar,
 la tira se muestra sin los números unos minutos.
+
+## 2026-10-08 — mejoras, paso 7: reprogramar
+**Hecho:** botón "Reprogramar" en el detalle del turno, para el personal
+(cada doctor en su agenda y la administración en cualquiera). Lleva a
+`Turnos/Reprogramar/{id}`: el turno como está y la misma tira de días del
+paso 6, con el mismo doctor. Tocar un horario abre
+`Turnos/ConfirmarReprogramacion`, con el "de … a …". La tira pasó a
+recibir los doctores y una ruta base, así la usan las dos pantallas. La
+API avisa al paciente cuando se le mueve el turno. Probado contra una API
+de mentira, incluido el 409 de un horario que se ocupó.
+**Ojo:** sin migración. El turno reprogramado conserva su estado.

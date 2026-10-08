@@ -107,8 +107,9 @@ else
         }
     </div>
 
-    @* Acciones sobre el turno. Confirmar, completar y marcar ausente son del
-       personal (cada doctor en su agenda y la administración en cualquiera);
+    @* Acciones sobre el turno. Confirmar, completar, marcar ausente y
+       reprogramar son del personal (cada doctor en su agenda y la
+       administración en cualquiera);
        cancelar, también del paciente, mientras el turno no haya empezado.
        Completado, ausente y cancelado son finales: no muestran ninguna. *@
     var puedeCambiarEstado = Auth.PuedeCambiarEstadoTurno && !Model.EsTerminal;
@@ -165,6 +166,23 @@ else
                             Marcar ausente
                         </button>
                     </form>
+                }
+                @if (puedeCambiarEstado)
+                {
+                    @* Otro día u hora con el mismo doctor. Lleva a elegir y después a confirmar. *@
+                    <a asp-action="Reprogramar" asp-route-id="@Model.IdTurno"
+                       class="boton boton-secundario">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M8 2v4" />
+                            <path d="M16 2v4" />
+                            <rect width="18" height="18" x="3" y="4" rx="2" />
+                            <path d="M3 10h18" />
+                            <path d="m14 14 2 2-2 2" />
+                            <path d="M8 16h8" />
+                        </svg>
+                        Reprogramar
+                    </a>
                 }
                 @if (puedeCancelar)
                 {

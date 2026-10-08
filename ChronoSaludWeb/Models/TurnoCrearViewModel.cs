@@ -50,9 +50,6 @@ public class TurnoCrearViewModel
     /// <summary>Error al buscar los días o los horarios, para mostrarlo en su lugar.</summary>
     public string? AvisoFranjas { get; set; }
 
-    /// <summary>"Hoy" en hora de Argentina, igual que la API.</summary>
-    public DateTime Hoy { get; init; } = FechaArgentina.Hoy();
-
     /// <summary>En qué paso está: 1 (especialidad), 2 (doctor) o 3 (día y horario).</summary>
     public int Paso
     {

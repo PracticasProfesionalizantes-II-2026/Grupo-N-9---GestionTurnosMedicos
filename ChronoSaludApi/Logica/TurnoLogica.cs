@@ -228,6 +228,8 @@ public class TurnoLogica : ITurnoLogica
 
         var estadoAnterior = turno.Estado;
         var cuandoAnterior = Cuando(turno);
+        var fechaAnterior = turno.FechaInicio;
+        var horaAnterior = turno.HoraInicio;
 
         // 1. Reprogramar. Lo que no viene en el pedido queda como estaba.
         var nuevaFecha = dto.FechaInicio ?? turno.FechaInicio;
@@ -288,6 +290,14 @@ public class TurnoLogica : ITurnoLogica
         }
 
         await RegistrarCambios(turno, estadoAnterior, cuandoAnterior, solicitante);
+
+        // Al paciente se le avisa que su turno cambió de día u hora.
+        if (cambiaHorario)
+        {
+            await NotificarPaciente(turno.IdPaciente,
+                $"Tu turno del {fechaAnterior:dd/MM/yyyy} a las {horaAnterior:hh\\:mm} se pasó al " +
+                $"{turno.FechaInicio:dd/MM/yyyy} a las {turno.HoraInicio:hh\\:mm}.");
+        }
 
         if (!string.IsNullOrEmpty(dto.Estado) && dto.Estado != estadoAnterior)
         {

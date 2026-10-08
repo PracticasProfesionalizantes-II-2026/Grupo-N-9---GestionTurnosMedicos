@@ -332,6 +332,29 @@ public class TurnoLogicaTests
         Assert.Equal(_reloj.Momento, _notificaciones.Notificaciones.Single().Fecha);
     }
 
+    [Fact]
+    public async Task Reprogramar_avisa_al_paciente_con_el_dia_y_la_hora_nuevos()
+    {
+        // Preparar: un turno de mañana a las 10:00 que se pasa a dentro de 3 días a las 11:00.
+        var turno = AgregarTurno(IdPacientePropio, "confirmado", DateTime.Today.AddDays(1));
+        var administrador = new Solicitante(1, "administrador");
+        var nuevoDia = DateTime.Today.AddDays(3);
+        var pedido = new TurnoUpdateDto(nuevoDia, "11:00", "11:30", null, null);
+
+        // Ejecutar
+        var (ok, error, _) = await _logica.Actualizar(turno.Id, pedido, administrador);
+
+        // Verificar: se movió, sigue confirmado, queda en el historial y se le avisa.
+        Assert.True(ok);
+        Assert.Null(error);
+        Assert.Equal(nuevoDia, turno.FechaInicio);
+        Assert.Equal(new TimeSpan(11, 0, 0), turno.HoraInicio);
+        Assert.Equal("confirmado", turno.Estado);
+        Assert.Contains(AccionesMovimiento.TurnoReprogramado, _movimientos.Acciones);
+        var aviso = _notificaciones.Notificaciones.Single().Mensaje;
+        Assert.Contains($"{nuevoDia:dd/MM/yyyy} a las 11:00", aviso);
+    }
+
     /// <summary>Un PUT que solo cambia el estado.</summary>
     private static TurnoUpdateDto Estado(string estado) => new TurnoUpdateDto(null, null, null, estado, null);
 }

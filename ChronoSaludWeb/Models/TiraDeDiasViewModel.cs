@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ChronoSaludWeb.Models;
 
 /// <summary>
@@ -63,4 +65,23 @@ public class TiraDeDiasViewModel
 
     /// <summary>Ningún día de la tira tiene lugar (y se sabe: la API mandó los números).</summary>
     public bool SinLugarEnNingunDia => Dias.Count > 0 && Dias.All(d => d.SinLugar);
+
+    /// <summary>El día que se está mirando, o null si no hay ninguno elegido.</summary>
+    public DateTime? DiaElegido => Dias.FirstOrDefault(d => d.Elegido)?.Fecha;
+
+    /// <summary>
+    /// Una copia de <paramref name="rutaBase"/> (lo que la pantalla necesita
+    /// conservar: el id del turno, la especialidad...) con el día y el
+    /// comienzo de la tira. Lo que va en null no viaja.
+    /// </summary>
+    public static IDictionary<string, string> RutaConFechas(
+        IDictionary<string, string> rutaBase, DateTime? fecha, DateTime? desde)
+    {
+        var ruta = new Dictionary<string, string>(rutaBase);
+
+        if (fecha is { } dia) ruta["fecha"] = dia.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (desde is { } inicio) ruta["desde"] = inicio.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        return ruta;
+    }
 }

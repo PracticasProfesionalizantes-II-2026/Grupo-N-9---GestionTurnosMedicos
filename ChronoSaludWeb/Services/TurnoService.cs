@@ -50,6 +50,13 @@ public record TurnoNuevo(
 public record TurnoCambioEstado(string Estado);
 
 /// <summary>
+/// Cuerpo de PUT /turnos/{id} para reprogramar: el día y las horas nuevas,
+/// sin estado. Con esto la API revisa el horario del doctor y que no choque
+/// con otro turno, y le avisa al paciente.
+/// </summary>
+public record TurnoReprogramacion(DateTime FechaInicio, string HoraInicio, string HoraFin);
+
+/// <summary>
 /// Respuesta del alta. Ojo: este endpoint contesta en snake_case
 /// (id_turno), a diferencia del resto de la API, que usa camelCase.
 /// </summary>
@@ -144,11 +151,19 @@ public class TurnoService
 
     /// <summary>
     /// PUT /turnos/{id} para mover el estado del turno. La API lo reserva a los
-    /// roles doctor y administrador, y no valida el estado contra ninguna
-    /// lista: guarda el string tal cual llega, así que el que valida somos
-    /// nosotros. Contesta 200 con { mensaje }, que no nos interesa.
-    /// Deja pasar la ApiException para que el controlador muestre el mensaje.
+    /// roles doctor y administrador, y solo acepta los cambios permitidos
+    /// (EstadosTurno): 409 con el motivo si no. Contesta 200 con { mensaje },
+    /// que no nos interesa. Deja pasar la ApiException para que el
+    /// controlador muestre el mensaje.
     /// </summary>
     public Task CambiarEstadoAsync(int id, string estado)
         => _api.PutAsync($"/turnos/{id}", new TurnoCambioEstado(estado));
+
+    /// <summary>
+    /// PUT /turnos/{id} con el día y las horas nuevas. 409 si el horario choca
+    /// con otro turno o el turno ya no está en pie; 400 si queda fuera del
+    /// horario del doctor o en una fecha pasada. Deja pasar la ApiException.
+    /// </summary>
+    public Task ReprogramarAsync(int id, DateTime fecha, string horaInicio, string horaFin)
+        => _api.PutAsync($"/turnos/{id}", new TurnoReprogramacion(fecha, horaInicio, horaFin));
 }
