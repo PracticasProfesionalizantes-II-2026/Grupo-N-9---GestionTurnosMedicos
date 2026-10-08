@@ -4,13 +4,14 @@ Bujonok Francisco, Perez Facundo
 
 - ChronoSalud -
 
-Sistema de gestión de turnos médicos. El repo tiene tres partes:
+Sistema de gestión de turnos médicos. El repo tiene cuatro partes:
 
 | Carpeta                              | Qué es                                                    |
 | ------------------------------------ | --------------------------------------------------------- |
 | [`ChronoSaludApi/`](ChronoSaludApi/) | API REST en .NET 10 (minimal APIs, Entity Framework, JWT) |
 | [`ChronoSaludWeb/`](ChronoSaludWeb/) | Frontend en ASP.NET Core MVC (Razor + Tailwind)           |
 | [`tools/Seed/`](tools/Seed/)         | Consola que carga datos de prueba en la API               |           |
+| [`ChronoSalud.Tests/`](ChronoSalud.Tests/) | Pruebas automáticas (xUnit) de la API y la Web     |
 
 ## Levantar todo de una vez
 
@@ -152,6 +153,19 @@ dotnet build ChronoSaludWeb -t:CssWatch
 
 La primera vez descarga el ejecutable de Tailwind (~112 MB), que está ignorado por git.
 `app.build.css` sí está versionado, así que solo hace falta compilar si tocás los estilos.
+
+## Pruebas
+
+Las pruebas automáticas están en [`ChronoSalud.Tests/`](ChronoSalud.Tests/). Se corren desde
+la carpeta del repo:
+
+```
+dotnet test
+```
+
+No hace falta levantar la base ni la API: la lógica se prueba con repositorios falsos que
+guardan los datos en listas (`ChronoSalud.Tests/Falsos/`). Los workflows de GitHub corren
+las mismas pruebas antes de desplegar; si alguna falla, no se publica nada en Azure.
 
 ## Problemas frecuentes
 
