@@ -130,6 +130,12 @@ public class HorarioEditarViewModel : IValidatableObject
     public string? NombreDoctor { get; set; }
 
     /// <summary>
+    /// Quien edita es el propio doctor: los textos de la pantalla le hablan
+    /// de "tu horario" en vez de nombrar al doctor.
+    /// </summary>
+    public bool EsPropio { get; set; }
+
+    /// <summary>
     /// Se quiso guardar sin ningún día marcado: la vista muestra el aviso y el
     /// botón para confirmarlo.
     /// </summary>
