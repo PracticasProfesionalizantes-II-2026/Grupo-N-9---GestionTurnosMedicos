@@ -32,14 +32,14 @@ public class HorarioService
     /// Único punto de la Web que escribe un horario: todo guardado pasa por acá.
     /// PUT /doctores/{id}/horarios reemplaza la semana entera por la lista que
     /// recibe: un día que no viene deja de atenderse, y la lista vacía deja al
-    /// doctor sin horario. Reservado a administrador.
+    /// doctor sin horario. Reservado al administrador y al propio doctor.
     /// El control de turnos lo hace la API: si el cambio dejaría fuera turnos
     /// pendientes o confirmados contesta 409 con la lista, y acá se devuelve
     /// sin guardar nada.
     /// Deja pasar el resto de las ApiException (400 si el doctor está inactivo
-    /// o una hora es inválida, 404 si no existe, 503 si la base estaba
-    /// ocupada) para que el controlador muestre el mensaje sin perder lo que
-    /// se había cargado.
+    /// o una hora es inválida, 403 si el horario es de otro doctor, 404 si no
+    /// existe, 503 si la base estaba ocupada) para que el controlador muestre
+    /// el mensaje sin perder lo que se había cargado.
     /// </summary>
     public async Task<ResultadoGuardarHorario> GuardarAsync(int idDoctor, IReadOnlyList<HorarioLaboral> nuevo)
     {

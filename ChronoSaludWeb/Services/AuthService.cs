@@ -96,12 +96,17 @@ public class AuthService
     /// </summary>
     public bool EsAdministrador => SesionActual?.Rol is "administrador";
 
+    public bool EsDoctor => SesionActual?.Rol is "doctor";
+
     /// <summary>
-    /// PUT /doctores/{id}/horarios lo acepta la API solo del administrador
-    /// (HorarioLaboralEndpoints). Que el doctor edite su propio horario
-    /// necesita primero que la API se lo permita.
+    /// PUT /doctores/{id}/horarios lo acepta la API del administrador sobre
+    /// cualquier doctor y del doctor solo sobre el suyo (HorarioLaboralLogica).
+    /// <paramref name="idDoctorPropio"/> es el IdDoctor de quien está logueado
+    /// y sale de PerfilService, nunca de la URL; null si no es doctor o
+    /// todavía no tiene perfil.
     /// </summary>
-    public bool PuedeEditarHorarios => EsAdministrador;
+    public bool PuedeEditarHorario(int idDoctor, int? idDoctorPropio) =>
+        EsAdministrador || (EsDoctor && idDoctorPropio == idDoctor);
 
     /// <summary>
     /// Registra un paciente nuevo y deja la sesión abierta...

@@ -13,14 +13,17 @@ public class DoctoresController : ControladorBase
     private readonly HorarioService _horarios;
     private readonly UsuarioService _usuarios;
     private readonly AuthService _auth;
+    private readonly PerfilService _perfil;
 
     public DoctoresController(
-        DoctorService doctores, HorarioService horarios, UsuarioService usuarios, AuthService auth)
+        DoctorService doctores, HorarioService horarios, UsuarioService usuarios, AuthService auth,
+        PerfilService perfil)
     {
         _doctores = doctores;
         _horarios = horarios;
         _usuarios = usuarios;
         _auth = auth;
+        _perfil = perfil;
     }
 
     private const string TituloSinPermiso = "No podés ver los doctores con tu rol";
@@ -32,13 +35,19 @@ public class DoctoresController : ControladorBase
     private const string MotivoSinPermiso =
         "Tu usuario no tiene permiso para ver el padrón de doctores.";
 
-    private const string TituloSinPermisoHorario = "No podés editar horarios con tu rol";
+    private const string TituloSinPermisoHorario = "No podés editar este horario";
     private const string MotivoSinPermisoHorario =
-        "Cargar y editar el horario de atención de un doctor está reservado a los administradores.";
+        "El horario de atención de un doctor solo lo puede cargar o editar el administrador o el propio doctor.";
 
-    // La API contesta el 403 con el cuerpo vacío, así que el mensaje se arma acá.
+    private const string TituloSinPerfilDeDoctor = "Tu cuenta todavía no tiene perfil de doctor";
+    private const string MotivoSinPerfilDeDoctor =
+        "Para cargar tu horario de atención primero hace falta tu perfil de doctor (matrícula y especialidad). " +
+        "Pedile a administración que lo complete.";
+
+    // Para el 403 que llega con el cuerpo vacío (el de un rol que la API no
+    // deja pasar). El de un doctor sobre un horario ajeno trae su motivo.
     private const string SinPermisoDeLaApi =
-        "No pudimos guardar el horario porque tu sesión no tiene permiso de administrador. " +
+        "No pudimos guardar el horario porque tu sesión no tiene permiso para cambiarlo. " +
         "Cerrá la sesión y volvé a ingresar.";
 
     public async Task<IActionResult> Index(string? especialidad)
@@ -119,7 +128,7 @@ public class DoctoresController : ControladorBase
                 Horario = horario,
                 ErrorHorario = errorHorario,
                 PuedePedirTurno = _auth.PuedeCargarTurnos,
-                PuedeEditarHorario = _auth.PuedeEditarHorarios
+                PuedeEditarHorario = _auth.PuedeEditarHorario(doctor.IdDoctor, await IdDoctorPropioAsync())
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -140,11 +149,11 @@ public class DoctoresController : ControladorBase
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Horario), new { id }));
 
-        if (!_auth.PuedeEditarHorarios)
-            return SinPermiso(TituloSinPermisoHorario, MotivoSinPermisoHorario);
-
         try
         {
+            if (await SinPermisoDeHorarioAsync(id) is { } sinPermiso)
+                return sinPermiso;
+
             var doctor = await _doctores.ObtenerPorIdAsync(id);
             var horarios = doctor is null ? null : await _doctores.ObtenerHorariosAsync(id);
 
@@ -186,21 +195,21 @@ public class DoctoresController : ControladorBase
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Horario), new { id }));
 
-        if (!_auth.PuedeEditarHorarios)
-            return SinPermiso(TituloSinPermisoHorario, MotivoSinPermisoHorario);
-
-        // Las filas son siete y fijas, porque el día sale de la posición. Con
-        // otra cantidad el formulario no es el nuestro: no se interpreta.
-        if (modelo.Dias.Count != HorarioEditarViewModel.DiasPorSemana)
-        {
-            TempData["Error"] = "El formulario del horario llegó incompleto. Cargalo de nuevo.";
-            return RedirectToAction(nameof(Horario), new { id });
-        }
-
         modelo.IdDoctor = id;
 
         try
         {
+            if (await SinPermisoDeHorarioAsync(id) is { } sinPermiso)
+                return sinPermiso;
+
+            // Las filas son siete y fijas, porque el día sale de la posición. Con
+            // otra cantidad el formulario no es el nuestro: no se interpreta.
+            if (modelo.Dias.Count != HorarioEditarViewModel.DiasPorSemana)
+            {
+                TempData["Error"] = "El formulario del horario llegó incompleto. Cargalo de nuevo.";
+                return RedirectToAction(nameof(Horario), new { id });
+            }
+
             var doctor = await _doctores.ObtenerPorIdAsync(id);
             if (doctor is null)
                 return NoEncontrado(id, "Doctor no encontrado", "doctor");
@@ -249,13 +258,36 @@ public class DoctoresController : ControladorBase
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            // 400 si el doctor está inactivo o la API rechaza un rango, 0 si no
-            // responde. El mensaje va arriba y el formulario vuelve con lo cargado.
-            ModelState.AddModelError(
-                string.Empty,
-                error.Status == StatusCodes.Status403Forbidden ? SinPermisoDeLaApi : error.Message);
+            // 400 si el doctor está inactivo o la API rechaza un rango, 403 si
+            // no deja cambiar ese horario, 0 si no responde. El mensaje va
+            // arriba y el formulario vuelve con lo cargado.
+            var sinMotivo = error.Status == StatusCodes.Status403Forbidden && string.IsNullOrWhiteSpace(error.Cuerpo);
+            ModelState.AddModelError(string.Empty, sinMotivo ? SinPermisoDeLaApi : error.Message);
             return View(modelo);
         }
+    }
+
+    /// <summary>
+    /// El IdDoctor de quien está logueado, que sale de su perfil y nunca de la
+    /// URL. Null para los demás roles y para el doctor que todavía no tiene perfil.
+    /// </summary>
+    private async Task<int?> IdDoctorPropioAsync() =>
+        _auth.EsDoctor ? await _perfil.IdPerfilAsync(esDoctor: true) : null;
+
+    /// <summary>
+    /// Null si la sesión puede cargar o editar el horario de ese doctor; si
+    /// no, la pantalla de "sin permiso" que corresponde.
+    /// </summary>
+    private async Task<IActionResult?> SinPermisoDeHorarioAsync(int idDoctor)
+    {
+        var propio = await IdDoctorPropioAsync();
+
+        if (_auth.PuedeEditarHorario(idDoctor, propio))
+            return null;
+
+        return _auth.EsDoctor && propio is null
+            ? SinPermiso(TituloSinPerfilDeDoctor, MotivoSinPerfilDeDoctor)
+            : SinPermiso(TituloSinPermisoHorario, MotivoSinPermisoHorario);
     }
 
     private static string NombreDe(DoctorDetalle doctor) =>

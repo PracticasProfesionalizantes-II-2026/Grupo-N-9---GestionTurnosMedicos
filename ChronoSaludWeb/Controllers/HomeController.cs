@@ -278,6 +278,53 @@ public class HomeController : Controller
             ? sesion.Nombre
             : $"{perfil.Nombre} {perfil.Apellido}".Trim();
 
+        var accesos = new List<AccesoRapidoViewModel>
+        {
+            new()
+            {
+                Titulo = "Turnos del día",
+                Icono = "calendario",
+                Controlador = "Turnos",
+                Accion = "Index",
+                Ruta = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy }
+            },
+            new()
+            {
+                Titulo = "Historia clínica",
+                Icono = "historia",
+                Controlador = "Historial",
+                Accion = "Index"
+            },
+            new()
+            {
+                Titulo = "Recetas",
+                Icono = "pastilla",
+                Controlador = "Recetas",
+                Accion = "Index"
+            },
+            new()
+            {
+                Titulo = "Coberturas",
+                Icono = "escudo",
+                Controlador = "Coberturas",
+                Accion = "Index"
+            }
+        };
+
+        // Sin perfil no hay horario que editar. El id es el de /doctores/me, y
+        // la acción Horario vuelve a revisar que sea el propio.
+        if (perfil is not null)
+        {
+            accesos.Add(new AccesoRapidoViewModel
+            {
+                Titulo = "Mi horario",
+                Icono = "reloj",
+                Controlador = "Doctores",
+                Accion = "Horario",
+                Ruta = new Dictionary<string, string> { ["id"] = $"{perfil.IdDoctor}" }
+            });
+        }
+
         return new DashboardViewModel
         {
             Rol = sesion.Rol,
@@ -302,38 +349,7 @@ public class HomeController : Controller
             Aviso = perfil is null
                 ? "Tu cuenta todavía no tiene el perfil de doctor completo (matrícula y especialidad), por eso no vemos tus turnos. Pedile a administración que lo complete."
                 : null,
-            Accesos = new[]
-            {
-                new AccesoRapidoViewModel
-                {
-                    Titulo = "Turnos del día",
-                    Icono = "calendario",
-                    Controlador = "Turnos",
-                    Accion = "Index",
-                    Ruta = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy }
-                },
-                new AccesoRapidoViewModel
-                {
-                    Titulo = "Historia clínica",
-                    Icono = "historia",
-                    Controlador = "Historial",
-                    Accion = "Index"
-                },
-                new AccesoRapidoViewModel
-                {
-                    Titulo = "Recetas",
-                    Icono = "pastilla",
-                    Controlador = "Recetas",
-                    Accion = "Index"
-                },
-                new AccesoRapidoViewModel
-                {
-                    Titulo = "Coberturas",
-                    Icono = "escudo",
-                    Controlador = "Coberturas",
-                    Accion = "Index"
-                }
-            },
+            Accesos = accesos,
             Panel = new PanelTurnosViewModel
             {
                 Titulo = "Próximos turnos",
