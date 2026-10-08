@@ -111,6 +111,17 @@ public class PacientesController : ControladorBase
                 GrupoSanguineo = paciente.GrupoSanguineo,
                 Alergias = paciente.Alergias,
                 Condiciones = paciente.Condiciones,
+                TipoDocumento = paciente.TipoDocumento,
+                Dni = paciente.Dni,
+                Nacionalidad = paciente.Nacionalidad,
+                EstadoCivil = paciente.EstadoCivil,
+                Telefono = paciente.Telefono,
+                Direccion = paciente.Direccion,
+                Localidad = paciente.Localidad,
+                Provincia = paciente.Provincia,
+                CodigoPostal = paciente.CodigoPostal,
+                ContactoEmergenciaNombre = paciente.ContactoEmergenciaNombre,
+                ContactoEmergenciaTelefono = paciente.ContactoEmergenciaTelefono,
                 Coberturas = coberturas,
                 UltimoTurno = ultimoTurno
             });
@@ -156,19 +167,23 @@ public class PacientesController : ControladorBase
         if (!ModelState.IsValid)
             return View(modelo);
 
-        int idUsuario;
+        RegistroRespuesta registro;
         try
         {
-            // La API crea la fila en Pacientes sola al registrar el usuario.
-            // TODO: enviar documento, fecha de nacimiento, género, nacionalidad,
-            // estado civil, grupo sanguíneo, obra social, dirección, contacto de
-            // emergencia y alergias cuando la API los acepte en el alta.
-            idUsuario = await _auth.RegistrarComoPacienteAsync(
-                modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono);
+            // La cuenta y la ficha viajan juntas: la API crea el usuario y el
+            // paciente en una sola operación, o ninguno de los dos.
+            registro = await _auth.RegistrarComoPacienteAsync(
+                modelo.Nombre, modelo.Apellido, modelo.Email, modelo.Contrasena, modelo.Telefono,
+                modelo.ArmarFicha());
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            ModelState.AddModelError(string.Empty, error.Message);
+            // Un DNI repetido se muestra junto a su campo; el resto, arriba.
+            if (error.Message.Contains("paciente registrado con ese DNI"))
+                ModelState.AddModelError(nameof(modelo.NumeroDocumento), error.Message);
+            else
+                ModelState.AddModelError(string.Empty, error.Message);
+
             return View(modelo);
         }
 
@@ -178,7 +193,7 @@ public class PacientesController : ControladorBase
         {
             try
             {
-                await _usuarios.SubirFotoAsync(idUsuario, foto);
+                await _usuarios.SubirFotoAsync(registro.IdUsuario, foto);
             }
             catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
             {
@@ -190,6 +205,10 @@ public class PacientesController : ControladorBase
                     "Podés subirla desde \"Editar perfil\" en su ficha.";
             }
         }
+
+        // Al terminar se muestra la ficha del paciente nuevo, para revisar lo cargado.
+        if (registro.IdPaciente != null)
+            return RedirectToAction(nameof(Detalle), new { id = registro.IdPaciente.Value });
 
         return RedirectToAction(nameof(Index));
     }

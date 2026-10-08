@@ -70,7 +70,13 @@ public class PacienteLogica : IPacienteLogica
             p.Direccion,
             p.Nacionalidad,
             p.EstadoCivil,
-            p.FotoUrl
+            p.FotoUrl,
+            p.TipoDocumento,
+            p.Provincia,
+            p.Localidad,
+            p.CodigoPostal,
+            p.ContactoEmergenciaNombre,
+            p.ContactoEmergenciaTelefono
         );
     }
 
@@ -89,26 +95,30 @@ public class PacienteLogica : IPacienteLogica
         var paciente = await _repo.ObtenerPorId(id);
         if (paciente == null) return (false, "Paciente no encontrado.", false, false);
 
-        if (dto.FechaNacimiento.HasValue) paciente.FechaNacimiento = dto.FechaNacimiento;
-        if (!string.IsNullOrEmpty(dto.Sexo))           paciente.Sexo          = dto.Sexo;
-        if (!string.IsNullOrEmpty(dto.GrupoSanguineo)) paciente.GrupoSanguineo = dto.GrupoSanguineo;
-        if (!string.IsNullOrEmpty(dto.Alergias))       paciente.Alergias      = dto.Alergias;
-        if (!string.IsNullOrEmpty(dto.Condiciones))    paciente.Condiciones   = dto.Condiciones;
+        // 1. Los datos que vinieron con valor (todos menos el DNI).
+        FichaPaciente.CopiarDatos(dto, paciente);
 
+        // 2. El DNI. Un texto vacío lo borra; null no lo toca.
         if (dto.Dni != null)
         {
-            var nuevoDni = string.IsNullOrEmpty(dto.Dni) ? null : dto.Dni;
+            var nuevoDni = string.IsNullOrWhiteSpace(dto.Dni) ? null : dto.Dni.Trim();
             if (nuevoDni != paciente.Dni)
             {
+                // El paciente carga su DNI una sola vez: después lo corrige la
+                // administración, que puede verificarlo.
+                if (!callerEsStaff && paciente.Dni != null)
+                    return (false, "Tu DNI ya está cargado. Si hay que corregirlo, pedíselo a la administración.", false, false);
+
                 if (nuevoDni != null && await _repo.ExisteDniEnOtroPaciente(nuevoDni, id))
                     return (false, "Ya existe un paciente registrado con ese DNI.", false, true);
+
                 paciente.Dni = nuevoDni;
             }
         }
-        if (!string.IsNullOrEmpty(dto.Direccion))    paciente.Direccion    = dto.Direccion;
-        if (!string.IsNullOrEmpty(dto.Nacionalidad)) paciente.Nacionalidad = dto.Nacionalidad;
-        if (!string.IsNullOrEmpty(dto.EstadoCivil))  paciente.EstadoCivil  = dto.EstadoCivil;
-        if (!string.IsNullOrEmpty(dto.FotoUrl))      paciente.FotoUrl      = dto.FotoUrl;
+
+        // 3. Los datos que se pidieron borrar.
+        var errorAlBorrar = FichaPaciente.BorrarCampos(dto.Borrar, paciente, callerEsStaff);
+        if (errorAlBorrar != null) return (false, errorAlBorrar, false, false);
 
         await _repo.Actualizar(paciente);
         return (true, null, false, false);

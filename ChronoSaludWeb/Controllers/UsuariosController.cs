@@ -173,17 +173,8 @@ public class UsuariosController : ControladorBase
 
         try
         {
-            await _pacientes.ActualizarFichaAsync(
-                idPaciente,
-                paciente.FechaNacimiento?.ToDateTime(TimeOnly.MinValue),
-                paciente.Sexo,
-                paciente.GrupoSanguineo,
-                paciente.Alergias?.Trim(),
-                paciente.Condiciones?.Trim(),
-                paciente.Dni?.Trim(),
-                paciente.Direccion?.Trim(),
-                paciente.Nacionalidad?.Trim(),
-                paciente.EstadoCivil);
+            // ArmarFicha manda los datos cargados y pide borrar los que quedaron vacíos.
+            await _pacientes.ActualizarFichaAsync(idPaciente, paciente.ArmarFicha());
         }
         catch (ApiException error) when (error.Status == StatusCodes.Status409Conflict)
         {
@@ -471,6 +462,7 @@ public class UsuariosController : ControladorBase
                 ? null
                 : new PacienteEditarViewModel
                 {
+                    TipoDocumento = paciente.TipoDocumento,
                     Dni = paciente.Dni,
                     FechaNacimiento = paciente.FechaNacimiento is { } nacimiento
                         ? DateOnly.FromDateTime(nacimiento)
@@ -480,6 +472,11 @@ public class UsuariosController : ControladorBase
                     Nacionalidad = paciente.Nacionalidad,
                     EstadoCivil = paciente.EstadoCivil,
                     Direccion = paciente.Direccion,
+                    Provincia = paciente.Provincia,
+                    Localidad = paciente.Localidad,
+                    CodigoPostal = paciente.CodigoPostal,
+                    ContactoEmergenciaNombre = paciente.ContactoEmergenciaNombre,
+                    ContactoEmergenciaTelefono = paciente.ContactoEmergenciaTelefono,
                     Alergias = paciente.Alergias,
                     Condiciones = paciente.Condiciones
                 },

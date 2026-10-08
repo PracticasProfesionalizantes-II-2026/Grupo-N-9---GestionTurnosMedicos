@@ -59,6 +59,36 @@ else
                         @(string.IsNullOrWhiteSpace(Model.Sexo) ? "Sin datos" : Model.Sexo)
                     </dd>
                 </div>
+                <div>
+                    <dt class="text-sm text-muted">Documento</dt>
+                    <dd class="mt-0.5 text-ink">@(Model.Documento ?? "Sin datos")</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Nacionalidad</dt>
+                    <dd class="mt-0.5 text-ink">
+                        @(string.IsNullOrWhiteSpace(Model.Nacionalidad) ? "Sin datos" : Model.Nacionalidad)
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Estado civil</dt>
+                    <dd class="mt-0.5 text-ink">
+                        @(string.IsNullOrWhiteSpace(Model.EstadoCivil) ? "Sin datos" : Model.EstadoCivil)
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Teléfono</dt>
+                    <dd class="mt-0.5 text-ink">
+                        @(string.IsNullOrWhiteSpace(Model.Telefono) ? "Sin datos" : Model.Telefono)
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Dirección</dt>
+                    <dd class="mt-0.5 text-ink">@(Model.DireccionCompleta ?? "Sin datos")</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Contacto de emergencia</dt>
+                    <dd class="mt-0.5 text-ink">@(Model.ContactoEmergencia ?? "Sin datos")</dd>
+                </div>
             </dl>
         </div>
 

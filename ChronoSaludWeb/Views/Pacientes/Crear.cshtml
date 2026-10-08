@@ -75,11 +75,11 @@
                     </div>
 
                     <div>
-                        <label asp-for="Genero" class="@claseEtiqueta"></label>
-                        <select asp-for="Genero" asp-items="Model.Generos" class="@claseCampo">
-                            <option value="">Seleccionar</option>
+                        <label asp-for="Sexo" class="@claseEtiqueta"></label>
+                        <select asp-for="Sexo" asp-items="Model.Sexos" class="@claseCampo capitalize">
+                            <option value="">Sin especificar</option>
                         </select>
-                        <span asp-validation-for="Genero" class="@claseError"></span>
+                        <span asp-validation-for="Sexo" class="@claseError"></span>
                     </div>
 
                     <div>
@@ -102,25 +102,6 @@
                             <option value="">Sin especificar</option>
                         </select>
                         <span asp-validation-for="GrupoSanguineo" class="@claseError"></span>
-                    </div>
-
-                    <div class="flex items-end pb-2">
-                        <label class="inline-flex items-center gap-2 text-sm font-medium text-ink">
-                            <input asp-for="TieneObraSocial" class="h-4 w-4 rounded-badge accent-primary" />
-                            Tiene obra social
-                        </label>
-                    </div>
-
-                    <div>
-                        <label asp-for="ObraSocial" class="@claseEtiqueta"></label>
-                        <input asp-for="ObraSocial" placeholder="Opcional" class="@claseCampo" />
-                        <span asp-validation-for="ObraSocial" class="@claseError"></span>
-                    </div>
-
-                    <div>
-                        <label asp-for="NumeroAfiliado" class="@claseEtiqueta"></label>
-                        <input asp-for="NumeroAfiliado" placeholder="Opcional" class="@claseCampo" />
-                        <span asp-validation-for="NumeroAfiliado" class="@claseError"></span>
                     </div>
                 </div>
 

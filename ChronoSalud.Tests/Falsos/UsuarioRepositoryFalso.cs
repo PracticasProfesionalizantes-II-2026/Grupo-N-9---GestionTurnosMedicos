@@ -1,0 +1,80 @@
+using ChronoSaludApi.Entidades;
+using ChronoSaludApi.Repositorios;
+
+namespace ChronoSalud.Tests.Falsos;
+
+/// <summary>
+/// Reemplaza a UsuarioRepository. Como en la base real, si el usuario trae su
+/// Paciente cargado se guardan los dos: el paciente va a la lista del
+/// PacienteRepositoryFalso que recibe.
+/// </summary>
+public class UsuarioRepositoryFalso : IUsuarioRepository
+{
+    private readonly PacienteRepositoryFalso _pacientes;
+
+    public UsuarioRepositoryFalso(PacienteRepositoryFalso pacientes)
+    {
+        _pacientes = pacientes;
+    }
+
+    public List<Usuario> Usuarios { get; } = new List<Usuario>();
+
+    /// <summary>Si es true, Agregar falla como cuando la base encuentra un dato repetido.</summary>
+    public bool SimularDatoRepetido { get; set; }
+
+    public Task<IEnumerable<Usuario>> ObtenerTodos()
+    {
+        return Task.FromResult<IEnumerable<Usuario>>(Usuarios);
+    }
+
+    public Task<Usuario?> ObtenerPorId(int id)
+    {
+        var usuario = Usuarios.FirstOrDefault(u => u.Id == id);
+        return Task.FromResult(usuario);
+    }
+
+    public Task<Usuario?> ObtenerPorEmail(string email)
+    {
+        var usuario = Usuarios.FirstOrDefault(u => u.Email == email);
+        return Task.FromResult(usuario);
+    }
+
+    public Task<bool> HayAdministradorActivo()
+    {
+        var hay = Usuarios.Any(u => u.Rol == "administrador" && u.Activo);
+        return Task.FromResult(hay);
+    }
+
+    public Task Agregar(Usuario usuario)
+    {
+        if (SimularDatoRepetido)
+            throw new DatoRepetidoException(new Exception("Simulado en la prueba."));
+
+        usuario.Id = Usuarios.Count + 1;
+        Usuarios.Add(usuario);
+
+        if (usuario.Paciente != null)
+        {
+            usuario.Paciente.IdUsuario = usuario.Id;
+            usuario.Paciente.Usuario = usuario;
+            _pacientes.Agregar(usuario.Paciente);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task Actualizar(Usuario usuario) => Task.CompletedTask;
+
+    public Task Eliminar(Usuario usuario) => Task.CompletedTask;
+
+    public Task<(int total, IEnumerable<Usuario> usuarios)> Buscar(string? buscar, string? rol, int pagina, int limite)
+    {
+        IEnumerable<Usuario> todos = Usuarios;
+        return Task.FromResult((Usuarios.Count, todos));
+    }
+
+    public Task<IEnumerable<int>> ObtenerIdsConFoto(IEnumerable<int> idsUsuario)
+    {
+        return Task.FromResult<IEnumerable<int>>(new List<int>());
+    }
+}

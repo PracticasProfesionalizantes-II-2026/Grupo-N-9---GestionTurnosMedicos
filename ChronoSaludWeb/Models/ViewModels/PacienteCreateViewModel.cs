@@ -2,14 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models.ViewModels;
 
 /// <summary>
-/// Alta de paciente hecha por un administrador (Pacientes/Crear). Por ahora solo
-/// Nombre, Apellido, Email, Contraseña y Teléfono llegan a la API
-/// (AuthService.RegistrarComoPacienteAsync): el resto se valida y se acepta,
-/// pero el registro todavía no lo recibe.
+/// Alta de paciente hecha por un administrador (Pacientes/Crear). La cuenta
+/// (nombre, apellido, email, contraseña y teléfono) y la ficha (el resto) se
+/// mandan juntas a la API, que las guarda en una sola operación.
 /// </summary>
 public class PacienteCreateViewModel
 {
@@ -40,11 +40,11 @@ public class PacienteCreateViewModel
     [Display(Name = "Fecha de nacimiento")]
     public DateOnly? FechaNacimiento { get; set; }
 
-    [Required(ErrorMessage = "El género es obligatorio.")]
-    [Display(Name = "Género")]
-    public string Genero { get; set; } = string.Empty;
+    [Display(Name = "Sexo")]
+    public string? Sexo { get; set; }
 
     [Required(ErrorMessage = "La nacionalidad es obligatoria.")]
+    [MaxLength(60, ErrorMessage = "La nacionalidad no puede superar los 60 caracteres.")]
     [Display(Name = "Nacionalidad")]
     public string Nacionalidad { get; set; } = "Argentina";
 
@@ -57,15 +57,6 @@ public class PacienteCreateViewModel
 
     [Display(Name = "Grupo sanguíneo")]
     public string? GrupoSanguineo { get; set; }
-
-    [Display(Name = "Tiene obra social")]
-    public bool TieneObraSocial { get; set; }
-
-    [Display(Name = "Obra social")]
-    public string? ObraSocial { get; set; }
-
-    [Display(Name = "Número de afiliado")]
-    public string? NumeroAfiliado { get; set; }
 
     // Datos de contacto y cuenta
 
@@ -97,6 +88,7 @@ public class PacienteCreateViewModel
     public string ConfirmarContrasena { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La dirección es obligatoria.")]
+    [MaxLength(150, ErrorMessage = "La dirección no puede superar los 150 caracteres.")]
     [Display(Name = "Dirección")]
     public string Direccion { get; set; } = string.Empty;
 
@@ -105,73 +97,73 @@ public class PacienteCreateViewModel
     public string Provincia { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La localidad es obligatoria.")]
+    [MaxLength(100, ErrorMessage = "La localidad no puede superar los 100 caracteres.")]
     [Display(Name = "Localidad")]
     public string Localidad { get; set; } = string.Empty;
 
+    [MaxLength(10, ErrorMessage = "El código postal no puede superar los 10 caracteres.")]
     [Display(Name = "Código postal")]
     public string? CodigoPostal { get; set; }
 
     // Contacto de emergencia
 
+    [MaxLength(120, ErrorMessage = "El nombre del contacto no puede superar los 120 caracteres.")]
     [Display(Name = "Nombre del contacto")]
     public string? ContactoEmergenciaNombre { get; set; }
 
     [Phone(ErrorMessage = "El teléfono no tiene un formato válido.")]
+    [MaxLength(30, ErrorMessage = "El teléfono del contacto no puede superar los 30 caracteres.")]
     [Display(Name = "Teléfono del contacto")]
     public string? ContactoEmergenciaTelefono { get; set; }
 
+    [StringLength(500, ErrorMessage = "Las alergias no pueden superar los 500 caracteres.")]
     [DataType(DataType.MultilineText)]
     [Display(Name = "Alergias")]
     public string? Alergias { get; set; }
 
-    // Opciones de los selects. Son listas fijas: la API no expone catálogos.
-    // asp-for marca la opción elegida, así que se pueden compartir entre pedidos.
+    // Opciones de los selects (listas fijas de OpcionesPaciente). asp-for
+    // marca sola la opción elegida.
 
-    private static readonly SelectList TiposDocumentoFijos =
-        new(new[] { "DNI", "LC", "LE", "Pasaporte" });
+    [BindNever, ValidateNever] public List<SelectListItem> TiposDocumento => OpcionesPaciente.Opciones(OpcionesPaciente.TiposDocumento, TipoDocumento);
+    [BindNever, ValidateNever] public List<SelectListItem> Sexos => OpcionesPaciente.Opciones(OpcionesPaciente.Sexos, Sexo);
+    [BindNever, ValidateNever] public List<SelectListItem> EstadosCiviles => OpcionesPaciente.Opciones(OpcionesPaciente.EstadosCiviles, EstadoCivil);
+    [BindNever, ValidateNever] public List<SelectListItem> GruposSanguineos => OpcionesPaciente.Opciones(OpcionesPaciente.GruposSanguineos, GrupoSanguineo);
+    [BindNever, ValidateNever] public List<SelectListItem> Provincias => OpcionesPaciente.Opciones(OpcionesPaciente.Provincias, Provincia);
 
-    private static readonly SelectList GenerosFijos =
-        new(new[] { "Femenino", "Masculino", "No binario", "Prefiero no decirlo" });
-
-    private static readonly SelectList EstadosCivilesFijos =
-        new(new[] { "Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Unión convivencial" });
-
-    private static readonly SelectList GruposSanguineosFijos =
-        new(new[] { "A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-" });
-
-    private static readonly SelectList ProvinciasFijas = new(new[]
+    /// <summary>
+    /// La ficha del paciente, como la espera la API en el alta. Los textos van
+    /// sin espacios de más y los vacíos van como null (la API los ignora).
+    /// </summary>
+    public DatosFichaPaciente ArmarFicha()
     {
-        "Buenos Aires",
-        "Catamarca",
-        "Chaco",
-        "Chubut",
-        "Ciudad Autónoma de Buenos Aires",
-        "Córdoba",
-        "Corrientes",
-        "Entre Ríos",
-        "Formosa",
-        "Jujuy",
-        "La Pampa",
-        "La Rioja",
-        "Mendoza",
-        "Misiones",
-        "Neuquén",
-        "Río Negro",
-        "Salta",
-        "San Juan",
-        "San Luis",
-        "Santa Cruz",
-        "Santa Fe",
-        "Santiago del Estero",
-        "Tierra del Fuego, Antártida e Islas del Atlántico Sur",
-        "Tucumán"
-    });
+        var ficha = new DatosFichaPaciente();
 
-    [BindNever, ValidateNever] public SelectList TiposDocumento => TiposDocumentoFijos;
-    [BindNever, ValidateNever] public SelectList Generos => GenerosFijos;
-    [BindNever, ValidateNever] public SelectList EstadosCiviles => EstadosCivilesFijos;
-    [BindNever, ValidateNever] public SelectList GruposSanguineos => GruposSanguineosFijos;
-    [BindNever, ValidateNever] public SelectList Provincias => ProvinciasFijas;
+        ficha.TipoDocumento = Limpio(TipoDocumento);
+        ficha.Dni = Limpio(NumeroDocumento);
+        ficha.Sexo = Limpio(Sexo);
+        ficha.Nacionalidad = Limpio(Nacionalidad);
+        ficha.EstadoCivil = Limpio(EstadoCivil);
+        ficha.GrupoSanguineo = Limpio(GrupoSanguineo);
+        ficha.Direccion = Limpio(Direccion);
+        ficha.Provincia = Limpio(Provincia);
+        ficha.Localidad = Limpio(Localidad);
+        ficha.CodigoPostal = Limpio(CodigoPostal);
+        ficha.ContactoEmergenciaNombre = Limpio(ContactoEmergenciaNombre);
+        ficha.ContactoEmergenciaTelefono = Limpio(ContactoEmergenciaTelefono);
+        ficha.Alergias = Limpio(Alergias);
+
+        if (FechaNacimiento != null)
+            ficha.FechaNacimiento = FechaNacimiento.Value.ToDateTime(TimeOnly.MinValue);
+
+        return ficha;
+    }
+
+    /// <summary>El texto sin espacios al principio ni al final; null si quedó vacío.</summary>
+    private static string? Limpio(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        return texto.Trim();
+    }
 }
 
 /// <summary>Rechaza fechas posteriores a hoy. Un valor vacío lo resuelve [Required].</summary>

@@ -42,6 +42,22 @@ public class UsuarioLogica : IUsuarioLogica
         if (existente != null)
             return (null, "El email ya se encuentra registrado en el sistema.", false);
 
+        // La ficha del paciente solo se acepta en el alta que hace un
+        // administrador. En el registro público se ignora: si no, cualquiera
+        // podría probar DNI y averiguar cuáles ya están cargados.
+        PacienteUpdateDto? ficha = null;
+        if (dto.Rol == "paciente" && esAdministrador)
+            ficha = dto.Ficha;
+
+        string? dni = null;
+        if (ficha != null && !string.IsNullOrWhiteSpace(ficha.Dni))
+            dni = ficha.Dni.Trim();
+
+        // El DNI se revisa antes de crear nada, así un DNI repetido no deja
+        // una cuenta creada a medias.
+        if (dni != null && await _pacienteRepo.ExisteDniEnOtroPaciente(dni, 0))
+            return (null, "Ya existe un paciente registrado con ese DNI.", false);
+
         var usuario = new Usuario
         {
             Nombre     = dto.Nombre,
@@ -53,14 +69,31 @@ public class UsuarioLogica : IUsuarioLogica
             Activo     = true
         };
 
-        await _repo.Agregar(usuario);
-
+        // El perfil de paciente se arma junto con la cuenta: al guardar,
+        // Entity Framework inserta las dos filas en la misma operación (o
+        // ninguna, si algo falla).
         if (usuario.Rol == "paciente")
-            await _pacienteRepo.Agregar(new Paciente { IdUsuario = usuario.Id });
+        {
+            var paciente = new Paciente { Dni = dni };
+            if (ficha != null)
+                FichaPaciente.CopiarDatos(ficha, paciente);
+
+            usuario.Paciente = paciente;
+        }
+
+        try
+        {
+            await _repo.Agregar(usuario);
+        }
+        catch (DatoRepetidoException)
+        {
+            // Otra alta con el mismo email o DNI se guardó un instante antes.
+            return (null, "Ya existe una cuenta con ese email o un paciente con ese DNI.", false);
+        }
 
         var token = GenerarToken(usuario);
 
-        return (new RegistroResponseDto(usuario.Id, usuario.Email, usuario.Rol, token), null, false);
+        return (new RegistroResponseDto(usuario.Id, usuario.Email, usuario.Rol, token, usuario.Paciente?.Id), null, false);
     }
 
     public async Task<(LoginResponseDto? resultado, string? error)> Login(UsuarioLoginDto dto)

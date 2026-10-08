@@ -22,10 +22,22 @@ public class UsuarioRepository : IUsuarioRepository
     public async Task<bool> HayAdministradorActivo()
         => await _db.Usuarios.AnyAsync(u => u.Rol == "administrador" && u.Activo);
 
+    // Si el usuario trae su Paciente cargado, se guardan los dos juntos.
     public async Task Agregar(Usuario usuario)
     {
         _db.Usuarios.Add(usuario);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException error) when (ErroresDeBase.EsDatoRepetido(error))
+        {
+            // Otro pedido guardó el mismo email o DNI un instante antes. Se
+            // limpia el contexto para que nada quede a medio guardar.
+            _db.ChangeTracker.Clear();
+            throw new DatoRepetidoException(error);
+        }
     }
 
     public async Task Actualizar(Usuario usuario)

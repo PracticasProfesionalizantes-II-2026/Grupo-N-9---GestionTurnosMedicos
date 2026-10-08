@@ -8,8 +8,9 @@ public record LoginRespuesta(string Token, string Rol, int IdUsuario, string Nom
 /// <summary>
 /// Respuesta de POST /usuarios/registro. Espeja RegistroResponseDto de la API:
 /// ya incluye el token, no hace falta loguear aparte después de registrarse.
+/// IdPaciente viene cargado solo cuando la cuenta es de un paciente.
 /// </summary>
-public record RegistroRespuesta(int IdUsuario, string Email, string Rol, string Token);
+public record RegistroRespuesta(int IdUsuario, string Email, string Rol, string Token, int? IdPaciente = null);
 
 /// <summary>
 /// Login / logout contra la API. El token se guarda en la sesión del servidor,
@@ -136,12 +137,15 @@ public class AuthService
     /// Alta de paciente hecha por un administrador (por ejemplo, para alguien que
     /// no puede autogestionarse por la web). A diferencia de
     /// <see cref="RegistrarPacienteAsync"/>, no abre sesión como ese usuario: el
-    /// admin sigue logueado con la suya. La API ya crea la fila en Pacientes sola
-    /// (UsuarioLogica.Registrar), así que no hace falta un segundo paso.
+    /// admin sigue logueado con la suya. La ficha viaja en el mismo pedido y la
+    /// API crea la cuenta y el paciente juntos (UsuarioLogica.Registrar).
+    /// Devuelve la respuesta completa: de ahí salen el IdUsuario (para la foto)
+    /// y el IdPaciente (para ir a su ficha).
     /// </summary>
-    public async Task<int> RegistrarComoPacienteAsync(
-        string nombre, string apellido, string email, string contrasena, string? telefono)
-        => (await RegistrarUsuarioAsync(nombre, apellido, email, contrasena, telefono, "paciente")).IdUsuario;
+    public Task<RegistroRespuesta> RegistrarComoPacienteAsync(
+        string nombre, string apellido, string email, string contrasena, string? telefono,
+        DatosFichaPaciente ficha)
+        => RegistrarUsuarioAsync(nombre, apellido, email, contrasena, telefono, "paciente", ficha);
 
     private async Task<SesionUsuario> RegistrarYLoguearAsync(
         string nombre, string apellido, string email, string contrasena, string? telefono, string rol)
@@ -156,17 +160,23 @@ public class AuthService
     /// <summary>
     /// POST /usuarios/registro es AllowAnonymous solo para el rol "paciente":
     /// para "doctor" y "administrador" la API pide el token de un
-    /// administrador, así que esas altas viajan con el de la sesión.
+    /// administrador, así que esas altas viajan con el de la sesión. El alta
+    /// de un paciente con ficha también lo lleva: es la que hace un administrador.
     /// <paramref name="rol"/> es privado a esta clase: los métodos públicos de
     /// arriba son los únicos que lo fijan, y siempre con una constante.
     /// </summary>
     private async Task<RegistroRespuesta> RegistrarUsuarioAsync(
-        string nombre, string apellido, string email, string contrasena, string? telefono, string rol)
+        string nombre, string apellido, string email, string contrasena, string? telefono, string rol,
+        DatosFichaPaciente? ficha = null)
     {
+        // Con ficha, el alta la hace un administrador: el pedido tiene que
+        // llevar su token, porque la API solo acepta la ficha de un administrador.
+        var anonimo = rol == "paciente" && ficha == null;
+
         var respuesta = await _api.PostAsync<RegistroRespuesta>(
             "/usuarios/registro",
-            new { nombre, apellido, email, contrasena, telefono, rol },
-            anonimo: rol == "paciente");
+            new { nombre, apellido, email, contrasena, telefono, rol, ficha },
+            anonimo: anonimo);
 
         if (respuesta is null || string.IsNullOrEmpty(respuesta.Token))
             throw new ApiException("No pudimos completar el registro. Probá de nuevo en un momento.", 0);

@@ -56,7 +56,64 @@ public class PacienteDetalleViewModel
     public string? GrupoSanguineo { get; init; }
     public string? Alergias { get; init; }
     public string? Condiciones { get; init; }
+
+    public string? TipoDocumento { get; init; }
+    public string? Dni { get; init; }
+    public string? Nacionalidad { get; init; }
+    public string? EstadoCivil { get; init; }
+    public string? Telefono { get; init; }
+    public string? Direccion { get; init; }
+    public string? Localidad { get; init; }
+    public string? Provincia { get; init; }
+    public string? CodigoPostal { get; init; }
+    public string? ContactoEmergenciaNombre { get; init; }
+    public string? ContactoEmergenciaTelefono { get; init; }
+
     public IReadOnlyList<CoberturaFilaViewModel> Coberturas { get; init; } = Array.Empty<CoberturaFilaViewModel>();
+
+    /// <summary>"DNI 30111222", solo el número si no hay tipo, o null si no hay número.</summary>
+    public string? Documento
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Dni)) return null;
+            if (string.IsNullOrWhiteSpace(TipoDocumento)) return Dni;
+            return $"{TipoDocumento} {Dni}";
+        }
+    }
+
+    /// <summary>
+    /// Dirección, localidad, provincia y código postal en un solo renglón,
+    /// separados por coma. Se saltean los que falten; null si no hay ninguno.
+    /// </summary>
+    public string? DireccionCompleta
+    {
+        get
+        {
+            var partes = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Direccion)) partes.Add(Direccion);
+            if (!string.IsNullOrWhiteSpace(Localidad)) partes.Add(Localidad);
+            if (!string.IsNullOrWhiteSpace(Provincia)) partes.Add(Provincia);
+            if (!string.IsNullOrWhiteSpace(CodigoPostal)) partes.Add($"CP {CodigoPostal}");
+
+            if (partes.Count == 0) return null;
+            return string.Join(", ", partes);
+        }
+    }
+
+    /// <summary>"Marta Pérez · 353-4000000", lo que haya de los dos, o null.</summary>
+    public string? ContactoEmergencia
+    {
+        get
+        {
+            var partes = new List<string>();
+            if (!string.IsNullOrWhiteSpace(ContactoEmergenciaNombre)) partes.Add(ContactoEmergenciaNombre);
+            if (!string.IsNullOrWhiteSpace(ContactoEmergenciaTelefono)) partes.Add(ContactoEmergenciaTelefono);
+
+            if (partes.Count == 0) return null;
+            return string.Join(" · ", partes);
+        }
+    }
 
     /// <summary>Fecha del turno más reciente del paciente, si tiene alguno.</summary>
     public DateTime? UltimoTurno { get; init; }
