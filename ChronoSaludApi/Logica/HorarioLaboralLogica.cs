@@ -239,6 +239,67 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             .Where(t => t.Estado != "cancelado")
             .ToList();
 
+        return (FranjasLibres(horario, dia, ahora, ocupados), null);
+    }
+
+    /// <summary>
+    /// Para cada día desde <paramref name="desde"/> (hoy como mínimo), cuántas
+    /// franjas libres tiene el doctor. Sirve para mostrar qué días tienen
+    /// lugar sin pedir la disponibilidad día por día: son dos consultas a la
+    /// base en total (el horario semanal y los turnos del período).
+    /// </summary>
+    public async Task<(IEnumerable<DiaDisponibleDto>? dias, string? error)> ObtenerDiasDisponibles(
+        int idDoctor, DateTime? desde, int dias)
+    {
+        var doctor = await _doctorRepo.ObtenerPorId(idDoctor);
+        if (doctor == null) return (null, "Doctor no encontrado.");
+        if (!doctor.Activo) return (null, "El doctor no está activo.");
+
+        var ahora = _reloj.Ahora();
+        var hoy = ahora.Date;
+
+        // Desde hoy como mínimo, y de 1 a 31 días.
+        var primerDia = hoy;
+        if (desde.HasValue && desde.Value.Date > hoy)
+            primerDia = desde.Value.Date;
+
+        dias = Math.Clamp(dias, 1, 31);
+        var ultimoDia = primerDia.AddDays(dias - 1);
+
+        var horarios = (await _repo.ObtenerPorDoctor(idDoctor)).ToList();
+        var ocupados = (await _turnoRepo.ObtenerTodos(null, idDoctor, null, primerDia, ultimoDia.AddDays(1).AddTicks(-1)))
+            .Where(t => t.Estado != "cancelado")
+            .ToList();
+
+        var resultado = new List<DiaDisponibleDto>();
+
+        for (var dia = primerDia; dia <= ultimoDia; dia = dia.AddDays(1))
+        {
+            var libres = 0;
+
+            // Un día que el doctor no atiende queda en 0.
+            var horario = horarios.FirstOrDefault(h => h.DiaSemana == (int)dia.DayOfWeek);
+            if (horario != null)
+            {
+                var delDia = ocupados.Where(t => t.FechaInicio.Date == dia).ToList();
+                libres = FranjasLibres(horario, dia, ahora, delDia).Count;
+            }
+
+            resultado.Add(new DiaDisponibleDto(dia, libres));
+        }
+
+        return (resultado, null);
+    }
+
+    /// <summary>
+    /// Las franjas de DuracionFranjaMinutos del horario de ese día que siguen
+    /// libres: sin un turno encima y, si el día es hoy, que todavía no
+    /// empezaron. <paramref name="ocupados"/> son los turnos no cancelados
+    /// de ese día.
+    /// </summary>
+    private static List<FranjaDisponibleDto> FranjasLibres(
+        HorarioLaboral horario, DateTime dia, DateTime ahora, List<Turno> ocupados)
+    {
         var duracion = TimeSpan.FromMinutes(DuracionFranjaMinutos);
         var franjas = new List<FranjaDisponibleDto>();
 
@@ -247,13 +308,13 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             var fin = inicio + duracion;
 
             // Hoy no se ofrecen las franjas que ya empezaron.
-            if (dia == hoy && inicio < ahora.TimeOfDay) continue;
+            if (dia == ahora.Date && inicio < ahora.TimeOfDay) continue;
             if (ocupados.Any(t => t.HoraInicio < fin && t.HoraFin > inicio)) continue;
 
             franjas.Add(new FranjaDisponibleDto(inicio.ToString(@"hh\:mm"), fin.ToString(@"hh\:mm")));
         }
 
-        return (franjas, null);
+        return franjas;
     }
 
     public async Task<IEnumerable<string>> ObtenerEspecialidades()

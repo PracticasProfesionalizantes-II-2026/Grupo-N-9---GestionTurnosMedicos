@@ -394,68 +394,108 @@ public class TurnosController : ControladorBase
             : null;
 
     /// <summary>
-    /// Pantalla de pedir turno. Cada paso (especialidad, doctor, fecha) es un
-    /// formulario GET que vuelve acá con la elección en la query string, así
-    /// el flujo no depende de JavaScript ni de la sesión.
+    /// Pantalla de pedir turno, en tres pasos con enlaces: especialidad,
+    /// doctor (o "Cualquiera") y día con horario (ver TurnoCrearViewModel).
+    /// Cada enlace vuelve acá con la elección en la query string, así el flujo
+    /// no depende de JavaScript ni de la sesión. Todavía no se reserva nada:
+    /// el horario lleva a Confirmar.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Crear(int? paciente, string? especialidad, int? idDoctor, DateTime? fecha)
+    public async Task<IActionResult> Crear(
+        int? paciente, string? especialidad, int? idDoctor, DateTime? fecha, DateTime? desde)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear)));
 
         if (!_auth.PuedeCargarTurnos)
-            return SinPermiso(
-                "No podés cargar turnos con tu rol",
-                "Para dar un turno hay que elegir el paciente de una lista, y esa lista solo " +
-                "la ven doctores y administradores.");
+            return SinPermisoParaCargar();
 
         var rol = _auth.SesionActual?.Rol;
+
+        if (rol == "paciente" && await _perfil.IdPerfilAsync(esDoctor: false) is null)
+            return SinPerfilDePaciente();
+
         var modelo = new TurnoCrearViewModel
         {
             Rol = rol,
+            // El paciente de la ficha ("Agendar turno") es cosa del personal:
+            // el paciente siempre reserva a su nombre.
+            IdPaciente = rol == "paciente" ? null : paciente,
             Especialidad = string.IsNullOrWhiteSpace(especialidad) ? null : especialidad.Trim(),
-            DoctorElegido = idDoctor
+            IdDoctor = idDoctor
         };
 
-        // Sin fecha, o con una ya pasada (escrita a mano en la URL), se busca
-        // desde hoy: la API no da franjas para días anteriores.
-        modelo.FechaInicio = fecha is { } elegida && elegida.Date >= modelo.Hoy ? elegida.Date : modelo.Hoy;
+        try
+        {
+            await CargarPasosAsync(modelo, fecha, desde);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            modelo.AvisoFranjas = $"No se pudieron cargar los datos para pedir el turno: {error.Message}";
+        }
+
+        return View(modelo);
+    }
+
+    /// <summary>
+    /// Confirmación del turno: se llega tocando un horario en Crear. Muestra
+    /// el resumen y pide las observaciones (y el paciente, si es el personal).
+    /// Recién al confirmar se le pide el turno a la API.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Confirmar(
+        int idDoctor, DateTime? fecha, string? inicio, string? fin, string? especialidad, int? elegido, int? paciente)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Crear)));
+
+        if (!_auth.PuedeCargarTurnos)
+            return SinPermisoParaCargar();
+
+        var rol = _auth.SesionActual?.Rol;
+        var modelo = new TurnoConfirmarViewModel
+        {
+            Rol = rol,
+            IdDoctor = idDoctor,
+            Fecha = fecha?.Date,
+            HoraInicio = inicio ?? string.Empty,
+            HoraFin = fin ?? string.Empty,
+            Especialidad = especialidad,
+            DoctorElegido = elegido,
+            IdPaciente = rol == "paciente" ? null : paciente
+        };
+
+        // El enlace pudo armarse a mano: si el horario no tiene sentido, se
+        // vuelve a elegir. Que siga libre lo controla la API al confirmar.
+        if (idDoctor <= 0 || modelo.Fecha is null || modelo.Fecha < FechaArgentina.Hoy() ||
+            !TurnoConfirmarViewModel.HorarioValido(inicio, fin))
+        {
+            TempData["Error"] = "Ese horario no es válido. Elegí uno de la lista.";
+            return RedirectToAction(nameof(Crear), modelo.RutaCambiarHorario);
+        }
 
         if (rol == "paciente")
         {
             var idPaciente = await _perfil.IdPerfilAsync(esDoctor: false);
             if (idPaciente is null)
-                return SinPermiso(
-                    "Todavía no podés agendar turnos",
-                    "Tu usuario no tiene un perfil de paciente asociado, así que no podemos crear " +
-                    "el turno a tu nombre. Pedile a la administración que lo cree.");
+                return SinPerfilDePaciente();
 
             modelo.IdPaciente = idPaciente;
         }
-        else if (paciente is not null)
-        {
-            // Se llega acá desde la ficha de un paciente ("Agendar turno"): se
-            // precarga el select en vez de dejarlo en la opción vacía.
-            modelo.IdPaciente = paciente;
-        }
 
-        await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
+        await CargarConfirmacionAsync(modelo);
         return View(modelo);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Crear(TurnoCrearViewModel modelo)
+    public async Task<IActionResult> Confirmar(TurnoConfirmarViewModel modelo)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear)));
 
         if (!_auth.PuedeCargarTurnos)
-            return SinPermiso(
-                "No podés cargar turnos con tu rol",
-                "Para dar un turno hay que elegir el paciente de una lista, y esa lista solo " +
-                "la ven doctores y administradores.");
+            return SinPermisoParaCargar();
 
         var rol = _auth.SesionActual?.Rol;
         modelo.Rol = rol;
@@ -464,41 +504,17 @@ public class TurnosController : ControladorBase
         {
             var idPaciente = await _perfil.IdPerfilAsync(esDoctor: false);
             if (idPaciente is null)
-                return SinPermiso(
-                    "Todavía no podés agendar turnos",
-                    "Tu usuario no tiene un perfil de paciente asociado, así que no podemos crear " +
-                    "el turno a tu nombre. Pedile a la administración que lo cree.");
+                return SinPerfilDePaciente();
 
-            // El formulario del paciente no tiene selector: el IdPaciente sale
-            // siempre del perfil logueado, nunca de lo que llegue posteado, así
-            // nadie puede cargar un turno a nombre de otro paciente (la API no
-            // lo controla: POST /turnos toma el IdPaciente del body tal cual).
+            // El IdPaciente sale siempre del perfil logueado, nunca de lo que
+            // llegue posteado: nadie carga un turno a nombre de otro paciente.
             modelo.IdPaciente = idPaciente.Value;
             ModelState.Remove(nameof(modelo.IdPaciente));
         }
 
-        // El doctor y las horas no tienen campos propios: salen del botón de la
-        // franja que se tocó. Se sacan de ModelState los "obligatorio" que el
-        // binding marcó al no encontrarlos en el formulario: la vista ya no
-        // tiene dónde mostrarlos, así que el aviso va arriba como error general.
-        ModelState.Remove(nameof(modelo.IdDoctor));
-        ModelState.Remove(nameof(modelo.HoraInicio));
-        ModelState.Remove(nameof(modelo.HoraFin));
-
-        if (FranjaViewModel.TryParse(modelo.Franja, out var idDoctor, out var horaInicio, out var horaFin))
-        {
-            modelo.IdDoctor = idDoctor;
-            modelo.HoraInicio = horaInicio;
-            modelo.HoraFin = horaFin;
-        }
-        else
-        {
-            ModelState.AddModelError(string.Empty, "Elegí uno de los horarios libres.");
-        }
-
         if (!ModelState.IsValid)
         {
-            await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
+            await CargarConfirmacionAsync(modelo);
             return View(modelo);
         }
 
@@ -506,125 +522,222 @@ public class TurnosController : ControladorBase
         {
             var creado = await _turnos.CrearAsync(new TurnoNuevo(
                 modelo.IdPaciente!.Value,
-                modelo.IdDoctor!.Value,
-                modelo.FechaInicio!.Value,
+                modelo.IdDoctor,
+                modelo.Fecha!.Value,
                 modelo.HoraInicio,
                 modelo.HoraFin,
                 string.IsNullOrWhiteSpace(modelo.Observaciones) ? null : modelo.Observaciones.Trim()));
 
-            TempData["Exito"] = creado is null
-                ? "Turno creado correctamente."
-                : $"Turno #{creado.IdTurno} creado correctamente. Queda en estado {creado.Estado}.";
+            if (creado is null)
+            {
+                TempData["Exito"] = "Turno reservado.";
+                return RedirectToAction(nameof(Index));
+            }
 
-            return RedirectToAction(nameof(Index));
+            TempData["Exito"] =
+                $"Turno #{creado.IdTurno} reservado para el {modelo.FechaLarga}, de {modelo.Horario}. Queda {creado.Estado}.";
+            return RedirectToAction(nameof(Detalle), new { id = creado.IdTurno });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            // 409 por conflicto de horario, 400 por datos inválidos, 0 si la API
-            // no responde. El mensaje va arriba del formulario y el modelo vuelve
-            // a la vista con todo lo que el usuario había cargado.
+            // 409: el horario se ocupó mientras se confirmaba. 400: por
+            // ejemplo, ya pasó. El mensaje va arriba y la vista ofrece elegir
+            // otro horario, sin perder las observaciones.
             ModelState.AddModelError(string.Empty, error.Message);
-            await CargarListasAsync(modelo, incluirPacientes: rol != "paciente");
+            await CargarConfirmacionAsync(modelo);
             return View(modelo);
         }
     }
 
+    private IActionResult SinPermisoParaCargar() =>
+        SinPermiso(
+            "No podés cargar turnos con tu rol",
+            "Pueden pedir turnos los pacientes (a su nombre), los doctores y la administración.");
+
+    private IActionResult SinPerfilDePaciente() =>
+        SinPermiso(
+            "Todavía no podés agendar turnos",
+            "Tu usuario no tiene un perfil de paciente asociado, así que no podemos crear " +
+            "el turno a tu nombre. Pedile a la administración que lo cree.");
+
     /// <summary>
-    /// Llena los selects y las franjas libres. Si la API falla no tira: deja
-    /// las listas vacías para no perder lo que el usuario venía cargando en el
-    /// formulario. Un paciente no puede pedir GET /pacientes (reservado a
-    /// doctor/administrador), así que para ese rol se salta ese fetch:
-    /// <paramref name="incluirPacientes"/> en false.
+    /// Carga lo que necesita el paso en el que está la pantalla. Lo que llegó
+    /// en la URL se revisa contra la API: una especialidad o un doctor que no
+    /// existen hacen volver al paso anterior en vez de buscar con ellos.
     /// </summary>
-    private async Task CargarListasAsync(TurnoCrearViewModel modelo, bool incluirPacientes = true)
+    private async Task CargarPasosAsync(TurnoCrearViewModel modelo, DateTime? fecha, DateTime? desde)
     {
-        IReadOnlyList<DoctorLista> doctores;
+        // Paso 1: las especialidades. Se guarda la versión de la API, así
+        // coincide con la lista aunque en la URL venga con otras mayúsculas.
+        modelo.Especialidades = await _doctores.ObtenerEspecialidadesAsync();
+        modelo.Especialidad = modelo.Especialidades.FirstOrDefault(e =>
+            string.Equals(e, modelo.Especialidad, StringComparison.OrdinalIgnoreCase));
 
-        try
+        if (modelo.Especialidad is null)
         {
-            if (incluirPacientes)
-            {
-                var pacientes = await _pacientes.ObtenerTodosAsync();
-                modelo.Pacientes = pacientes
-                    .Select(p => new SelectListItem($"{p.Nombre} {p.Apellido}".Trim(), p.IdPaciente.ToString()))
-                    .ToList();
-            }
-
-            var especialidades = await _doctores.ObtenerEspecialidadesAsync();
-
-            // Una especialidad que la API no conoce (escrita a mano en la URL,
-            // o de un doctor que se dio de baja) se descarta en vez de buscar
-            // con ella. Se guarda la versión de la API para que coincida el select.
-            modelo.Especialidad = especialidades.FirstOrDefault(e =>
-                string.Equals(e, modelo.Especialidad, StringComparison.OrdinalIgnoreCase));
-
-            modelo.Especialidades = especialidades
-                .Select(e => new SelectListItem(e, e, e == modelo.Especialidad))
-                .ToList();
-
-            if (modelo.Especialidad is null)
-            {
-                modelo.DoctorElegido = null;
-                return;
-            }
-
-            // La API filtra por "contiene": sin este Where, "Cardiología"
-            // traería también a los de "Cardiología infantil".
-            doctores = (await _doctores.BuscarAsync(modelo.Especialidad, limite: 200)).Doctores
-                .Where(d => string.Equals(d.Especialidad?.Trim(), modelo.Especialidad, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(d => d.Nombre, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
-
-            // Un doctor que no es de la especialidad (porque se cambió la
-            // especialidad y se reenvió el formulario) vuelve a "Cualquiera".
-            if (!doctores.Any(d => d.IdDoctor == modelo.DoctorElegido))
-                modelo.DoctorElegido = null;
-
-            modelo.Doctores = doctores
-                .Select(d => new SelectListItem(
-                    d.Nombre.Trim(),
-                    d.IdDoctor.ToString(),
-                    d.IdDoctor == modelo.DoctorElegido))
-                .ToList();
-        }
-        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
-        {
-            ModelState.AddModelError(string.Empty, $"No se pudieron cargar las listas: {error.Message}");
+            modelo.IdDoctor = null;
             return;
         }
 
-        await CargarFranjasAsync(modelo, doctores);
+        // Paso 2: los doctores de la especialidad. La API filtra por
+        // "contiene": sin este Where, "Cardiología" traería también a los de
+        // "Cardiología infantil".
+        modelo.Doctores = (await _doctores.BuscarAsync(modelo.Especialidad, limite: 200)).Doctores
+            .Where(d => string.Equals(d.Especialidad?.Trim(), modelo.Especialidad, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d.Nombre, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        // Un doctor que no es de la especialidad vuelve a la elección del doctor.
+        var esDeLaEspecialidad = modelo.Doctores.Any(d => d.IdDoctor == modelo.IdDoctor);
+        if (!modelo.CualquierDoctor && !esDeLaEspecialidad)
+            modelo.IdDoctor = null;
+
+        if (modelo.IdDoctor is null || modelo.Doctores.Count == 0)
+            return;
+
+        // Paso 3. El horario semanal es solo una ayuda: si no llega, la
+        // pantalla sigue andando sin él.
+        if (!modelo.CualquierDoctor)
+        {
+            try
+            {
+                var horarios = await _doctores.ObtenerHorariosAsync(modelo.IdDoctor.Value);
+                if (horarios is not null)
+                    modelo.HorarioDoctor = HorarioSemanalViewModel.Desde(horarios);
+            }
+            catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+            {
+            }
+
+            // Sin horario cargado no hay días que mostrar: lo explica la vista.
+            if (modelo.HorarioDoctor is { TieneHorario: false })
+                return;
+        }
+
+        await ArmarTiraAsync(modelo, fecha, desde);
+
+        if (modelo.Fecha is not null)
+            await CargarFranjasAsync(modelo);
     }
 
     /// <summary>
-    /// Franjas libres del doctor elegido, o de todos los de la especialidad si
-    /// se eligió "Cualquiera". Los pedidos van uno después del otro por el
-    /// mismo motivo que en ArmarDetalleAsync: el ApiClient lee el token de
+    /// La tira de dos semanas con cuántos horarios libres tiene cada día. Si
+    /// no se eligió un día (o el elegido no está en la tira), queda elegido el
+    /// primero con lugar.
+    /// </summary>
+    private async Task ArmarTiraAsync(TurnoCrearViewModel modelo, DateTime? fecha, DateTime? desde)
+    {
+        const int dias = TurnoCrearViewModel.DiasDeLaTira;
+        var hoy = modelo.Hoy;
+
+        // La tira arranca en "desde" (si no es un día pasado) o en hoy. Si el
+        // día elegido queda afuera, arranca en ese día.
+        var inicio = hoy;
+        if (desde is { } pedidoDesde && pedidoDesde.Date > hoy)
+            inicio = pedidoDesde.Date;
+        if (fecha is { } pedida && pedida.Date >= hoy && (pedida.Date < inicio || pedida.Date >= inicio.AddDays(dias)))
+            inicio = pedida.Date;
+
+        var libres = await ContarLibresPorDiaAsync(modelo, inicio);
+
+        // El día elegido: el de la URL si está en la tira; si no, el primero
+        // con lugar (o el primero, si la API no informó cuántos hay).
+        DateTime? elegido = null;
+        if (fecha is { } enLaUrl && enLaUrl.Date >= inicio && enLaUrl.Date < inicio.AddDays(dias))
+            elegido = enLaUrl.Date;
+
+        for (var i = 0; i < dias && elegido is null; i++)
+        {
+            var dia = inicio.AddDays(i);
+            if (libres is null || libres.GetValueOrDefault(dia) > 0)
+                elegido = dia;
+        }
+
+        modelo.Fecha = elegido;
+
+        var lista = new List<DiaDeLaTira>();
+        for (var i = 0; i < dias; i++)
+        {
+            var dia = inicio.AddDays(i);
+            lista.Add(new DiaDeLaTira
+            {
+                Fecha = dia,
+                Libres = libres is null ? null : libres.GetValueOrDefault(dia),
+                Elegido = dia == elegido,
+                Ruta = modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, fecha: dia, desde: inicio)
+            });
+        }
+
+        var anteriores = inicio.AddDays(-dias);
+        modelo.Tira = new TiraDeDiasViewModel
+        {
+            Accion = nameof(Crear),
+            Dias = lista,
+            // Antes de hoy no hay nada para reservar.
+            RutaAnteriores = inicio > hoy
+                ? modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, desde: anteriores < hoy ? hoy : anteriores)
+                : null,
+            RutaSiguientes = modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, desde: inicio.AddDays(dias))
+        };
+    }
+
+    /// <summary>
+    /// Por día, cuántos horarios libres hay con el doctor elegido, o sumando
+    /// los de todos los doctores de la especialidad si es "Cualquiera". Null
+    /// si no se pudo saber de ninguno (por ejemplo, la API todavía no tiene
+    /// dias-disponibles durante un despliegue): la tira se muestra sin números.
+    /// Los pedidos van uno después del otro: el ApiClient lee el token de
     /// HttpContext.Session, que no es seguro en concurrencia.
     /// </summary>
-    private async Task CargarFranjasAsync(TurnoCrearViewModel modelo, IReadOnlyList<DoctorLista> doctores)
+    private async Task<Dictionary<DateTime, int>?> ContarLibresPorDiaAsync(TurnoCrearViewModel modelo, DateTime inicio)
     {
-        if (modelo.FechaInicio is not { } fecha)
-            return;
+        var ids = new List<int>();
+        if (modelo.CualquierDoctor)
+            ids.AddRange(modelo.Doctores.Select(d => d.IdDoctor));
+        else
+            ids.Add(modelo.IdDoctor!.Value);
 
-        var dia = DateOnly.FromDateTime(fecha);
+        var conteo = new Dictionary<DateTime, int>();
+        var respondieron = 0;
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                var dias = await _doctores.ObtenerDiasDisponiblesAsync(id, DateOnly.FromDateTime(inicio), TurnoCrearViewModel.DiasDeLaTira);
+                respondieron++;
+
+                foreach (var dia in dias)
+                {
+                    conteo.TryGetValue(dia.Fecha.Date, out var suma);
+                    conteo[dia.Fecha.Date] = suma + dia.Libres;
+                }
+            }
+            catch (ApiException error) when (error.Status is StatusCodes.Status400BadRequest
+                                                          or StatusCodes.Status404NotFound)
+            {
+                // Un doctor que se dio de baja recién, o una API sin este
+                // pedido: se lo saltea y se siguen sumando los demás.
+            }
+        }
+
+        return respondieron == 0 ? null : conteo;
+    }
+
+    /// <summary>
+    /// Horarios libres del día elegido, del doctor elegido o de todos los de
+    /// la especialidad si es "Cualquiera". Los pedidos van uno después del
+    /// otro, por lo mismo que en ContarLibresPorDiaAsync.
+    /// </summary>
+    private async Task CargarFranjasAsync(TurnoCrearViewModel modelo)
+    {
+        var dia = DateOnly.FromDateTime(modelo.Fecha!.Value);
 
         try
         {
-            if (modelo.DoctorElegido is { } idDoctor)
+            if (!modelo.CualquierDoctor)
             {
-                // El horario semanal es solo una ayuda para elegir la fecha: si
-                // no llega, la pantalla sigue andando sin él.
-                try
-                {
-                    var horarios = await _doctores.ObtenerHorariosAsync(idDoctor);
-                    if (horarios is not null)
-                        modelo.HorarioDoctor = HorarioSemanalViewModel.Desde(horarios);
-                }
-                catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
-                {
-                }
-
+                var idDoctor = modelo.IdDoctor!.Value;
                 var franjas = await _doctores.ObtenerDisponibilidadAsync(idDoctor, dia);
                 modelo.Franjas = franjas
                     .Select(f => new FranjaViewModel { IdDoctor = idDoctor, HoraInicio = f.HoraInicio, HoraFin = f.HoraFin })
@@ -634,7 +747,7 @@ public class TurnosController : ControladorBase
 
             var todas = new List<FranjaViewModel>();
 
-            foreach (var doctor in doctores)
+            foreach (var doctor in modelo.Doctores)
             {
                 try
                 {
@@ -664,6 +777,37 @@ public class TurnosController : ControladorBase
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             modelo.AvisoFranjas = $"No se pudieron cargar los horarios libres: {error.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Lo que la confirmación muestra además del horario: el doctor y, para
+    /// el personal, la lista de pacientes. Si la API falla no tira: la
+    /// pantalla se muestra igual, con el aviso arriba.
+    /// </summary>
+    private async Task CargarConfirmacionAsync(TurnoConfirmarViewModel modelo)
+    {
+        try
+        {
+            var doctor = await _doctores.ObtenerPorIdAsync(modelo.IdDoctor);
+            if (doctor is not null)
+            {
+                modelo.DoctorNombre = $"{doctor.Nombre} {doctor.Apellido}".Trim();
+                modelo.DoctorEspecialidad = doctor.Especialidad;
+                modelo.Consultorio = doctor.Consultorio;
+            }
+
+            if (modelo.MostrarSelectorPaciente)
+            {
+                var pacientes = await _pacientes.ObtenerTodosAsync();
+                modelo.Pacientes = pacientes
+                    .Select(p => new SelectListItem($"{p.Nombre} {p.Apellido}".Trim(), p.IdPaciente.ToString()))
+                    .ToList();
+            }
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(string.Empty, $"No se pudieron cargar todos los datos: {error.Message}");
         }
     }
 

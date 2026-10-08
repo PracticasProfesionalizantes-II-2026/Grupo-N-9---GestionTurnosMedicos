@@ -35,6 +35,11 @@ public record HorarioLaboral(int DiaSemana, string HoraInicio, string HoraFin);
 /// </summary>
 public record FranjaDisponible(string HoraInicio, string HoraFin);
 
+/// <summary>
+/// Un día y cuántas franjas libres tiene el doctor. Espeja DiaDisponibleDto.
+/// </summary>
+public record DiaDisponible(DateTime Fecha, int Libres);
+
 public class DoctorService
 {
     private readonly ApiClient _api;
@@ -114,6 +119,18 @@ public class DoctorService
         var parametros = new Dictionary<string, object?> { ["fecha"] = fecha };
         return await _api.GetAsync<List<FranjaDisponible>>($"/doctores/{id}/disponibilidad", parametros)
             ?? new List<FranjaDisponible>();
+    }
+
+    /// <summary>
+    /// GET /doctores/{id}/dias-disponibles: cuántas franjas libres tiene el
+    /// doctor cada día, desde <paramref name="desde"/> (la API arranca hoy
+    /// como mínimo). Deja pasar la ApiException, como ObtenerDisponibilidadAsync.
+    /// </summary>
+    public async Task<IReadOnlyList<DiaDisponible>> ObtenerDiasDisponiblesAsync(int id, DateOnly desde, int dias)
+    {
+        var parametros = new Dictionary<string, object?> { ["desde"] = desde, ["dias"] = dias };
+        return await _api.GetAsync<List<DiaDisponible>>($"/doctores/{id}/dias-disponibles", parametros)
+            ?? new List<DiaDisponible>();
     }
 
     /// <summary>

@@ -152,4 +152,60 @@ public class HorarioLaboralLogicaTests
         Assert.Null(error);
         Assert.Equal(new[] { "10:00", "10:30", "11:00", "11:30" }, franjas!.Select(f => f.HoraInicio));
     }
+
+    [Fact]
+    public async Task Los_dias_disponibles_cuentan_las_franjas_libres_de_cada_dia()
+    {
+        // Preparar: el doctor atiende todos los días de 08:00 a 10:00 (cuatro
+        // franjas) y son las 10:00 de hoy. Mañana tiene un turno a las 08:00 y
+        // uno cancelado a las 08:30, que no ocupa lugar.
+        _reloj.Momento = DateTime.Today.AddHours(10);
+        for (var dia = 0; dia <= 6; dia++)
+        {
+            _horarios.Horarios.Add(new HorarioLaboral
+            {
+                IdDoctor = IdDoctorPropio,
+                DiaSemana = dia,
+                HoraInicio = new TimeSpan(8, 0, 0),
+                HoraFin = new TimeSpan(10, 0, 0)
+            });
+        }
+        var manana = DateTime.Today.AddDays(1);
+        _turnos.Turnos.Add(TurnoDe(manana, 8, 0, "pendiente"));
+        _turnos.Turnos.Add(TurnoDe(manana, 8, 30, "cancelado"));
+
+        // Ejecutar: tres días desde hoy.
+        var (dias, error) = await _logica.ObtenerDiasDisponibles(IdDoctorPropio, null, 3);
+
+        // Verificar: hoy ya pasaron todas; mañana quedan 3; pasado, las 4.
+        Assert.Null(error);
+        var lista = dias!.ToList();
+        Assert.Equal(new[] { DateTime.Today, manana, DateTime.Today.AddDays(2) }, lista.Select(d => d.Fecha));
+        Assert.Equal(new[] { 0, 3, 4 }, lista.Select(d => d.Libres));
+    }
+
+    [Fact]
+    public async Task Los_dias_disponibles_arrancan_hoy_y_no_pasan_de_31()
+    {
+        // Ejecutar: pide desde la semana pasada y 100 días.
+        var (dias, error) = await _logica.ObtenerDiasDisponibles(IdDoctorPropio, DateTime.Today.AddDays(-7), 100);
+
+        // Verificar: el doctor no tiene horario, así que todos dan 0.
+        Assert.Null(error);
+        var lista = dias!.ToList();
+        Assert.Equal(31, lista.Count);
+        Assert.Equal(DateTime.Today, lista[0].Fecha);
+        Assert.All(lista, d => Assert.Equal(0, d.Libres));
+    }
+
+    /// <summary>Un turno de media hora del doctor de las pruebas.</summary>
+    private Turno TurnoDe(DateTime dia, int hora, int minutos, string estado) => new Turno
+    {
+        Id = _turnos.Turnos.Count + 1,
+        IdDoctor = IdDoctorPropio,
+        FechaInicio = dia,
+        HoraInicio = new TimeSpan(hora, minutos, 0),
+        HoraFin = new TimeSpan(hora, minutos + 30, 0),
+        Estado = estado
+    };
 }

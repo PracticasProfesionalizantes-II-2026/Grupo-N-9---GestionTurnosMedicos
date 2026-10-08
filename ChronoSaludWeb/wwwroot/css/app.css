@@ -282,6 +282,18 @@
     @apply cursor-pointer hover:border-primary aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:inset-ring-2 aria-pressed:inset-ring-primary;
   }
 
+  /* Un día de la tira de días (pedir turno): el día, la fecha y cuántos
+     horarios libres tiene, apilados. Va junto con .tarjeta. El elegido
+     (aria-current="date") se ve como la tarjeta de filtro activa, y uno sin
+     lugar (aria-disabled, no es un enlace) queda apagado y sin hover. */
+  .dia {
+    @apply flex min-h-11 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center no-underline hover:border-primary aria-[current=date]:border-primary aria-[current=date]:bg-primary-soft aria-[current=date]:inset-ring-2 aria-[current=date]:inset-ring-primary;
+  }
+
+  .dia[aria-disabled="true"] {
+    @apply cursor-default opacity-60 hover:border-contorno;
+  }
+
   /* El banner del inicio y la portada: tarjeta principal con el fondo crema
      de siempre, para que el motivo de marca se siga viendo igual. Va junto
      con .tarjeta. */
@@ -454,6 +466,7 @@
     .boton-texto,
     .tarjeta-enlace,
     .tarjeta-filtro,
+    .dia,
     .campo {
       transition: box-shadow 150ms ease-out, background-color 150ms ease-out,
                   color 150ms ease-out, border-color 150ms ease-out;

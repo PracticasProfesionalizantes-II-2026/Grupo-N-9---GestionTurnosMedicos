@@ -490,3 +490,17 @@ que usaban la del servidor. El seeder no fuerza "completado" en un turno
 que todavía no empezó.
 **Ojo:** antes de correr la migración en Azure, revisar que no haya
 turnos duplicados (si hay, el índice no se crea).
+
+## 2026-10-08 — mejoras, paso 6: pedir turno con días con lugar y confirmación
+**Hecho:** GET /doctores/{id}/dias-disponibles (cuántas franjas libres
+por día, comparte el cálculo con /disponibilidad). En la Web, "Nuevo
+turno" va en tres pasos con enlaces: especialidad, doctor (o
+"Cualquiera") y una tira de 14 días con cuántos horarios libres tiene
+cada uno (partial `_TiraDeDias`, que va a usar Reprogramar). Tocar un
+horario ya no reserva: lleva a `Turnos/Confirmar`, con el resumen, las
+observaciones y, para el personal, el paciente. Al confirmar se abre el
+detalle del turno nuevo. Clase `.dia` en el CSS, recompilado con
+Tailwind 4.3.3. Probado contra una API de mentira: los tres pasos,
+"Cualquiera", la confirmación del personal y la del paciente.
+**Ojo:** sin migración. Si la Web llega antes que la API al desplegar,
+la tira se muestra sin los números unos minutos.
