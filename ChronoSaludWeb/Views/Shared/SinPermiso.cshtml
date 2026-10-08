@@ -4,16 +4,21 @@
     var motivo = ViewData["Motivo"] as string;
     var rol = string.IsNullOrWhiteSpace(Model) ? null : Model;
     ViewData["Title"] = "Permiso insuficiente";
+
+    // Por defecto se vuelve al Index del controlador que la usa. Si ese
+    // Index tampoco es para este rol, el controlador pide volver al inicio.
+    var alInicio = ViewData["VolverAlInicio"] is true;
+    var controladorDeVuelta = alInicio ? "Home" : null;
 }
 
-<a asp-action="Index"
+<a asp-controller="@controladorDeVuelta" asp-action="Index"
    class="boton-texto text-muted hover:text-primary">
     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="m12 19-7-7 7-7" />
         <path d="M19 12H5" />
     </svg>
-    Volver al listado
+    @(alInicio ? "Volver al inicio" : "Volver al listado")
 </a>
 
 <div class="mt-6 tarjeta p-10 text-center">
@@ -37,7 +42,7 @@
             }
         </p>
     }
-    <a asp-action="Index"
+    <a asp-controller="@controladorDeVuelta" asp-action="Index"
        class="boton boton-primario mt-6">
         Volver
     </a>

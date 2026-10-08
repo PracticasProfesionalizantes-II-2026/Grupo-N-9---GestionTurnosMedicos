@@ -311,8 +311,9 @@ public class HomeController : Controller
             }
         };
 
-        // Sin perfil no hay horario que editar. El id es el de /doctores/me, y
-        // la acción Horario vuelve a revisar que sea el propio.
+        // Sin perfil no hay horario que editar ni actividad que mostrar. El id
+        // es el de /doctores/me, y la acción Horario vuelve a revisar que sea
+        // el propio.
         if (perfil is not null)
         {
             accesos.Add(new AccesoRapidoViewModel
@@ -322,6 +323,13 @@ public class HomeController : Controller
                 Controlador = "Doctores",
                 Accion = "Horario",
                 Ruta = new Dictionary<string, string> { ["id"] = $"{perfil.IdDoctor}" }
+            });
+            accesos.Add(new AccesoRapidoViewModel
+            {
+                Titulo = "Mi actividad",
+                Icono = "actividad",
+                Controlador = "Actividad",
+                Accion = "Mia"
             });
         }
 
@@ -473,6 +481,15 @@ public class HomeController : Controller
                     Titulo = "Cuentas",
                     Icono = "persona-mas",
                     Controlador = "Admin",
+                    Accion = "Index"
+                },
+                new AccesoRapidoViewModel
+                {
+                    // Quién cambió horarios y turnos: acá ve el aviso de que
+                    // un doctor tocó su horario.
+                    Titulo = "Actividad",
+                    Icono = "actividad",
+                    Controlador = "Actividad",
                     Accion = "Index"
                 }
             },

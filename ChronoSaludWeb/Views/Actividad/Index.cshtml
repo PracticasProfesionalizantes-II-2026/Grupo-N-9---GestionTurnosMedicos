@@ -1,0 +1,210 @@
+@model ActividadViewModel
+@{
+    ViewData["Title"] = Model.Titulo;
+    const string claseCampo = "campo mt-1.5";
+    const string claseEtiqueta = "block text-sm font-medium text-ink";
+    const string clasePaso = "boton boton-secundario";
+    const string clasePasoInactivo = "boton cursor-default border border-border text-muted opacity-60";
+
+    // La misma vista arma "Actividad" y "Mi actividad": el formulario, el
+    // paginado y "Reintentar" vuelven a la acción que la mostró.
+    var accion = Model.AccionDeRuta;
+
+    var vacio = Model.SinResultados
+        ? new EstadoVacioViewModel
+        {
+            Icono = "actividad",
+            Nivel = 2,
+            Titulo = "Ningún movimiento coincide con los filtros",
+            Ayuda = "Probá con otra acción o ampliando el rango de fechas.",
+            Accion = new EnlaceViewModel { Controlador = "Actividad", Accion = accion, Descripcion = "Limpiar filtros" }
+        }
+        : new EstadoVacioViewModel
+        {
+            Icono = "actividad",
+            Nivel = 2,
+            Titulo = "Todavía no hay movimientos",
+            Ayuda = Model.EsPropia
+                ? "Cuando se cree, confirme o cancele un turno tuyo, o cambie tu horario, va a aparecer acá."
+                : "Cuando se cree, confirme o cancele un turno, o cambie un horario, va a aparecer acá."
+        };
+}
+
+<a asp-controller="Home" asp-action="Index"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al inicio
+</a>
+
+<div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.Titulo</h1>
+        <p class="mt-1 max-w-2xl text-sm text-muted">
+            @if (Model.EsPropia)
+            {
+                <text>Lo que pasó con tus turnos y con tu horario, de lo más nuevo a lo más viejo.
+                De quien hizo cada cambio se muestra solo el rol.</text>
+            }
+            else
+            {
+                <text>Quién cambió horarios y turnos, de lo más nuevo a lo más viejo.</text>
+            }
+            Las horas son de Argentina.
+        </p>
+    </div>
+    @if (!Model.HuboError && Model.Aviso is null)
+    {
+        <p class="text-sm text-muted">
+            <span class="font-semibold tabular-nums text-ink">@Model.Total</span>
+            @(Model.Total == 1 ? "movimiento" : "movimientos")
+        </p>
+    }
+</div>
+
+@* Filtros por GET: viajan en la query string, así la búsqueda se puede
+   recargar o compartir. Filtrar siempre vuelve a la primera página. *@
+<form method="get" asp-action="@accion"
+      class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
+    @if (!Model.EsPropia)
+    {
+        <div class="w-full sm:w-56">
+            <label for="doctor" class="@claseEtiqueta">Doctor</label>
+            <select id="doctor" name="doctor" asp-items="Model.Doctores" class="@claseCampo">
+                <option value="">Todos</option>
+            </select>
+        </div>
+    }
+
+    <div class="w-full sm:w-64">
+        <label for="accion" class="@claseEtiqueta">Acción</label>
+        <select id="accion" name="accion" asp-items="Model.OpcionesDeAccion" class="@claseCampo">
+            <option value="">Todas</option>
+        </select>
+    </div>
+
+    <div class="w-full sm:w-auto">
+        <label for="desde" class="@claseEtiqueta">Desde</label>
+        <input id="desde" name="desde" type="date" value="@(Model.Desde?.ToString("yyyy-MM-dd"))"
+               class="@claseCampo tabular-nums" />
+    </div>
+
+    <div class="w-full sm:w-auto">
+        <label for="hasta" class="@claseEtiqueta">Hasta</label>
+        <input id="hasta" name="hasta" type="date" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))"
+               class="@claseCampo tabular-nums" />
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button type="submit"
+                class="boton boton-primario">
+            Filtrar
+        </button>
+        @if (Model.HayFiltro)
+        {
+            <a asp-action="@accion"
+               class="boton boton-secundario">
+                Limpiar
+            </a>
+        }
+    </div>
+
+    @if (Model.RangoInvertido)
+    {
+        <p class="w-full text-xs text-status-pendiente">
+            La fecha "desde" es posterior a la "hasta", por eso no aparece ningún movimiento.
+        </p>
+    }
+</form>
+
+@if (Model.Aviso is not null)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "info", Tono = TonoVacio.Aviso, Nivel = 2, Titulo = "No podemos mostrarte tu actividad", Ayuda = Model.Aviso }' />
+    </div>
+}
+else if (Model.HuboError)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudo cargar la actividad", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Actividad", Accion = accion, Ruta = Model.Ruta(), Descripcion = "Reintentar" } }' />
+    </div>
+}
+else if (Model.Movimientos.Count == 0)
+{
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio" model="vacio" />
+    </div>
+}
+else
+{
+    @* Una lista y no una tabla: cada movimiento apila sus datos, así en un
+       teléfono no hay que desplazarse hacia el costado. *@
+    <div class="mt-6 overflow-hidden tarjeta">
+        <ul>
+            @{ var fila = 0; }
+            @foreach (var movimiento in Model.Movimientos)
+            {
+                <li class="fila-animada border-b border-border px-5 py-4 last:border-0"
+                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <h2 class="font-medium text-ink">@movimiento.Accion</h2>
+                        <time datetime="@movimiento.FechaIso" class="text-sm tabular-nums text-muted">@movimiento.FechaMostrada</time>
+                    </div>
+                    <p class="mt-1 text-sm text-ink">@movimiento.Resumen</p>
+                    <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                        @if (movimiento.Doctor is not null)
+                        {
+                            <div class="flex min-w-0 items-center gap-1.5">
+                                <dt>Doctor:</dt>
+                                <dd class="truncate text-ink">@movimiento.Doctor</dd>
+                            </div>
+                        }
+                        <div class="flex min-w-0 items-center gap-1.5">
+                            <dt>@(Model.EsPropia ? "Lo hizo un:" : "Lo hizo:")</dt>
+                            <dd class="flex min-w-0 items-center gap-2">
+                                @if (movimiento.Usuario is not null)
+                                {
+                                    <span class="truncate text-ink">@movimiento.Usuario</span>
+                                }
+                                <partial name="_Chip" model="new ChipViewModel { Texto = movimiento.Rol, Capitalizar = true }" />
+                            </dd>
+                        </div>
+                    </dl>
+                </li>
+            }
+        </ul>
+    </div>
+
+    @* Paginación con enlaces: conservan los filtros. *@
+    <nav aria-label="Páginas de resultados" class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-muted">
+            Página <span class="font-semibold tabular-nums text-ink">@Model.Pagina</span>
+            de <span class="font-semibold tabular-nums text-ink">@Model.TotalPaginas</span>
+        </p>
+        <div class="flex items-center gap-2">
+            @if (Model.HayAnterior)
+            {
+                <a asp-action="@accion" asp-all-route-data="Model.Ruta(Model.Pagina - 1)"
+                   rel="prev" class="@clasePaso">Anterior</a>
+            }
+            else
+            {
+                <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
+            }
+            @if (Model.HaySiguiente)
+            {
+                <a asp-action="@accion" asp-all-route-data="Model.Ruta(Model.Pagina + 1)"
+                   rel="next" class="@clasePaso">Siguiente</a>
+            }
+            else
+            {
+                <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
+            }
+        </div>
+    </nav>
+}

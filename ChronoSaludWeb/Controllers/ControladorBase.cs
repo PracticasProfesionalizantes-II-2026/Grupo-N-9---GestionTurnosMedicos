@@ -13,11 +13,17 @@ public abstract class ControladorBase : Controller
     protected IActionResult AlLogin(string? destino) =>
         RedirectToAction("Login", "Cuenta", new { returnUrl = destino });
 
-    protected IActionResult SinPermiso(string titulo, string motivo)
+    /// <summary>
+    /// Con <paramref name="volverAlInicio"/> el enlace de vuelta va al inicio
+    /// y no al Index del controlador: es para cuando ese Index tampoco le
+    /// corresponde al rol.
+    /// </summary>
+    protected IActionResult SinPermiso(string titulo, string motivo, bool volverAlInicio = false)
     {
         Response.StatusCode = StatusCodes.Status403Forbidden;
         ViewData["Titulo"] = titulo;
         ViewData["Motivo"] = motivo;
+        ViewData["VolverAlInicio"] = volverAlInicio;
         return View("SinPermiso", HttpContext.Session.ObtenerSesion()?.Rol);
     }
 
