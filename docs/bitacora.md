@@ -412,3 +412,14 @@ sistema con "reducir movimiento" activado.
 **Ojo:** con F5 queda cerrado el rediseño. Afuera, a propósito: el
 mensaje de conexión de `ApiClient`, jQuery y la validación del cliente,
 y la pantalla de "Mis coberturas".
+
+## 2026-10-08 — mejoras, paso 1: pruebas automáticas
+**Hecho:** proyecto `ChronoSalud.Tests` (xUnit) en la solución, con
+repositorios falsos en memoria (`Falsos/`). Primeras pruebas: reservar y
+cancelar turnos (`TurnoLogica`), cambio de horario semanal
+(`HorarioLaboralLogica`), firma de las fotos, lista blanca de
+preferencias y "hoy" en hora de Argentina. Los dos workflows corren
+`dotnet test` antes de publicar.
+**Sigue:** paso 2, alta de paciente completa.
+**Ojo:** las pruebas no usan la base: lo que depende de SQL Server
+(índices, transacciones) se prueba a mano.

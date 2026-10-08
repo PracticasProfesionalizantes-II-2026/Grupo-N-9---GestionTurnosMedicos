@@ -26,6 +26,10 @@ jobs:
       - name: Build with dotnet
         run: dotnet build ChronoSaludApi/ChronoSaludApi.csproj --configuration Release
 
+      # Si alguna prueba falla, el workflow se corta acá y no se despliega nada.
+      - name: Correr las pruebas
+        run: dotnet test ChronoSalud.Tests/ChronoSalud.Tests.csproj --configuration Release
+
       - name: dotnet publish
         run: dotnet publish ChronoSaludApi/ChronoSaludApi.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
