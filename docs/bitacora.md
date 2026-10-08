@@ -437,3 +437,16 @@ de obra social (vuelven con las coberturas). Listas fijas en
 **Sigue:** paso 3, el paciente cancela sus turnos.
 **Ojo:** el alta de paciente ahora viaja con el token del administrador
 (antes iba anónima): la API solo acepta la ficha de un administrador.
+
+## 2026-10-08 — mejoras, paso 3: el paciente cancela sus turnos
+**Hecho:** `PuedeCancelarTurnos` suma al paciente (la API ya lo
+permitía): en Turnos aparece "Cancelar" en sus turnos en pie, y también
+en cada próximo turno del inicio. El detalle del turno tiene una tarjeta
+"Acciones" con "Cancelar turno" para los tres roles; confirmar y
+completar siguen siendo del personal. En Development, la API avisa al
+arrancar si a la base local le falta una migración
+(`Datos/AvisoDeMigraciones.cs`). El README dice el comando correcto para
+levantar todo (`levantar.ps1`).
+**Sigue:** paso 4, listados ordenados y paginados en la base.
+**Ojo:** que el turno sea del paciente lo revisan `TurnosController`
+(con el ámbito) y la API; la Web solo mira el rol para mostrar el botón.

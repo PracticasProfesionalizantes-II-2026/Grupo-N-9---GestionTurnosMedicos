@@ -158,7 +158,7 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
                 "No podés cancelar turnos con tu rol",
-                "La cancelación está reservada al personal: doctor y administrador.");
+                "Cancelan turnos los pacientes (los suyos), los doctores (los de su agenda) y la administración.");
 
         try
         {
@@ -201,7 +201,7 @@ public class TurnosController : ControladorBase
         if (!_auth.PuedeCancelarTurnos)
             return SinPermiso(
                 "No podés cancelar turnos con tu rol",
-                "La cancelación está reservada al personal: doctor y administrador.");
+                "Cancelan turnos los pacientes (los suyos), los doctores (los de su agenda) y la administración.");
 
         try
         {
@@ -254,7 +254,7 @@ public class TurnosController : ControladorBase
             return SinPermiso(
                 "No podés cambiar el estado de un turno con tu rol",
                 "El estado de un turno lo cambia el personal: cada doctor en sus propios turnos, " +
-                "y administración o secretaría en cualquiera.");
+                "y la administración en cualquiera.");
 
         // El estado llega del formulario y la API lo guardaría tal cual, sin
         // validarlo, así que la lista blanca la ponemos nosotros.

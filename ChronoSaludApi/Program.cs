@@ -77,6 +77,12 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Solo en desarrollo: avisa en la consola si a la base local le falta una migración.
+if (app.Environment.IsDevelopment())
+{
+    AvisoDeMigraciones.Revisar(app);
+}
+
 // ── 7. Pipeline ────────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
