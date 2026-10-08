@@ -26,3 +26,9 @@ public record FranjaDisponibleDto(
     string HoraInicio,
     string HoraFin
 );
+
+/// <summary>Un día y cuántas franjas libres tiene el doctor ese día.</summary>
+public record DiaDisponibleDto(
+    DateTime Fecha,
+    int Libres
+);

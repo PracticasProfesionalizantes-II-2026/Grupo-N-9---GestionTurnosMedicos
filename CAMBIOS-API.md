@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 5
+# Cambios en la API — Mejoras, pasos 2 a 6
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4) y `feature/reglas-de-turnos` (paso 5)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (paso 5) y `feature/pedir-turno` (paso 6)
 
 Un apartado por cada paso.
 
@@ -225,4 +225,44 @@ Hay un estado nuevo, `ausente`: el paciente no vino. Los cambios permitidos son:
 | `Entidades/Movimiento.cs` | `TurnoAusente` |
 | `Entidades/Notificacion.cs` | La fecha por defecto en hora de Argentina |
 | `Program.cs` | Registra `IReloj` |
+
+---
+
+## Paso 6 — Días con lugar para pedir turno
+
+**No hay migración.** Es un endpoint nuevo, de solo lectura.
+
+### `GET /doctores/{id}/dias-disponibles?desde=YYYY-MM-DD&dias=14`
+
+Por cada día, cuántas franjas libres de 30 minutos tiene el doctor:
+
+```json
+[ { "fecha": "2026-10-09T00:00:00", "libres": 6 },
+  { "fecha": "2026-10-10T00:00:00", "libres": 0 } ]
+```
+
+- **`desde`** es opcional. Si no viene, o si es un día pasado, arranca hoy (hora de Argentina).
+- **`dias`** va de 1 a 31; si no viene, son 14.
+- **Las cuentas son las mismas que en `GET /doctores/{id}/disponibilidad`:**
+  - un día que el doctor no atiende da 0;
+  - los turnos cancelados no ocupan lugar;
+  - hoy no se cuentan las franjas que ya empezaron.
+
+  Las dos usan el mismo método (`FranjasLibres`).
+- **Hace dos consultas a la base en total:** el horario semanal y los turnos del período. No hace una por día.
+- **Errores:** doctor inexistente → `404`; inactivo → `400`.
+- Cualquier usuario con sesión lo puede pedir, igual que la disponibilidad.
+
+### A quién le pega
+
+- **Nadie:** es un pedido nuevo.
+- **La Web nueva con la API vieja** (los minutos del despliegue): la tira de días se muestra sin los números, y los días se pueden elegir igual.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/HorarioLaboralLogica.cs` | `ObtenerDiasDisponibles`. El cálculo de franjas pasa a `FranjasLibres`, que comparten los dos pedidos |
+| `Logica/IHorarioLaboralLogica.cs`, `Logica/DTOs/HorarioLaboralDTOs.cs` | La firma y `DiaDisponibleDto` |
+| `Endpoints/HorarioLaboralEndpoints.cs` | El endpoint |
 

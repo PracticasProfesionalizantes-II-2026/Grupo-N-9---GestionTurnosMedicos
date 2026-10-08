@@ -14,6 +14,7 @@ public interface IHorarioLaboralLogica
     Task<(bool ok, string? error, IReadOnlyList<TurnoEnConflictoDto> conflictos, bool reintentar, bool prohibido)> Reemplazar(
         int idDoctor, HorarioSemanalDto dto, Solicitante solicitante);
     Task<(IEnumerable<FranjaDisponibleDto>? franjas, string? error)> ObtenerDisponibilidad(int idDoctor, DateTime fecha);
+    Task<(IEnumerable<DiaDisponibleDto>? dias, string? error)> ObtenerDiasDisponibles(int idDoctor, DateTime? desde, int dias);
     Task<IEnumerable<string>> ObtenerEspecialidades();
     Task<(bool ok, string? error)> ValidarHorarioLaboral(int idDoctor, DateTime fecha, TimeSpan horaInicio, TimeSpan horaFin);
 }

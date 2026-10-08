@@ -1,0 +1,117 @@
+@model TurnoConfirmarViewModel
+@{
+    ViewData["Title"] = "Confirmar turno";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "campo mt-1.5";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Cambiar horario
+</a>
+
+<div class="mt-6 max-w-xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Confirmá el turno</h1>
+    <p class="mt-1 text-sm text-muted">
+        Todavía no está reservado: revisá los datos y tocá "Confirmar turno". Queda pendiente hasta que lo confirme el consultorio.
+    </p>
+
+    @if (erroresGenerales is { Count: > 0 })
+    {
+        <div class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+            <span>
+                @foreach (var error in erroresGenerales)
+                {
+                    <span class="block">@error.ErrorMessage</span>
+                }
+                <a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario"
+                   class="mt-1 inline-block font-semibold underline">Elegir otro horario</a>
+            </span>
+        </div>
+    }
+
+    <div class="mt-6 tarjeta p-6">
+        <dl class="grid gap-4 sm:grid-cols-3">
+            <div class="sm:col-span-3">
+                <dt class="text-sm text-muted">Doctor</dt>
+                <dd class="mt-0.5 font-medium text-ink">@Model.DoctorMostrado</dd>
+                @if (!string.IsNullOrWhiteSpace(Model.DoctorEspecialidad) || !string.IsNullOrWhiteSpace(Model.Consultorio))
+                {
+                    <dd class="text-sm text-muted">
+                        <span class="capitalize">@Model.DoctorEspecialidad</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
+                        {
+                            <span aria-hidden="true"> · </span>
+                            <span>Consultorio @Model.Consultorio</span>
+                        }
+                    </dd>
+                }
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-sm text-muted">Fecha</dt>
+                <dd class="mt-0.5 capitalize text-ink">@Model.FechaLarga</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-muted">Horario</dt>
+                <dd class="mt-0.5 font-medium tabular-nums text-ink">@Model.Horario</dd>
+            </div>
+        </dl>
+
+        <form asp-action="Confirmar" method="post" novalidate class="mt-6 grid gap-5 border-t border-border pt-6">
+            @* El horario elegido viaja oculto. Si la API lo rechaza (por
+               ejemplo, se ocupó recién), la pantalla vuelve con el aviso. *@
+            <input type="hidden" asp-for="IdDoctor" />
+            <input type="hidden" name="Fecha" value="@Model.FechaIso" />
+            <input type="hidden" asp-for="HoraInicio" />
+            <input type="hidden" asp-for="HoraFin" />
+            <input type="hidden" asp-for="Especialidad" />
+            <input type="hidden" asp-for="DoctorElegido" />
+
+            @if (Model.MostrarSelectorPaciente)
+            {
+                <div>
+                    <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                    <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                        <option value="">Elegí un paciente</option>
+                    </select>
+                    <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                </div>
+            }
+
+            <div>
+                <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
+                <textarea asp-for="Observaciones" rows="3" placeholder="Opcional: el motivo de la consulta, por ejemplo" class="@claseCampo"></textarea>
+                <span asp-validation-for="Observaciones" class="@claseError"></span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="submit" class="boton boton-primario">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Confirmar turno
+                </button>
+                <a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario" class="boton boton-secundario">
+                    Cambiar horario
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

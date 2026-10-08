@@ -30,6 +30,9 @@ public class HorarioLaboralLogicaFalsa : IHorarioLaboralLogica
     public Task<(IEnumerable<FranjaDisponibleDto>? franjas, string? error)> ObtenerDisponibilidad(int idDoctor, DateTime fecha)
         => throw new NotImplementedException("No se usa en estas pruebas.");
 
+    public Task<(IEnumerable<DiaDisponibleDto>? dias, string? error)> ObtenerDiasDisponibles(int idDoctor, DateTime? desde, int dias)
+        => throw new NotImplementedException("No se usa en estas pruebas.");
+
     public Task<IEnumerable<string>> ObtenerEspecialidades()
         => throw new NotImplementedException("No se usa en estas pruebas.");
 }

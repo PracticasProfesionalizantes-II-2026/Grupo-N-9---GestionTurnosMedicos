@@ -78,5 +78,19 @@ public static class HorarioLaboralEndpoints
             return Results.Ok(franjas);
         })
         .WithSummary("Franjas libres del doctor en una fecha");
+
+        // GET /doctores/{id}/dias-disponibles?desde=YYYY-MM-DD&dias=14
+        grupo.MapGet("/{id:int}/dias-disponibles", async (int id, DateTime? desde, int? dias, IHorarioLaboralLogica logica) =>
+        {
+            // Sin "dias", dos semanas.
+            var (resultado, error) = await logica.ObtenerDiasDisponibles(id, desde, dias ?? 14);
+            if (resultado == null)
+                return error!.Contains("no encontrado")
+                    ? Results.NotFound(new { error })
+                    : Results.BadRequest(new { error });
+
+            return Results.Ok(resultado);
+        })
+        .WithSummary("Cuántas franjas libres tiene el doctor en cada día (de 1 a 31 días, desde hoy)");
     }
 }

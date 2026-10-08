@@ -1,9 +1,9 @@
 @model TurnoCrearViewModel
 @{
     ViewData["Title"] = "Nuevo turno";
-    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
-    const string claseCampo = "campo mt-1.5";
-    const string claseError = "mt-1 block text-xs text-status-cancelado";
+
+    // Una opción de los pasos 1 y 2: una tarjeta entera que es un enlace.
+    const string claseOpcion = "tarjeta tarjeta-enlace flex min-h-11 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-ink no-underline";
 }
 
 <a asp-action="Index"
@@ -16,204 +16,223 @@
     Volver al listado
 </a>
 
-<div class="mt-6 max-w-2xl">
+<div class="mt-6 max-w-3xl">
     <h1 class="text-2xl font-bold tracking-tight text-ink">Nuevo turno</h1>
-    <p class="mt-1 text-sm text-muted">Elegí especialidad, doctor y fecha, y tocá un horario libre. El estado inicial siempre es pendiente.</p>
+    <p class="mt-1 text-sm text-muted">
+        Elegí la especialidad, el doctor y el día, y tocá un horario libre. Antes de reservar vas a ver el resumen.
+    </p>
 
-    <div class="mt-6 tarjeta p-8">
-        @if (erroresGenerales is { Count: > 0 })
-        {
-            <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
-                <span>
-                    @foreach (var error in erroresGenerales)
-                    {
-                        <span class="block">@error.ErrorMessage</span>
-                    }
-                </span>
-            </div>
-        }
+    @* Un error al cargar las listas de los pasos 1 y 2 va arriba; el de los
+       días y horarios, adentro del paso 3. *@
+    @if (Model.AvisoFranjas is not null && Model.Paso < 3)
+    {
+        <p class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+            <span>@Model.AvisoFranjas</span>
+        </p>
+    }
 
-        @* Pasos 1 a 3. Es un GET: cada envío recarga la pantalla con la elección
-           en la query string (especialidad, idDoctor, fecha), sin JavaScript. *@
-        <form asp-action="Crear" method="get">
-            @if (Model.MostrarSelectorPaciente && Model.IdPaciente is not null)
+    @* Los tres pasos. Cada elección es un enlace que vuelve a esta pantalla
+       con lo elegido en la URL; lo ya elegido queda resumido con "Cambiar". *@
+    <ol class="mt-6 space-y-4">
+        <li class="tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">1. Especialidad</h2>
+
+            @if (Model.Paso == 1)
             {
-                @* Conserva el paciente ya elegido (o el que vino desde su ficha). *@
-                <input type="hidden" name="paciente" value="@Model.IdPaciente" />
-            }
-
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label for="especialidad" class="block text-sm font-medium text-ink">Especialidad</label>
-                    <select id="especialidad" name="especialidad" asp-items="Model.Especialidades"
-                            class="@claseCampo capitalize">
-                        <option value="">Elegí una especialidad</option>
-                    </select>
-                </div>
-
-                @if (Model.HayEspecialidad)
+                @if (Model.Especialidades.Count == 0 && Model.AvisoFranjas is null)
                 {
-                    <div>
-                        <label for="idDoctor" class="block text-sm font-medium text-ink">Doctor</label>
-                        <select id="idDoctor" name="idDoctor" asp-items="Model.Doctores" class="@claseCampo">
-                            <option value="">Cualquiera</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="fecha" class="block text-sm font-medium text-ink">Fecha</label>
-                        <input id="fecha" name="fecha" type="date" required
-                               value="@Model.FechaIso" min="@Model.FechaMinima"
-                               class="@claseCampo tabular-nums" />
-                    </div>
+                    <p class="mt-3 text-sm text-muted">Todavía no hay especialidades con doctores activos.</p>
                 }
-            </div>
+                else
+                {
+                    <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+                        @foreach (var especialidad in Model.Especialidades)
+                        {
+                            <li>
+                                <a asp-action="Crear" asp-all-route-data="Model.Ruta(especialidad)" class="@claseOpcion">
+                                    <span class="capitalize">@especialidad</span>
+                                    <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+            else
+            {
+                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span class="font-medium capitalize text-ink">@Model.Especialidad</span>
+                    <a asp-action="Crear" asp-all-route-data="Model.Ruta(null)" class="boton-texto">
+                        Cambiar<span class="sr-only"> la especialidad</span>
+                    </a>
+                </p>
+            }
+        </li>
 
-            <div class="mt-5">
-                <button type="submit"
-                        class="boton boton-secundario">
-                    @(Model.HayEspecialidad ? "Ver horarios" : "Continuar")
-                </button>
-            </div>
-        </form>
-
-        @* Sin horario cargado no hay semana que mostrar: el aviso va abajo, en
-           el lugar de las franjas. *@
-        @if (Model.HorarioDoctor is { TieneHorario: true })
+        @if (Model.Paso >= 2)
         {
-            var nombreDoctor = Model.Doctores.FirstOrDefault(d => d.Selected)?.Text;
+            <li class="tarjeta p-6">
+                <h2 class="text-base font-semibold text-ink">2. Doctor</h2>
 
-            <section class="mt-6 rounded-input border border-border px-4 py-3" aria-labelledby="titulo-horario">
-                <h2 id="titulo-horario" class="mb-1 text-sm font-semibold text-ink">
-                    @(nombreDoctor is null ? "Horario de atención" : $"Horario de atención de {nombreDoctor}")
-                </h2>
-                <partial name="_HorarioSemanal" model="Model.HorarioDoctor" />
-            </section>
+                @if (Model.Doctores.Count == 0)
+                {
+                    <p class="mt-3 text-sm text-muted">No hay doctores activos en esa especialidad. Probá con otra.</p>
+                }
+                else if (Model.Paso == 2)
+                {
+                    <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+                        <li>
+                            <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad, TurnoCrearViewModel.Cualquiera)" class="@claseOpcion">
+                                <span>
+                                    Cualquiera
+                                    <span class="block text-xs font-normal text-muted">Los horarios de todos los doctores de la especialidad</span>
+                                </span>
+                                <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m9 18 6-6-6-6" />
+                                </svg>
+                            </a>
+                        </li>
+                        @foreach (var doctor in Model.Doctores)
+                        {
+                            <li>
+                                @if (doctor.TieneHorario == false)
+                                {
+                                    @* Sin horario cargado no tiene días para ofrecer. *@
+                                    <span aria-disabled="true" class="@claseOpcion cursor-default opacity-60">
+                                        <span>
+                                            @doctor.Nombre.Trim()
+                                            <span class="block text-xs font-normal text-muted">Todavía no tiene horario de atención</span>
+                                        </span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad, doctor.IdDoctor)" class="@claseOpcion">
+                                        <span>@doctor.Nombre.Trim()</span>
+                                        <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="m9 18 6-6-6-6" />
+                                        </svg>
+                                    </a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span class="font-medium text-ink">@(Model.CualquierDoctor ? "Cualquiera de la especialidad" : Model.DoctorNombre)</span>
+                        <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad)" class="boton-texto">
+                            Cambiar<span class="sr-only"> el doctor</span>
+                        </a>
+                    </p>
+                }
+            </li>
         }
 
-        @if (Model.HayEspecialidad)
+        @if (Model.Paso == 3 && Model.Doctores.Count > 0)
         {
-            @* Paso 4. Cada franja es un botón submit: el doctor y las horas viajan
-               en su value. Paciente y observaciones van en este mismo formulario
-               para que se envíen junto con el horario elegido. *@
-            <form asp-action="Crear" method="post" novalidate class="mt-8 border-t border-border pt-6">
-                <input type="hidden" name="Especialidad" value="@Model.Especialidad" />
-                <input type="hidden" name="DoctorElegido" value="@Model.DoctorElegido" />
-                <input type="hidden" name="FechaInicio" value="@Model.FechaIso" />
+            <li class="tarjeta p-6">
+                <h2 class="text-base font-semibold text-ink">3. Día y horario</h2>
 
-                <div class="grid gap-5">
-                    @if (Model.MostrarSelectorPaciente)
+                @if (Model.HorarioDoctor is { TieneHorario: true })
+                {
+                    <section class="mt-4 rounded-input border border-border px-4 py-3" aria-labelledby="titulo-horario">
+                        <h3 id="titulo-horario" class="mb-1 text-sm font-semibold text-ink">Horario de atención</h3>
+                        <partial name="_HorarioSemanal" model="Model.HorarioDoctor" />
+                    </section>
+                }
+
+                @if (Model.HorarioDoctor is { TieneHorario: false })
+                {
+                    <p class="mt-3 text-sm text-muted">
+                        Este doctor todavía no tiene horario de atención cargado. Elegí otro doctor o "Cualquiera".
+                    </p>
+                }
+                else
+                {
+                    @if (Model.AvisoFranjas is not null)
                     {
-                        <div>
-                            <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                            <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                                <option value="">Elegí un paciente</option>
-                            </select>
-                            <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                        </div>
+                        <p class="mt-4 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                                <path d="M12 9v4" />
+                                <path d="M12 17h.01" />
+                            </svg>
+                            <span>@Model.AvisoFranjas</span>
+                        </p>
                     }
 
-                    <div>
-                        <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
-                        <textarea asp-for="Observaciones" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
-                        <span class="mt-1 block text-xs text-muted">Se envían junto con el horario que elijas.</span>
-                        <span asp-validation-for="Observaciones" class="@claseError"></span>
-                    </div>
+                    @if (Model.Tira is not null)
+                    {
+                        <partial name="_TiraDeDias" model="Model.Tira" />
 
-                    <fieldset>
-                        <legend class="text-sm font-medium text-ink">
-                            Horarios libres del @Model.FechaLarga
-                        </legend>
-
-                        @if (Model.AvisoFranjas is not null)
+                        @if (Model.Tira.SinLugarEnNingunDia)
                         {
-                            <p class="mt-3 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                                    <path d="M12 9v4" />
-                                    <path d="M12 17h.01" />
-                                </svg>
-                                <span>@Model.AvisoFranjas</span>
+                            <p class="mt-4 text-sm text-muted">
+                                No hay horarios libres en estas dos semanas. Mirá las siguientes.
                             </p>
                         }
-                        else if (Model.Doctores.Count == 0)
+                    }
+
+                    @if (Model.Fecha is not null && Model.AvisoFranjas is null)
+                    {
+                        <h3 class="mt-6 text-sm font-medium text-ink">Horarios libres del @Model.FechaLarga</h3>
+
+                        @if (Model.Franjas.Count == 0)
                         {
-                            <div class="mt-3 rounded-input border border-border px-4 py-5 text-center">
-                                <p class="text-sm font-semibold text-ink">No hay doctores activos en esa especialidad</p>
-                                <p class="mt-1 text-sm text-muted">Probá con otra especialidad.</p>
-                            </div>
-                        }
-                        else if (Model.HorarioDoctor is { TieneHorario: false })
-                        {
-                            @* Con este doctor no sirve cambiar la fecha: no
-                               atiende ningún día hasta que le carguen el horario. *@
-                            <div class="mt-3 rounded-input border border-border px-4 py-5 text-center">
-                                <p class="text-sm font-semibold text-ink">Este doctor todavía no tiene horario de atención cargado</p>
-                                <p class="mt-1 text-sm text-muted">Elegí otro doctor o "Cualquiera".</p>
-                            </div>
-                        }
-                        else if (Model.Franjas.Count == 0)
-                        {
-                            <div class="mt-3 rounded-input border border-border px-4 py-5 text-center">
-                                <p class="text-sm font-semibold text-ink">No hay horarios libres ese día</p>
-                                <p class="mt-1 text-sm text-muted">
-                                    @(Model.BuscaCualquiera
-                                        ? "Probá con otra fecha."
-                                        : "Probá con otra fecha u otro doctor (o con \"Cualquiera\").")
-                                </p>
-                            </div>
+                            <p class="mt-2 text-sm text-muted">No hay horarios libres ese día. Elegí otro día de la tira.</p>
                         }
                         else
                         {
-                            <p class="mt-1 text-sm text-muted">
-                                <span class="tabular-nums">@Model.Franjas.Count</span>
-                                @(Model.Franjas.Count == 1 ? "horario disponible" : "horarios disponibles").
-                                Tocá uno para reservarlo.
-                            </p>
+                            <p class="mt-1 text-sm text-muted">Tocá uno para ver el resumen antes de reservar.</p>
 
-                            <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            @* Cada horario es un enlace a la confirmación: todavía no reserva nada. *@
+                            <ul class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                                 @foreach (var franja in Model.Franjas)
                                 {
-                                    <button type="submit" name="Franja" value="@franja.Valor"
-                                            class="boton boton-secundario min-w-0 flex-col items-start gap-0 px-3 text-left">
-                                        <span class="text-sm font-semibold tabular-nums text-ink">
-                                            <span class="sr-only">Reservar de</span>
-                                            @franja.HoraInicio
-                                            <span aria-hidden="true">–</span><span class="sr-only">a</span>
-                                            @franja.HoraFin
-                                        </span>
-                                        @if (franja.DoctorNombre is not null)
-                                        {
-                                            <span class="mt-0.5 block w-full truncate text-xs text-muted">
-                                                <span class="sr-only">con</span>
-                                                @franja.DoctorNombre
+                                    <li>
+                                        <a asp-action="Confirmar" asp-all-route-data="Model.RutaConfirmar(franja)"
+                                           class="boton boton-secundario w-full min-w-0 flex-col items-start gap-0 px-3 text-left">
+                                            <span class="text-sm font-semibold tabular-nums text-ink">
+                                                @franja.HoraInicio
+                                                <span aria-hidden="true">–</span><span class="sr-only">a</span>
+                                                @franja.HoraFin
                                             </span>
-                                        }
-                                    </button>
+                                            @if (franja.DoctorNombre is not null)
+                                            {
+                                                <span class="mt-0.5 block w-full truncate text-xs text-muted">
+                                                    <span class="sr-only">con</span>
+                                                    @franja.DoctorNombre
+                                                </span>
+                                            }
+                                        </a>
+                                    </li>
                                 }
-                            </div>
+                            </ul>
                         }
-                    </fieldset>
-                </div>
-            </form>
+                    }
+                }
+            </li>
         }
+    </ol>
 
-        <div class="mt-7">
-            <a asp-action="Index"
-               class="boton boton-secundario">
-                Cancelar
-            </a>
-        </div>
+    <div class="mt-7">
+        <a asp-action="Index"
+           class="boton boton-secundario">
+            Cancelar
+        </a>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
