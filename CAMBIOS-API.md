@@ -1,3 +1,77 @@
+# Cambios en la API — El doctor cambia su propio horario
+
+**Fecha:** 2026-10-08 · **Rama:** `feature/horarios-doctor`
+
+`PUT /doctores/{id}/horarios` ya no es solo del administrador: un doctor puede cambiar
+**su** horario. Ningún pedido que antes andaba deja de andar. No hay migración ni script
+para Azure.
+
+## Quién puede
+
+| Quién llama | Qué pasa |
+|---|---|
+| `administrador` | Igual que antes: cambia el horario de cualquier doctor |
+| `doctor`, sobre su horario | `200`, con las mismas validaciones que el administrador |
+| `doctor`, sobre el horario de otro | `403` con `{ "error": "Solo podés cambiar tu propio horario." }` |
+| `doctor` sin perfil de doctor | `404` con `"Tu usuario no tiene un perfil de doctor asociado."`, como en `GET /movimientos` |
+| `paciente` | `403` sin cuerpo (como antes) |
+
+El doctor se reconoce por el token, no por la ruta: la API busca su perfil con el id de
+usuario del token y lo compara con el `{id}` del pedido. El permiso se decide antes de
+validar, así que un `{id}` ajeno contesta `403` exista o no ese doctor.
+
+## Lo que no cambia
+
+- El control de turnos: si el horario nuevo deja afuera turnos pendientes o confirmados,
+  `409` con la lista y no se guarda nada. La lista solo trae turnos de esa agenda.
+- El `503` con `Retry-After` cuando la base está ocupada.
+- El historial: cada cambio deja una fila `horario.cambiado` con el rol de quien lo hizo
+  (`doctor` o `administrador`). Guardar un horario igual al que había no deja ninguna.
+
+Ese registro es el aviso al administrador: lo lee con
+`GET /movimientos?accion=horario.cambiado`. La pantalla para verlo (Actividad) llega con
+la Web.
+
+## Despliegue
+
+La API puede ir antes que la Web. La Web actual solo le muestra la edición de horarios al
+administrador, así que para quien usa las pantallas no cambia nada hasta que se despliegue
+la Web nueva. Mientras tanto, un doctor ya puede cambiar su horario llamando a la API
+directo, y ese cambio queda en el historial.
+
+## Alternativa descartada por ahora
+
+Avisar con la tabla de notificaciones, que ya tiene el campo `Leida` y
+`PATCH /notificaciones/{id}/leer`: cada cambio de un doctor le crearía una notificación a
+cada administrador, con leído y no leído. No necesita migración. Queda para más adelante
+si el historial no alcanza.
+
+## Archivos tocados
+
+| Archivo | Qué cambió |
+|---|---|
+| `ChronoSaludApi/Endpoints/HorarioLaboralEndpoints.cs` | El `PUT` acepta `administrador` y `doctor`; `403` con mensaje |
+| `ChronoSaludApi/Logica/HorarioLaboralLogica.cs`, `IHorarioLaboralLogica.cs` | `Reemplazar` decide el permiso con el doctor del token |
+| `pruebas-fase-horarios.http` | Casos del doctor: 1.6 a 1.9 y 3.7 |
+
+## Verificado
+
+Contra la API local, con las cuentas de la demo:
+
+| Caso | Resultado |
+|---|---|
+| Administrador cambia el lunes de Gómez y lo restaura | `200` y `200`, dos filas con rol `administrador` |
+| Gómez cambia su lunes y lo restaura | `200` y `200`, dos filas con rol `doctor` |
+| Gómez sobre el horario de Rivas, y sobre un id que no existe | `403` con el mensaje; el horario de Rivas no cambia |
+| Paciente sobre el horario de Gómez | `403` |
+| Gómez achica un martes con un turno pendiente a las 13:00 | `409` con ese turno; no se guarda nada |
+| Gómez guarda el mismo horario | `200`, sin fila nueva |
+| Sin token | `401` |
+
+Sin probar: el doctor sin perfil (la demo no tiene una cuenta así).
+
+---
+
 # Cambios en la API — Historial de movimientos (lleva migración)
 
 **Fecha:** 2026-10-07 · **Rama:** `feature/historial-movimientos`

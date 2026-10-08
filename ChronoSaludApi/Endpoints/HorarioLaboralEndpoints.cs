@@ -34,9 +34,13 @@ public static class HorarioLaboralEndpoints
             if (solicitante == null)
                 return Results.Unauthorized();
 
-            var (ok, error, conflictos, reintentar) = await logica.Reemplazar(id, dto, solicitante);
+            var (ok, error, conflictos, reintentar, prohibido) = await logica.Reemplazar(id, dto, solicitante);
             if (!ok)
             {
+                // Un doctor sobre un horario que no es el suyo: 403 con el motivo.
+                if (prohibido)
+                    return Results.Json(new { error }, statusCode: StatusCodes.Status403Forbidden);
+
                 // Turnos reservados que quedarían fuera: no se guardó nada.
                 if (conflictos.Count > 0)
                     return Results.Conflict(new { error, conflictos });
@@ -49,15 +53,15 @@ public static class HorarioLaboralEndpoints
                     return Results.Json(new { error }, statusCode: StatusCodes.Status503ServiceUnavailable);
                 }
 
-                return error!.Contains("no encontrado")
+                return error!.Contains("no encontrado") || error == HorarioLaboralLogica.SinPerfilDeDoctor
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
             }
 
             return Results.Ok(new { mensaje = "Horario actualizado correctamente." });
         })
-        .WithSummary("Reemplazar horario semanal del doctor")
-        .RequireAuthorization(p => p.RequireRole("administrador"));
+        .WithSummary("Reemplazar horario semanal del doctor (administrador: cualquiera; doctor: solo el suyo)")
+        .RequireAuthorization(p => p.RequireRole("administrador", "doctor"));
 
         // GET /doctores/{id}/disponibilidad?fecha=YYYY-MM-DD
         grupo.MapGet("/{id:int}/disponibilidad", async (int id, DateTime? fecha, IHorarioLaboralLogica logica) =>
