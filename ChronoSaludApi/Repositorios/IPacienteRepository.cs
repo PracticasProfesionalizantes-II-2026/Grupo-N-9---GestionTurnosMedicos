@@ -4,7 +4,7 @@ namespace ChronoSaludApi.Repositorios;
 
 public interface IPacienteRepository
 {
-    Task<IEnumerable<Paciente>> ObtenerTodos(string? nombre, string? dni, int? coberturaId);
+    Task<(int total, List<Paciente> pacientes)> Buscar(string? nombre, string? dni, int? coberturaId, int pagina, int limite);
     Task<Paciente?> ObtenerPorId(int id);
     Task<Paciente?> ObtenerPorIdUsuario(int idUsuario);
     Task Agregar(Paciente paciente);

@@ -10,13 +10,9 @@ namespace ChronoSaludWeb.Controllers;
 [PermiteSinSesion]
 public class HomeController : Controller
 {
-    // Cuántos turnos entran en el panel de contexto.
+    // Cuántos turnos entran en el panel de contexto. Es también lo que se le
+    // pide a la API: ella filtra los estados y ordena.
     private const int TurnosDelPanel = 6;
-
-    // Cuántos turnos se le piden a la API para armar el tablero. Son más que
-    // los que se muestran porque los cancelados y los completados se descartan
-    // acá: la API no filtra por más de un estado a la vez.
-    private const int TurnosAPedir = 100;
 
     // Cuántas consultas y recetas entran en el historial reciente del paciente.
     private const int ActividadDelPanel = 3;
@@ -85,7 +81,7 @@ public class HomeController : Controller
 
         var turnos = perfil is null
             ? Array.Empty<TurnoFilaViewModel>()
-            : await TurnosEnPieAsync(pacienteId: perfil.IdPaciente, desde: FechaArgentina.Hoy());
+            : Filas(await TurnosEnPieAsync(pacienteId: perfil.IdPaciente, desde: FechaArgentina.Hoy()));
 
         var agendar = new EnlaceViewModel
         {
@@ -261,7 +257,7 @@ public class HomeController : Controller
 
         var turnos = perfil is null
             ? Array.Empty<TurnoFilaViewModel>()
-            : await TurnosEnPieAsync(doctorId: perfil.IdDoctor, desde: FechaArgentina.Hoy());
+            : Filas(await TurnosEnPieAsync(doctorId: perfil.IdDoctor, desde: FechaArgentina.Hoy()));
 
         var hoy = FechaArgentina.Hoy().ToString("yyyy-MM-dd");
 
@@ -382,7 +378,11 @@ public class HomeController : Controller
         // Solo los que siguen en pie: un turno cancelado o ya completado no
         // es un turno "programado" para hoy.
         var diaDeHoy = FechaArgentina.Hoy();
-        var turnosHoy = await TurnosEnPieAsync(desde: diaDeHoy, hasta: diaDeHoy);
+        var enPieHoy = await TurnosEnPieAsync(desde: diaDeHoy, hasta: diaDeHoy);
+
+        // El panel muestra los primeros; la métrica y el saludo cuentan todos.
+        var turnosHoy = Filas(enPieHoy);
+        var cantidadHoy = enPieHoy.Total;
 
         var totalPacientes = await _pacientes.ContarAsync();
 
@@ -403,14 +403,14 @@ public class HomeController : Controller
             // Sale del total de hoy que ya se pide para la métrica y el panel.
             Banner = new BannerViewModel
             {
-                Resumen = turnosHoy.Length == 0 ? "Hoy no hay turnos programados." : "Hoy hay",
-                Destacado = turnosHoy.Length switch
+                Resumen = cantidadHoy == 0 ? "Hoy no hay turnos programados." : "Hoy hay",
+                Destacado = cantidadHoy switch
                 {
                     0 => null,
                     1 => "1 turno programado",
-                    _ => $"{turnosHoy.Length} turnos programados"
+                    _ => $"{cantidadHoy} turnos programados"
                 },
-                Cierre = turnosHoy.Length == 0 ? null : ".",
+                Cierre = cantidadHoy == 0 ? null : ".",
                 Principal = nuevoTurno,
                 Secundario = new EnlaceViewModel
                 {
@@ -425,7 +425,7 @@ public class HomeController : Controller
                 new MetricaViewModel
                 {
                     Titulo = "Turnos de hoy",
-                    Valor = turnosHoy.Length,
+                    Valor = cantidadHoy,
                     Icono = "calendario",
                     VerMas = new EnlaceViewModel
                     {
@@ -512,36 +512,27 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// La API no devuelve los turnos en un orden fijo, así que se ordenan acá
-    /// por día y hora. Los que no traen hora quedan al final de su día.
+    /// Los turnos que siguen en pie (pendientes y confirmados) para ese filtro:
+    /// los primeros TurnosDelPanel, ordenados por día y hora, y en Total
+    /// cuántos son en total. Los cancelados y los completados no cuentan como
+    /// programados ni como próximos. El filtro y el orden los hace la API.
     /// </summary>
-    private static TurnoFilaViewModel[] EnOrden(IEnumerable<TurnoFilaViewModel> turnos) =>
-        turnos
-            .OrderBy(turno => turno.FechaInicio.Date)
-            .ThenBy(turno => turno.Hora is null)
-            .ThenBy(turno => turno.Hora, StringComparer.Ordinal)
-            .ToArray();
-
-    /// <summary>
-    /// Los turnos que siguen en pie (pendientes y confirmados) para ese filtro,
-    /// ya ordenados. Los cancelados y los completados no cuentan como
-    /// programados ni como próximos, así que no llegan ni al saludo, ni a la
-    /// métrica, ni al panel. Se cuentan acá y no con el "total" de la API,
-    /// que suma los cuatro estados. Sale de los primeros TurnosAPedir que
-    /// devuelve la API: con más turnos que esos el número quedaría corto.
-    /// </summary>
-    private async Task<TurnoFilaViewModel[]> TurnosEnPieAsync(
+    private async Task<TurnosPagina> TurnosEnPieAsync(
         DateTime desde, DateTime? hasta = null, int? pacienteId = null, int? doctorId = null)
     {
-        var pagina = await _turnos.ObtenerAsync(
+        return await _turnos.ObtenerAsync(
             pacienteId: pacienteId,
             doctorId: doctorId,
+            estados: "pendiente,confirmado",
             desde: desde,
             hasta: hasta,
-            limite: TurnosAPedir);
-
-        return EnOrden(pagina.Turnos.Select(TurnoFilaViewModel.Desde).Where(turno => turno.PuedeCancelarse));
+            orden: "fecha",
+            limite: TurnosDelPanel);
     }
+
+    /// <summary>Las filas del panel a partir de lo que devolvió la API.</summary>
+    private static TurnoFilaViewModel[] Filas(TurnosPagina pagina) =>
+        pagina.Turnos.Select(TurnoFilaViewModel.Desde).ToArray();
 
     /// <summary>El primer turno de la lista, que ya viene ordenada y solo con los que siguen en pie.</summary>
     private static TurnoFilaViewModel? Proximo(IEnumerable<TurnoFilaViewModel> turnos) =>

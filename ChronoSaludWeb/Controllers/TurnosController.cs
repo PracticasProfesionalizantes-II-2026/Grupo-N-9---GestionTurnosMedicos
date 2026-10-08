@@ -7,10 +7,6 @@ namespace ChronoSaludWeb.Controllers;
 
 public class TurnosController : ControladorBase
 {
-    // La API pagina de a 20 por defecto. Pedimos más para que el resumen de
-    // arriba cuente sobre algo representativo mientras no haya paginado propio.
-    private const int Limite = 100;
-
     private readonly TurnoService _turnos;
     private readonly PacienteService _pacientes;
     private readonly DoctorService _doctores;
@@ -34,7 +30,8 @@ public class TurnosController : ControladorBase
         _usuarios = usuarios;
     }
 
-    public async Task<IActionResult> Index(string? estado, DateTime? desde, DateTime? hasta, string? orden, string? dir)
+    public async Task<IActionResult> Index(
+        string? estado, DateTime? desde, DateTime? hasta, string? orden, string? dir, string? ver, int pagina = 1)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index)));
@@ -51,6 +48,13 @@ public class TurnosController : ControladorBase
         orden = TurnosFiltroViewModel.Columnas
             .FirstOrDefault(c => string.Equals(c, orden, StringComparison.OrdinalIgnoreCase));
 
+        var verTodos = string.Equals(ver, "todos", StringComparison.OrdinalIgnoreCase);
+        var descendente = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase);
+
+        // En "todos", si no se eligió un orden, primero lo más nuevo.
+        if (verTodos && orden is null && dir is null)
+            descendente = true;
+
         var rol = _auth.SesionActual?.Rol;
         var filtros = new TurnosFiltroViewModel
         {
@@ -58,12 +62,10 @@ public class TurnosController : ControladorBase
             Desde       = desde,
             Hasta       = hasta,
             Orden       = orden,
-            Descendente = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase)
+            Descendente = descendente,
+            VerTodos    = verTodos,
+            Pagina      = Math.Max(pagina, 1)
         };
-
-        // Se calcula una sola vez: el orden y el encabezado de la página usan
-        // el mismo "hoy".
-        var hoy = FechaArgentina.Hoy();
 
         try
         {
@@ -81,40 +83,44 @@ public class TurnosController : ControladorBase
                 });
             }
 
+            // Al entrar, sin fechas elegidas, se ven los turnos de hoy en adelante.
+            var desdeParaApi = filtros.SoloProximos ? FechaArgentina.Hoy() : filtros.Desde;
+
             // paciente_id y doctor_id salen del ámbito, no de la query string:
-            // el usuario no puede ampliarse el alcance desde la URL.
-            // El estado no se le manda a la API: se filtra acá abajo, así el
-            // resumen de arriba sigue contando los cuatro estados aunque la
-            // tabla muestre uno solo.
-            var pagina = await _turnos.ObtenerAsync(
-                pacienteId: ambito.PacienteId,
-                doctorId:   ambito.DoctorId,
-                desde:      filtros.Desde,
-                hasta:      filtros.Hasta,
-                limite:     Limite);
+            // el usuario no puede ampliarse el alcance desde la URL. El filtro,
+            // el orden y la página los resuelve la API.
+            var resultado = await _turnos.ObtenerAsync(
+                pacienteId:  ambito.PacienteId,
+                doctorId:    ambito.DoctorId,
+                estado:      filtros.Estado,
+                desde:       desdeParaApi,
+                hasta:       filtros.Hasta,
+                orden:       filtros.OrdenParaApi,
+                descendente: filtros.Descendente,
+                pagina:      filtros.Pagina,
+                limite:      TurnosIndexViewModel.PorPagina);
+
+            // Se pidió una página que ya no existe (por ejemplo, después de
+            // cancelar el único turno de la última): se va a la última que hay.
+            var totalPaginas = PaginadorViewModel.ContarPaginas(resultado.Total, TurnosIndexViewModel.PorPagina);
+            if (filtros.Pagina > totalPaginas)
+                return RedirectToAction(nameof(Index), filtros.RutaDePagina(totalPaginas));
 
             // El listado no trae ids de persona, así que se pregunta por turno:
             // un solo pedido dice qué turnos tienen un paciente con foto.
-            var fotos = await _usuarios.ObtenerFotosAsync(turnos: pagina.Turnos.Select(t => t.IdTurno));
+            var fotos = await _usuarios.ObtenerFotosAsync(turnos: resultado.Turnos.Select(t => t.IdTurno));
 
-            var turnos = pagina.Turnos
+            var turnos = resultado.Turnos
                 .Select(t => TurnoFilaViewModel.DesdeConFoto(t, UrlDeFoto(fotos.Turnos, t.IdTurno)))
                 .ToList();
 
-            var visibles = filtros.Estado is null
-                ? turnos
-                : turnos
-                    .Where(t => string.Equals(t.Estado, filtros.Estado, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
             return View(new TurnosIndexViewModel
             {
-                Rol      = rol,
-                Total    = pagina.Total,
-                Turnos   = turnos,
-                Visibles = OrdenTurnos.Aplicar(visibles, filtros.Orden, filtros.Descendente, hoy),
-                Filtros  = filtros,
-                Hoy      = hoy
+                Rol     = rol,
+                Total   = resultado.Total,
+                Turnos  = turnos,
+                Conteos = resultado.Conteos,
+                Filtros = filtros
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)

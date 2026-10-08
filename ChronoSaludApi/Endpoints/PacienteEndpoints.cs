@@ -19,6 +19,10 @@ public static class PacienteEndpoints
             int pagina = 1,
             int limite = 20) =>
         {
+            // Tope de 200: lo que piden hoy los desplegables de la Web.
+            pagina = Math.Max(pagina, 1);
+            limite = Math.Clamp(limite, 1, 200);
+
             var (total, pacientes) = await logica.ObtenerTodos(nombre, dni, cobertura_id, pagina, limite);
             return Results.Ok(new { total, pagina, pacientes });
         })

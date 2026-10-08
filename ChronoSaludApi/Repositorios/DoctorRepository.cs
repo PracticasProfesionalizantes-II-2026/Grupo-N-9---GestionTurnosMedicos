@@ -20,24 +20,37 @@ public class DoctorRepository : IDoctorRepository
         return await query.ToListAsync();
     }
 
-    // Igual que ObtenerTodos, más si cada doctor tiene horario. Eso sale de una
-    // subconsulta que devuelve solo el booleano: los horarios no se traen.
-    public async Task<IEnumerable<DoctorConHorario>> ObtenerTodosConHorario(string? especialidad, int? coberturaId)
+    // Una página del listado, con si cada doctor tiene horario. Eso sale de
+    // una subconsulta que devuelve solo el booleano: los horarios no se traen.
+    // El total, el orden y la página los resuelve SQL Server.
+    public async Task<(int total, List<DoctorConHorario> doctores)> BuscarConHorario(
+        string? especialidad, int? coberturaId, int pagina, int limite)
     {
         var query = _db.Doctores.Where(d => d.Activo);
 
         if (!string.IsNullOrEmpty(especialidad))
             query = query.Where(d => d.Especialidad.Contains(especialidad));
 
+        var total = await query.CountAsync();
+
         var filas = await query
+            .OrderBy(d => d.Usuario!.Apellido)
+            .ThenBy(d => d.Usuario!.Nombre)
+            .ThenBy(d => d.Id)
+            .Skip((pagina - 1) * limite)
+            .Take(limite)
             .Select(d => new { Doctor = d, d.Usuario, TieneHorario = d.HorariosLaborales.Any() })
             .ToListAsync();
 
-        return filas.Select(f =>
+        var doctores = new List<DoctorConHorario>();
+        foreach (var fila in filas)
         {
-            f.Doctor.Usuario ??= f.Usuario;
-            return new DoctorConHorario(f.Doctor, f.TieneHorario);
-        }).ToList();
+            // Con un Select, EF no completa la navegación: se la asigna a mano.
+            fila.Doctor.Usuario ??= fila.Usuario;
+            doctores.Add(new DoctorConHorario(fila.Doctor, fila.TieneHorario));
+        }
+
+        return (total, doctores);
     }
 
     public async Task<Doctor?> ObtenerPorId(int id)

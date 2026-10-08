@@ -8,9 +8,11 @@ public class PacienteRepositoryFalso : IPacienteRepository
 {
     public List<Paciente> Pacientes { get; } = new List<Paciente>();
 
-    public Task<IEnumerable<Paciente>> ObtenerTodos(string? nombre, string? dni, int? coberturaId)
+    public Task<(int total, List<Paciente> pacientes)> Buscar(
+        string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
-        return Task.FromResult<IEnumerable<Paciente>>(Pacientes);
+        var deLaPagina = Pacientes.Skip((pagina - 1) * limite).Take(limite).ToList();
+        return Task.FromResult((Pacientes.Count, deLaPagina));
     }
 
     public Task<Paciente?> ObtenerPorId(int id)

@@ -12,11 +12,9 @@ public class NotificacionLogica : INotificacionLogica
     public async Task<(int total, IEnumerable<NotificacionDto> notificaciones)> ObtenerDeUsuario(
         int usuarioId, bool? leida, string? tipo, int pagina)
     {
-        var todas = await _repo.ObtenerDeUsuario(usuarioId, leida, tipo);
-        var total = todas.Count();
-        var resultado = todas
-            .Skip((pagina - 1) * 20)
-            .Take(20)
+        // De a 20 por página, como siempre.
+        var (total, notificaciones) = await _repo.ObtenerDeUsuario(usuarioId, leida, tipo, Math.Max(pagina, 1), 20);
+        var resultado = notificaciones
             .Select(n => new NotificacionDto(n.Id, n.Tipo, n.Mensaje, n.Fecha, n.Leida));
         return (total, resultado);
     }

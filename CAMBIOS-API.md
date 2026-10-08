@@ -1,8 +1,8 @@
-# Cambios en la API — Rama `fix/pacientes-y-turnos`
+# Cambios en la API — Mejoras, pasos 2 a 4
 
-**Fecha:** 2026-10-08 · **Rama:** `fix/pacientes-y-turnos`
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3) y `fix/listados-paginados` (paso 3b y paso 4)
 
-Un apartado por cada paso de la rama.
+Un apartado por cada paso.
 
 ---
 
@@ -90,3 +90,66 @@ Un apartado por cada paso de la rama.
 |---|---|
 | `Datos/AvisoDeMigraciones.cs` | Nuevo: el aviso de arriba |
 | `Program.cs` | Lo llama al arrancar, solo en Development |
+
+### Paso 3b — El aviso dice qué base revisó
+
+- Cuando faltan migraciones, el aviso nombra la base y el servidor (por ejemplo, `ChronoSaludDB en localhost`). El comando que sugiere lleva `--connection` con esa misma base: sin eso, `dotnet ef` usa los user-secrets, que pueden apuntar a Azure.
+- Si la base pide usuario y contraseña (Azure), el aviso no muestra la cadena: remite al script idempotente en SSMS.
+- `AvisoDeMigraciones` suma dos métodos públicos, `ComandoParaActualizar` y `DescribirBase`, que se prueban en `ChronoSalud.Tests/Api/AvisoDeMigracionesTests.cs`.
+
+---
+
+## Paso 4 — Listados ordenados y paginados en la base
+
+**No hay migración.** Solo cambian las consultas: el filtro, el orden, el total y la página ahora los resuelve SQL Server, en lugar de traer todo a memoria y recortar ahí.
+
+### `GET /turnos`
+
+| Parámetro nuevo | Qué hace |
+|---|---|
+| `estados` | Varios estados separados por coma: `estados=pendiente,confirmado`. Se suma a `estado`, que sigue andando igual. |
+| `orden` | `fecha` (día y hora, es el de siempre), `paciente` (nombre y apellido) o `estado`. Cualquier otro valor ordena por fecha. |
+| `dir` | `desc` para ir de mayor a menor; cualquier otra cosa, de menor a mayor. |
+
+- **Antes no había un orden fijo;** ahora siempre lo hay. El último criterio es el id del turno, así ninguno se repite ni se saltea entre páginas.
+- **`limite` va de 1 a 100.** Si se pide más, se devuelven 100. Si `pagina` es menor que 1, se toma la 1.
+- **La respuesta suma `conteos`:** cuántos turnos hay de cada estado con los mismos filtros, sin contar el filtro de estado (son los números de las tarjetas de la Web).
+  ```json
+  { "total": 3, "turnos": [ ... ],
+    "conteos": { "pendiente": 3, "confirmado": 5, "completado": 12, "cancelado": 1 } }
+  ```
+- `total` cuenta los turnos que cumplen todos los filtros, estado incluido, sumando todas las páginas.
+
+### `GET /pacientes` y `GET /doctores`
+
+- Paginan en la base y vienen ordenados por apellido y nombre.
+- `limite` va de 1 a 200 (los desplegables de la Web piden 200).
+
+### `GET /usuarios/{id}/notificaciones`
+
+- Pagina en la base, de a 20, de la más nueva a la más vieja. La respuesta no cambia.
+
+### `/reportes/turnos`, `/reportes/pacientes` y `/reportes/disponibilidad`
+
+- Cuentan en la base en vez de traer todos los turnos. La respuesta no cambia.
+- `total_turnos` y `turnos_en_periodo` son la suma de los cuatro estados.
+
+### A quién le pega
+
+- **La Web vieja con la API nueva anda igual:** no manda los parámetros nuevos e ignora `conteos`.
+- **La Web nueva con la API vieja** (los minutos del despliegue): las tarjetas de Turnos muestran "—" y el orden no está garantizado hasta que termina de desplegarse la API.
+- **El seeder** ahora recorre de a 100. **Ojo:** un seeder viejo (de a 200) contra la API nueva puede creer que ya leyó todos los turnos y duplicar los de la demo. Usá el de esta versión.
+- Quien probaba con Scalar o Postman `limite=500` ahora recibe 100 turnos (o 200 pacientes o doctores) por página.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Repositorios/FiltroTurnos.cs` | Nuevo: los filtros del listado de turnos en una clase |
+| `Repositorios/TurnoRepository.cs` | `Buscar` (filtro, orden y página en SQL), `ContarPorEstado`, `ContarPacientesAtendidos` y `ContarOcupadosPorDoctor` |
+| `Repositorios/PacienteRepository.cs`, `DoctorRepository.cs`, `NotificacionRepository.cs` | Paginan en SQL y devuelven `(total, página)` |
+| `Logica/TurnoLogica.cs`, `PacienteLogica.cs`, `DoctorLogica.cs`, `NotificacionLogica.cs` | Usan esos métodos; ya no recortan en memoria |
+| `Endpoints/TurnoEndpoints.cs` | Parámetros `estados`, `orden` y `dir`; `conteos` en la respuesta; tope de 100 |
+| `Endpoints/PacienteEndpoints.cs`, `DoctorEndpoints.cs` | Tope de 200 |
+| `Endpoints/ReporteEndpoints.cs` | Cuentan en la base |
+

@@ -115,7 +115,7 @@ public class PacienteDetalleViewModel
         }
     }
 
-    /// <summary>Fecha del turno más reciente del paciente, si tiene alguno.</summary>
+    /// <summary>Fecha del último turno completado del paciente, si tiene alguno.</summary>
     public DateTime? UltimoTurno { get; init; }
 
     public string? Error { get; init; }

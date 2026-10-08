@@ -116,9 +116,15 @@ public class ActividadViewModel
     public bool SinResultados => Movimientos.Count == 0 && HayFiltro;
     public bool RangoInvertido => Desde is { } desde && Hasta is { } hasta && desde.Date > hasta.Date;
 
-    public int TotalPaginas => Math.Max(1, (int)Math.Ceiling(Total / (double)PorPagina));
-    public bool HayAnterior => Pagina > 1;
-    public bool HaySiguiente => Pagina < TotalPaginas;
+    /// <summary>Lo que muestra el paginador compartido (Shared/_Paginador).</summary>
+    public PaginadorViewModel Paginador => new()
+    {
+        Pagina = Pagina,
+        TotalPaginas = PaginadorViewModel.ContarPaginas(Total, PorPagina),
+        Accion = AccionDeRuta,
+        RutaAnterior = Ruta(Pagina - 1),
+        RutaSiguiente = Ruta(Pagina + 1)
+    };
 
     /// <summary>
     /// Los filtros actuales como valores de ruta, para los enlaces que tienen

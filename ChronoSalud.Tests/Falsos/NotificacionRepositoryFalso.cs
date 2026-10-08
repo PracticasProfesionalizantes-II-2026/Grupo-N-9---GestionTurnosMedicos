@@ -8,10 +8,12 @@ public class NotificacionRepositoryFalso : INotificacionRepository
 {
     public List<Notificacion> Notificaciones { get; } = new List<Notificacion>();
 
-    public Task<IEnumerable<Notificacion>> ObtenerDeUsuario(int usuarioId, bool? leida, string? tipo)
+    public Task<(int total, List<Notificacion> notificaciones)> ObtenerDeUsuario(
+        int usuarioId, bool? leida, string? tipo, int pagina, int limite)
     {
         var delUsuario = Notificaciones.Where(n => n.IdUsuario == usuarioId).ToList();
-        return Task.FromResult<IEnumerable<Notificacion>>(delUsuario);
+        var deLaPagina = delUsuario.Skip((pagina - 1) * limite).Take(limite).ToList();
+        return Task.FromResult((delUsuario.Count, deLaPagina));
     }
 
     public Task<Notificacion?> ObtenerPorId(int id)

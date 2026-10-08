@@ -1,0 +1,34 @@
+@model PaginadorViewModel
+@{
+    const string clasePaso = "boton boton-secundario";
+    const string clasePasoInactivo = "boton cursor-default border border-border text-muted opacity-60";
+}
+
+@* Paginación con enlaces: cada listado arma las rutas con sus filtros, así
+   que pasar de página no los pierde. Sin JavaScript. *@
+<nav aria-label="Páginas de resultados" class="mt-4 flex flex-wrap items-center justify-between gap-3">
+    <p class="text-sm text-muted">
+        Página <span class="font-semibold tabular-nums text-ink">@Model.Pagina</span>
+        de <span class="font-semibold tabular-nums text-ink">@Model.TotalPaginas</span>
+    </p>
+    <div class="flex items-center gap-2">
+        @if (Model.HayAnterior)
+        {
+            <a asp-action="@Model.Accion" asp-all-route-data="Model.RutaAnterior"
+               rel="prev" class="@clasePaso">Anterior</a>
+        }
+        else
+        {
+            <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
+        }
+        @if (Model.HaySiguiente)
+        {
+            <a asp-action="@Model.Accion" asp-all-route-data="Model.RutaSiguiente"
+               rel="next" class="@clasePaso">Siguiente</a>
+        }
+        else
+        {
+            <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
+        }
+    </div>
+</nav>

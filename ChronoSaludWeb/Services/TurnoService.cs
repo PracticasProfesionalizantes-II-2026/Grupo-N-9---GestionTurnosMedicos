@@ -58,9 +58,15 @@ public record TurnoCreado(
     string Estado);
 
 /// <summary>
-/// Respuesta de GET /turnos: { total, turnos }.
+/// Respuesta de GET /turnos: { total, turnos, conteos }.
+/// Total cuenta los turnos que cumplen los filtros (en todas las páginas).
+/// Conteos dice cuántos hay de cada estado ("pendiente", "confirmado"...)
+/// sin el filtro de estado. Es null si la API todavía no lo manda.
 /// </summary>
-public record TurnosPagina(int Total, IReadOnlyList<TurnoLista> Turnos);
+public record TurnosPagina(
+    int Total,
+    IReadOnlyList<TurnoLista> Turnos,
+    IReadOnlyDictionary<string, int>? Conteos = null);
 
 public class TurnoService
 {
@@ -71,13 +77,20 @@ public class TurnoService
     /// <summary>
     /// GET /turnos con los filtros que acepta la API. Los parámetros en null
     /// no se mandan (de eso se encarga el ApiClient).
+    /// <paramref name="estados"/> son varios separados por coma, por ejemplo
+    /// "pendiente,confirmado". <paramref name="orden"/> es "fecha" (día y
+    /// hora), "paciente" o "estado"; el filtro, el orden y la página los
+    /// resuelve la API. La API devuelve como mucho 100 turnos por página.
     /// </summary>
     public async Task<TurnosPagina> ObtenerAsync(
         int? pacienteId = null,
         int? doctorId = null,
         string? estado = null,
+        string? estados = null,
         DateTime? desde = null,
         DateTime? hasta = null,
+        string? orden = null,
+        bool descendente = false,
         int pagina = 1,
         int limite = 20)
     {
@@ -86,8 +99,11 @@ public class TurnoService
             ["paciente_id"] = pacienteId,
             ["doctor_id"]   = doctorId,
             ["estado"]      = estado,
+            ["estados"]     = estados,
             ["fecha_desde"] = desde,
             ["fecha_hasta"] = hasta,
+            ["orden"]       = orden,
+            ["dir"]         = descendente ? "desc" : null,
             ["pagina"]      = pagina,
             ["limite"]      = limite,
         };

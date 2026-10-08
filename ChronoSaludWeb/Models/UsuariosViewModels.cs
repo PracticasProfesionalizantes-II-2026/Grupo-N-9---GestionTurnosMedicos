@@ -129,9 +129,29 @@ public class UsuariosIndexViewModel
     public bool HayFiltro => !string.IsNullOrWhiteSpace(Buscar) || Rol is not null;
     public bool SinResultados => Usuarios.Count == 0 && HayFiltro;
 
-    public int TotalPaginas => Math.Max(1, (int)Math.Ceiling(Total / (double)PorPagina));
-    public bool HayAnterior => Pagina > 1;
-    public bool HaySiguiente => Pagina < TotalPaginas;
+    /// <summary>Lo que muestra el paginador compartido (Shared/_Paginador).</summary>
+    public PaginadorViewModel Paginador => new()
+    {
+        Pagina = Pagina,
+        TotalPaginas = PaginadorViewModel.ContarPaginas(Total, PorPagina),
+        RutaAnterior = Ruta(Pagina - 1),
+        RutaSiguiente = Ruta(Pagina + 1)
+    };
+
+    /// <summary>
+    /// La búsqueda actual como valores de ruta, para que los enlaces del
+    /// paginador la conserven. Un filtro vacío no viaja.
+    /// </summary>
+    public IDictionary<string, string> Ruta(int pagina)
+    {
+        var ruta = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(Buscar)) ruta["buscar"] = Buscar;
+        if (!string.IsNullOrEmpty(Rol)) ruta["rol"] = Rol;
+        ruta["pagina"] = $"{pagina}";
+
+        return ruta;
+    }
 
     public IEnumerable<SelectListItem> Roles => RolesFiltrables
         .Select(rol => new SelectListItem(char.ToUpperInvariant(rol[0]) + rol[1..], rol, rol == Rol))

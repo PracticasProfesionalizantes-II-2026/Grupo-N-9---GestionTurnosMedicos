@@ -10,12 +10,25 @@ public class NotificacionRepository : INotificacionRepository
 
     public NotificacionRepository(AppDbContext db) => _db = db;
 
-    public async Task<IEnumerable<Notificacion>> ObtenerDeUsuario(int usuarioId, bool? leida, string? tipo)
+    // Una página de las notificaciones del usuario, de la más nueva a la más
+    // vieja. El total y la página los resuelve SQL Server.
+    public async Task<(int total, List<Notificacion> notificaciones)> ObtenerDeUsuario(
+        int usuarioId, bool? leida, string? tipo, int pagina, int limite)
     {
-        var query = _db.Notificaciones.Where(n => n.IdUsuario == usuarioId).AsQueryable();
+        var query = _db.Notificaciones.AsNoTracking().Where(n => n.IdUsuario == usuarioId);
         if (leida.HasValue)                query = query.Where(n => n.Leida == leida);
         if (!string.IsNullOrEmpty(tipo))   query = query.Where(n => n.Tipo == tipo);
-        return await query.OrderByDescending(n => n.Fecha).ToListAsync();
+
+        var total = await query.CountAsync();
+
+        var notificaciones = await query
+            .OrderByDescending(n => n.Fecha)
+            .ThenByDescending(n => n.Id)
+            .Skip((pagina - 1) * limite)
+            .Take(limite)
+            .ToListAsync();
+
+        return (total, notificaciones);
     }
 
     public async Task<Notificacion?> ObtenerPorId(int id)
