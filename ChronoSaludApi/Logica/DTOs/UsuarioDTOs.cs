@@ -9,13 +9,16 @@ public record UsuarioDto(
     string Rol
 );
 
+// Ficha: datos del paciente que se guardan junto con la cuenta. Solo se
+// tienen en cuenta cuando un administrador da de alta a un paciente.
 public record UsuarioRegistroDto(
     string Nombre,
     string Apellido,
     string Email,
     string Contrasena,
     string? Telefono,
-    string Rol
+    string Rol,
+    PacienteUpdateDto? Ficha = null
 );
 
 public record UsuarioLoginDto(
@@ -37,11 +40,13 @@ public record LoginResponseDto(
     string Nombre
 );
 
+// IdPaciente viene cargado solo cuando la cuenta es de un paciente.
 public record RegistroResponseDto(
     int IdUsuario,
     string Email,
     string Rol,
-    string Token
+    string Token,
+    int? IdPaciente = null
 );
 
 // Una fila del buscador de usuarios. IdPaciente e IdDoctor vienen cargados

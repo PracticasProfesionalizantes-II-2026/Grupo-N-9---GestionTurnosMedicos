@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using ChronoSaludWeb.Models.ViewModels;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
 
@@ -161,12 +162,16 @@ public class CuentaEditarViewModel
 
 /// <summary>
 /// Ficha del paciente. Espeja PacienteUpdateDto de la API (sin la foto): todos
-/// los campos son opcionales.
+/// los campos son opcionales. Un campo que se deja vacío borra el dato guardado
+/// (ver <see cref="ArmarFicha"/>).
 /// </summary>
 public class PacienteEditarViewModel
 {
+    [Display(Name = "Tipo de documento")]
+    public string? TipoDocumento { get; set; }
+
     [MaxLength(15, ErrorMessage = "El DNI no puede superar los 15 caracteres.")]
-    [Display(Name = "DNI")]
+    [Display(Name = "Número de documento")]
     public string? Dni { get; set; }
 
     [NoFutura(ErrorMessage = "La fecha de nacimiento no puede ser futura.")]
@@ -190,6 +195,26 @@ public class PacienteEditarViewModel
     [Display(Name = "Dirección")]
     public string? Direccion { get; set; }
 
+    [Display(Name = "Provincia")]
+    public string? Provincia { get; set; }
+
+    [MaxLength(100, ErrorMessage = "La localidad no puede superar los 100 caracteres.")]
+    [Display(Name = "Localidad")]
+    public string? Localidad { get; set; }
+
+    [MaxLength(10, ErrorMessage = "El código postal no puede superar los 10 caracteres.")]
+    [Display(Name = "Código postal")]
+    public string? CodigoPostal { get; set; }
+
+    [MaxLength(120, ErrorMessage = "El nombre del contacto no puede superar los 120 caracteres.")]
+    [Display(Name = "Contacto de emergencia")]
+    public string? ContactoEmergenciaNombre { get; set; }
+
+    [Phone(ErrorMessage = "El teléfono no tiene un formato válido.")]
+    [MaxLength(30, ErrorMessage = "El teléfono del contacto no puede superar los 30 caracteres.")]
+    [Display(Name = "Teléfono del contacto")]
+    public string? ContactoEmergenciaTelefono { get; set; }
+
     [StringLength(500, ErrorMessage = "Las alergias no pueden superar los 500 caracteres.")]
     [Display(Name = "Alergias")]
     public string? Alergias { get; set; }
@@ -198,32 +223,68 @@ public class PacienteEditarViewModel
     [Display(Name = "Condiciones preexistentes")]
     public string? Condiciones { get; set; }
 
-    // Opciones de los selects. Son las mismas listas fijas de MiPerfil y de
-    // Pacientes/Crear: la API no expone catálogos.
+    // Opciones de los selects (listas fijas de OpcionesPaciente). Si el valor
+    // guardado no está en la lista, se suma como opción para que se vea.
 
-    private static readonly string[] SexosFijos = { "femenino", "masculino", "otro" };
-
-    private static readonly string[] GruposSanguineosFijos =
-        { "A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-" };
-
-    private static readonly string[] EstadosCivilesFijos =
-        { "Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Unión convivencial" };
-
-    [ValidateNever] public IEnumerable<SelectListItem> Sexos => Opciones(SexosFijos, Sexo);
-    [ValidateNever] public IEnumerable<SelectListItem> GruposSanguineos => Opciones(GruposSanguineosFijos, GrupoSanguineo);
-    [ValidateNever] public IEnumerable<SelectListItem> EstadosCiviles => Opciones(EstadosCivilesFijos, EstadoCivil);
+    [ValidateNever] public List<SelectListItem> TiposDocumento => OpcionesPaciente.Opciones(OpcionesPaciente.TiposDocumento, TipoDocumento);
+    [ValidateNever] public List<SelectListItem> Sexos => OpcionesPaciente.Opciones(OpcionesPaciente.Sexos, Sexo);
+    [ValidateNever] public List<SelectListItem> GruposSanguineos => OpcionesPaciente.Opciones(OpcionesPaciente.GruposSanguineos, GrupoSanguineo);
+    [ValidateNever] public List<SelectListItem> EstadosCiviles => OpcionesPaciente.Opciones(OpcionesPaciente.EstadosCiviles, EstadoCivil);
+    [ValidateNever] public List<SelectListItem> Provincias => OpcionesPaciente.Opciones(OpcionesPaciente.Provincias, Provincia);
 
     /// <summary>
-    /// Si el valor guardado no está en la lista fija (la API acepta cualquier
-    /// texto) se lo suma como opción, para que el select lo muestre en vez de
-    /// aparentar que el dato está vacío.
+    /// La ficha como la espera PUT /pacientes/{id}. Cada campo que quedó vacío
+    /// va en la lista Borrar: así, vaciar un campo en el formulario borra el
+    /// dato guardado (si ya estaba vacío, no pasa nada).
     /// </summary>
-    private static IEnumerable<SelectListItem> Opciones(string[] fijas, string? actual)
+    public DatosFichaPaciente ArmarFicha()
     {
-        var valores = string.IsNullOrWhiteSpace(actual) || fijas.Contains(actual)
-            ? fijas
-            : fijas.Append(actual);
+        var ficha = new DatosFichaPaciente();
 
-        return valores.Select(valor => new SelectListItem(valor, valor)).ToList();
+        ficha.TipoDocumento = Limpio(TipoDocumento);
+        ficha.Dni = Limpio(Dni);
+        ficha.Sexo = Limpio(Sexo);
+        ficha.GrupoSanguineo = Limpio(GrupoSanguineo);
+        ficha.Nacionalidad = Limpio(Nacionalidad);
+        ficha.EstadoCivil = Limpio(EstadoCivil);
+        ficha.Direccion = Limpio(Direccion);
+        ficha.Provincia = Limpio(Provincia);
+        ficha.Localidad = Limpio(Localidad);
+        ficha.CodigoPostal = Limpio(CodigoPostal);
+        ficha.ContactoEmergenciaNombre = Limpio(ContactoEmergenciaNombre);
+        ficha.ContactoEmergenciaTelefono = Limpio(ContactoEmergenciaTelefono);
+        ficha.Alergias = Limpio(Alergias);
+        ficha.Condiciones = Limpio(Condiciones);
+
+        if (FechaNacimiento != null)
+            ficha.FechaNacimiento = FechaNacimiento.Value.ToDateTime(TimeOnly.MinValue);
+
+        // Los nombres son los que entiende la API (FichaPaciente.BorrarCampos).
+        var borrar = new List<string>();
+        if (ficha.TipoDocumento == null) borrar.Add("tipoDocumento");
+        if (ficha.Dni == null) borrar.Add("dni");
+        if (ficha.FechaNacimiento == null) borrar.Add("fechaNacimiento");
+        if (ficha.Sexo == null) borrar.Add("sexo");
+        if (ficha.GrupoSanguineo == null) borrar.Add("grupoSanguineo");
+        if (ficha.Nacionalidad == null) borrar.Add("nacionalidad");
+        if (ficha.EstadoCivil == null) borrar.Add("estadoCivil");
+        if (ficha.Direccion == null) borrar.Add("direccion");
+        if (ficha.Provincia == null) borrar.Add("provincia");
+        if (ficha.Localidad == null) borrar.Add("localidad");
+        if (ficha.CodigoPostal == null) borrar.Add("codigoPostal");
+        if (ficha.ContactoEmergenciaNombre == null) borrar.Add("contactoEmergenciaNombre");
+        if (ficha.ContactoEmergenciaTelefono == null) borrar.Add("contactoEmergenciaTelefono");
+        if (ficha.Alergias == null) borrar.Add("alergias");
+        if (ficha.Condiciones == null) borrar.Add("condiciones");
+
+        ficha.Borrar = borrar;
+        return ficha;
+    }
+
+    /// <summary>El texto sin espacios al principio ni al final; null si quedó vacío.</summary>
+    private static string? Limpio(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return null;
+        return texto.Trim();
     }
 }

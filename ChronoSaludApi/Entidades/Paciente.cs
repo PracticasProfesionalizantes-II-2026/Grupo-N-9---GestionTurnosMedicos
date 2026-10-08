@@ -26,6 +26,21 @@ public class Paciente
 
     public string? FotoUrl { get; set; }
 
+    // Datos del alta que hace la administración. Todos opcionales.
+
+    // "DNI" | "LC" | "LE" | "Pasaporte"
+    public string? TipoDocumento { get; set; }
+
+    public string? Provincia { get; set; }
+
+    public string? Localidad { get; set; }
+
+    public string? CodigoPostal { get; set; }
+
+    public string? ContactoEmergenciaNombre { get; set; }
+
+    public string? ContactoEmergenciaTelefono { get; set; }
+
     // Navegación
     public Usuario? Usuario { get; set; }
 

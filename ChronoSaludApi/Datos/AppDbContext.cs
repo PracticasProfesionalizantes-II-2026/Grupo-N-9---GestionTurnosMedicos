@@ -41,6 +41,17 @@ public class AppDbContext : DbContext
             .IsUnique()
             .HasFilter("[Dni] IS NOT NULL");
 
+        // Paciente - largo máximo de los datos del alta
+        modelBuilder.Entity<Paciente>(e =>
+        {
+            e.Property(p => p.TipoDocumento).HasMaxLength(20);
+            e.Property(p => p.Provincia).HasMaxLength(80);
+            e.Property(p => p.Localidad).HasMaxLength(100);
+            e.Property(p => p.CodigoPostal).HasMaxLength(10);
+            e.Property(p => p.ContactoEmergenciaNombre).HasMaxLength(120);
+            e.Property(p => p.ContactoEmergenciaTelefono).HasMaxLength(30);
+        });
+
         // Usuario -> Paciente (1 a 1)
         modelBuilder.Entity<Paciente>()
             .HasOne(p => p.Usuario)

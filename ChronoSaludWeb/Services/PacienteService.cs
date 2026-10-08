@@ -18,7 +18,39 @@ public record PacienteDetalle(
     string? Dni = null,
     string? Direccion = null,
     string? Nacionalidad = null,
-    string? EstadoCivil = null);
+    string? EstadoCivil = null,
+    string? TipoDocumento = null,
+    string? Provincia = null,
+    string? Localidad = null,
+    string? CodigoPostal = null,
+    string? ContactoEmergenciaNombre = null,
+    string? ContactoEmergenciaTelefono = null);
+
+/// <summary>
+/// Datos de la ficha del paciente, como los espera la API: es el cuerpo de
+/// PUT /pacientes/{id} y la "ficha" del alta (POST /usuarios/registro).
+/// Un dato en null no cambia lo que ya estaba guardado; para vaciarlo hay que
+/// nombrarlo en <see cref="Borrar"/> (por ejemplo "alergias").
+/// </summary>
+public class DatosFichaPaciente
+{
+    public DateTime? FechaNacimiento { get; set; }
+    public string? Sexo { get; set; }
+    public string? GrupoSanguineo { get; set; }
+    public string? Alergias { get; set; }
+    public string? Condiciones { get; set; }
+    public string? TipoDocumento { get; set; }
+    public string? Dni { get; set; }
+    public string? Nacionalidad { get; set; }
+    public string? EstadoCivil { get; set; }
+    public string? Direccion { get; set; }
+    public string? Provincia { get; set; }
+    public string? Localidad { get; set; }
+    public string? CodigoPostal { get; set; }
+    public string? ContactoEmergenciaNombre { get; set; }
+    public string? ContactoEmergenciaTelefono { get; set; }
+    public List<string>? Borrar { get; set; }
+}
 
 /// <summary>
 /// Una fila del listado. Espeja PacienteListaDto de la API.
@@ -130,32 +162,9 @@ public class PacienteService
 
     /// <summary>
     /// PUT /pacientes/{id} con la ficha completa, para la edición que hace el
-    /// administrador. La API ignora los campos vacíos (no borra lo que ya
-    /// estaba) y contesta 409 si el DNI ya es de otro paciente.
+    /// administrador. Los datos en null no cambian; los nombrados en
+    /// ficha.Borrar se vacían. Contesta 409 si el DNI ya es de otro paciente.
     /// </summary>
-    public Task ActualizarFichaAsync(
-        int idPaciente,
-        DateTime? fechaNacimiento,
-        string? sexo,
-        string? grupoSanguineo,
-        string? alergias,
-        string? condiciones,
-        string? dni,
-        string? direccion,
-        string? nacionalidad,
-        string? estadoCivil)
-        => _api.PutAsync(
-            $"/pacientes/{idPaciente}",
-            new
-            {
-                fechaNacimiento,
-                sexo,
-                grupoSanguineo,
-                alergias,
-                condiciones,
-                dni,
-                direccion,
-                nacionalidad,
-                estadoCivil
-            });
+    public Task ActualizarFichaAsync(int idPaciente, DatosFichaPaciente ficha)
+        => _api.PutAsync($"/pacientes/{idPaciente}", ficha);
 }

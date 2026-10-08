@@ -181,6 +181,14 @@
               method="post" novalidate>
             <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
+                    <label asp-for="Paciente.TipoDocumento" class="@claseEtiqueta"></label>
+                    <select asp-for="Paciente.TipoDocumento" asp-items="Model.Paciente.TiposDocumento" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                    </select>
+                    @{ ErrorCampo("Paciente.TipoDocumento"); }
+                </div>
+
+                <div>
                     <label asp-for="Paciente.Dni" class="@claseEtiqueta"></label>
                     <input asp-for="Paciente.Dni" autocomplete="off" class="@claseCampo" />
                     @{ ErrorCampo("Paciente.Dni"); }
@@ -222,10 +230,42 @@
                     @{ ErrorCampo("Paciente.EstadoCivil"); }
                 </div>
 
-                <div class="sm:col-span-2 lg:col-span-3">
+                <div>
+                    <label asp-for="Paciente.Provincia" class="@claseEtiqueta"></label>
+                    <select asp-for="Paciente.Provincia" asp-items="Model.Paciente.Provincias" class="@claseCampo">
+                        <option value="">Sin especificar</option>
+                    </select>
+                    @{ ErrorCampo("Paciente.Provincia"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.Localidad" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.Localidad" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.Localidad"); }
+                </div>
+
+                <div class="sm:col-span-2">
                     <label asp-for="Paciente.Direccion" class="@claseEtiqueta"></label>
                     <input asp-for="Paciente.Direccion" class="@claseCampo" />
                     @{ ErrorCampo("Paciente.Direccion"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.CodigoPostal" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.CodigoPostal" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.CodigoPostal"); }
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label asp-for="Paciente.ContactoEmergenciaNombre" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.ContactoEmergenciaNombre" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.ContactoEmergenciaNombre"); }
+                </div>
+
+                <div>
+                    <label asp-for="Paciente.ContactoEmergenciaTelefono" class="@claseEtiqueta"></label>
+                    <input asp-for="Paciente.ContactoEmergenciaTelefono" type="tel" class="@claseCampo" />
+                    @{ ErrorCampo("Paciente.ContactoEmergenciaTelefono"); }
                 </div>
 
                 <div class="sm:col-span-2 lg:col-span-3">
@@ -241,7 +281,7 @@
                 </div>
             </div>
 
-            <p class="mt-5 text-xs text-muted">Dejar un campo vacío no borra el dato que ya está cargado.</p>
+            <p class="mt-5 text-xs text-muted">Si vaciás un campo, el dato guardado se borra.</p>
 
             <div class="mt-4 flex justify-end">
                 <button type="submit" class="@claseBoton">Guardar ficha</button>

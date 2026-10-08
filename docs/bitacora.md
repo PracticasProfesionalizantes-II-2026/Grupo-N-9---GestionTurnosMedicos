@@ -423,3 +423,17 @@ preferencias y "hoy" en hora de Argentina. Los dos workflows corren
 **Sigue:** paso 2, alta de paciente completa.
 **Ojo:** las pruebas no usan la base: lo que depende de SQL Server
 (índices, transacciones) se prueba a mano.
+
+## 2026-10-08 — mejoras, paso 2: alta de paciente completa
+**Hecho:** el alta de paciente (Pacientes/Crear) manda toda la ficha en
+el mismo pedido del registro, y la API guarda cuenta y paciente juntos.
+`Paciente` suma tipo de documento, provincia, localidad, código postal y
+contacto de emergencia (migración AgregarDatosAltaPaciente). PUT
+/pacientes acepta `borrar` para vaciar datos; en Usuarios/Editar, vaciar
+un campo lo borra. La ficha (Pacientes/Detalle) muestra documento,
+dirección, teléfono y contacto de emergencia. Salen del alta los campos
+de obra social (vuelven con las coberturas). Listas fijas en
+`OpcionesPaciente`.
+**Sigue:** paso 3, el paciente cancela sus turnos.
+**Ojo:** el alta de paciente ahora viaja con el token del administrador
+(antes iba anónima): la API solo acepta la ficha de un administrador.
