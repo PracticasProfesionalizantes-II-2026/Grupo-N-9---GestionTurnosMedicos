@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
 
@@ -139,8 +140,9 @@ public class PacienteDetalleViewModel
         {
             if (FechaNacimiento is not { } nacimiento) return null;
 
-            var edad = DateTime.Today.Year - nacimiento.Year;
-            if (nacimiento.Date > DateTime.Today.AddYears(-edad)) edad--;
+            var hoy = FechaArgentina.Hoy();
+            var edad = hoy.Year - nacimiento.Year;
+            if (nacimiento.Date > hoy.AddYears(-edad)) edad--;
             return edad < 0 ? null : edad;
         }
     }

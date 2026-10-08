@@ -177,13 +177,32 @@ public class TurnoRepository : ITurnoRepository
     public async Task Agregar(Turno turno)
     {
         _db.Turnos.Add(turno);
-        await _db.SaveChangesAsync();
+        await Guardar();
     }
 
     public async Task Actualizar(Turno turno)
     {
         _db.Turnos.Update(turno);
-        await _db.SaveChangesAsync();
+        await Guardar();
+    }
+
+    /// <summary>
+    /// Guarda y traduce el "dato repetido" de SQL Server: el índice único de
+    /// Turnos no deja dos turnos en pie del mismo doctor, el mismo día y a la
+    /// misma hora. Pasa si dos pedidos reservan el mismo horario a la vez.
+    /// </summary>
+    private async Task Guardar()
+    {
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException error) when (ErroresDeBase.EsDatoRepetido(error))
+        {
+            // Se limpia el contexto para que nada quede a medio guardar.
+            _db.ChangeTracker.Clear();
+            throw new DatoRepetidoException(error);
+        }
     }
 
     public async Task Eliminar(Turno turno)

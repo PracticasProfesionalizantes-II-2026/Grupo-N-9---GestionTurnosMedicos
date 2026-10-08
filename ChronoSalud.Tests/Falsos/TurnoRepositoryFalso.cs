@@ -11,6 +11,12 @@ public class TurnoRepositoryFalso : ITurnoRepository
 {
     public List<Turno> Turnos { get; } = new List<Turno>();
 
+    /// <summary>
+    /// Si está en true, Agregar y Actualizar fallan como lo haría el índice
+    /// único de la base cuando dos pedidos reservan el mismo horario a la vez.
+    /// </summary>
+    public bool SimularDatoRepetido { get; set; }
+
     public Task<IEnumerable<Turno>> ObtenerTodos(int? pacienteId, int? doctorId, string? estado, DateTime? desde, DateTime? hasta)
     {
         var resultado = new List<Turno>();
@@ -127,6 +133,9 @@ public class TurnoRepositoryFalso : ITurnoRepository
 
     public Task Agregar(Turno turno)
     {
+        if (SimularDatoRepetido)
+            throw new DatoRepetidoException(new Exception("Índice único de Turnos"));
+
         // Igual que la base de datos: el id lo asigna quien guarda.
         var mayor = 0;
         foreach (var existente in Turnos)
@@ -141,7 +150,13 @@ public class TurnoRepositoryFalso : ITurnoRepository
 
     // Los turnos de la lista son los mismos objetos que modifica la lógica,
     // así que actualizar no tiene nada más que hacer.
-    public Task Actualizar(Turno turno) => Task.CompletedTask;
+    public Task Actualizar(Turno turno)
+    {
+        if (SimularDatoRepetido)
+            throw new DatoRepetidoException(new Exception("Índice único de Turnos"));
+
+        return Task.CompletedTask;
+    }
 
     public Task Eliminar(Turno turno) => Task.CompletedTask;
 }

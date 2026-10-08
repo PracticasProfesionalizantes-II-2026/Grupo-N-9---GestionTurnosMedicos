@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
 
@@ -67,11 +68,11 @@ public class TurnoCrearViewModel : IValidatableObject
     public string? AvisoFranjas { get; set; }
 
     /// <summary>
-    /// "Hoy" según el reloj local del servidor, igual que el resto del front y
-    /// que la API. Se toma una sola vez para que la fecha por defecto, el
-    /// recorte de fechas pasadas y el min del input usen el mismo valor.
+    /// "Hoy" en hora de Argentina, igual que la API. Se toma una sola vez para
+    /// que la fecha por defecto, el recorte de fechas pasadas y el min del
+    /// input usen el mismo valor.
     /// </summary>
-    public DateTime Hoy { get; } = DateTime.Today;
+    public DateTime Hoy { get; } = FechaArgentina.Hoy();
 
     public string FechaMinima => Hoy.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 

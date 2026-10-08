@@ -60,10 +60,11 @@
 
                     <partial name="_BadgeEstado" model="turno.Estado" />
 
-                    @* El paciente puede cancelar sus próximos turnos desde acá: lleva a
-                       la pantalla de confirmación y después vuelve al inicio. El z-10
-                       lo deja por encima del enlace que cubre toda la fila. *@
-                    @if (Model.Vista == VistaPanel.Paciente && turno.PuedeCancelarse)
+                    @* El paciente puede cancelar sus próximos turnos desde acá, mientras
+                       no hayan empezado: lleva a la pantalla de confirmación y después
+                       vuelve al inicio. El z-10 lo deja por encima del enlace que cubre
+                       toda la fila. *@
+                    @if (Model.Vista == VistaPanel.Paciente && turno.PuedeCancelarse && !turno.YaEmpezo)
                     {
                         <a asp-controller="Turnos" asp-action="Cancelar" asp-route-id="@turno.IdTurno"
                            asp-route-volver="@Url.Action("Index", "Home")"

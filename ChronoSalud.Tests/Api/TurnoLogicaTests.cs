@@ -26,6 +26,7 @@ public class TurnoLogicaTests
     private readonly NotificacionRepositoryFalso _notificaciones = new NotificacionRepositoryFalso();
     private readonly HorarioLaboralLogicaFalsa _horarios = new HorarioLaboralLogicaFalsa();
     private readonly RegistroMovimientosFalso _movimientos = new RegistroMovimientosFalso();
+    private readonly RelojFijo _reloj = new RelojFijo();
 
     private readonly TurnoLogica _logica;
 
@@ -49,7 +50,8 @@ public class TurnoLogicaTests
             _notificaciones,
             NullLogger<TurnoLogica>.Instance,
             _horarios,
-            _movimientos);
+            _movimientos,
+            _reloj);
     }
 
     [Fact]
@@ -193,4 +195,143 @@ public class TurnoLogicaTests
         Assert.Equal(1, conteos["cancelado"]);
         Assert.Equal(0, conteos["confirmado"]);
     }
+
+    // ---- Reglas del paso 5: hora de Argentina, estados y doble reserva ----
+    // El reloj de las pruebas marca hoy a las 10:00 (RelojFijo), y AgregarTurno
+    // carga los turnos a las 10:00: uno de hoy "ya empezó".
+
+    [Fact]
+    public async Task El_paciente_no_reserva_un_horario_de_hoy_que_ya_paso()
+    {
+        // Preparar: son las 10:00 y pide las 09:00 de hoy.
+        var paciente = new Solicitante(IdUsuarioPaciente, "paciente");
+        var pedido = new TurnoCreateDto(0, IdDoctor, DateTime.Today, "09:00", "09:30", null);
+
+        // Ejecutar
+        var (id, error) = await _logica.Crear(pedido, paciente);
+
+        // Verificar
+        Assert.Null(id);
+        Assert.Equal("Ese horario ya pasó. Elegí uno más adelante.", error);
+        Assert.Empty(_turnos.Turnos);
+    }
+
+    [Fact]
+    public async Task El_personal_si_carga_un_turno_de_hoy_que_ya_paso()
+    {
+        var administrador = new Solicitante(1, "administrador");
+        var pedido = new TurnoCreateDto(IdPacientePropio, IdDoctor, DateTime.Today, "09:00", "09:30", null);
+
+        var (id, error) = await _logica.Crear(pedido, administrador);
+
+        Assert.Null(error);
+        Assert.NotNull(id);
+    }
+
+    [Fact]
+    public async Task Si_la_base_frena_una_reserva_repetida_contesta_conflicto()
+    {
+        // Preparar: dos reservas del mismo horario a la vez; la base frena esta.
+        _turnos.SimularDatoRepetido = true;
+        var paciente = new Solicitante(IdUsuarioPaciente, "paciente");
+        var pedido = new TurnoCreateDto(0, IdDoctor, DateTime.Today.AddDays(1), "10:00", "10:30", null);
+
+        // Ejecutar
+        var (id, error) = await _logica.Crear(pedido, paciente);
+
+        // Verificar: empieza con "Conflicto", así el endpoint responde 409.
+        Assert.Null(id);
+        Assert.StartsWith("Conflicto de horario", error);
+    }
+
+    [Fact]
+    public async Task No_se_marca_completado_un_turno_que_todavia_no_empezo()
+    {
+        var turno = AgregarTurno(IdPacientePropio, "confirmado", DateTime.Today.AddDays(1));
+        var administrador = new Solicitante(1, "administrador");
+
+        var (ok, error, _) = await _logica.Actualizar(turno.Id, Estado("completado"), administrador);
+
+        Assert.False(ok);
+        Assert.StartsWith("Conflicto de estado", error);
+        Assert.Equal("confirmado", turno.Estado);
+    }
+
+    [Fact]
+    public async Task Un_turno_que_ya_empezo_se_marca_ausente_y_queda_en_el_historial()
+    {
+        // Preparar: el turno es hoy a las 10:00 y el reloj marca las 10:00.
+        var turno = AgregarTurno(IdPacientePropio, "confirmado", DateTime.Today);
+        var administrador = new Solicitante(1, "administrador");
+
+        // Ejecutar: llega en mayúsculas y con espacios.
+        var (ok, error, _) = await _logica.Actualizar(turno.Id, Estado(" Ausente "), administrador);
+
+        // Verificar
+        Assert.True(ok);
+        Assert.Null(error);
+        Assert.Equal("ausente", turno.Estado);
+        Assert.Contains(AccionesMovimiento.TurnoAusente, _movimientos.Acciones);
+    }
+
+    [Fact]
+    public async Task Un_estado_que_no_existe_se_rechaza()
+    {
+        var turno = AgregarTurno(IdPacientePropio, "pendiente", DateTime.Today.AddDays(1));
+        var administrador = new Solicitante(1, "administrador");
+
+        var (ok, _, _) = await _logica.Actualizar(turno.Id, Estado("borrado"), administrador);
+
+        Assert.False(ok);
+        Assert.Equal("pendiente", turno.Estado);
+    }
+
+    [Fact]
+    public async Task No_se_reprograma_un_turno_completado()
+    {
+        var turno = AgregarTurno(IdPacientePropio, "completado", DateTime.Today);
+        var administrador = new Solicitante(1, "administrador");
+        var pedido = new TurnoUpdateDto(DateTime.Today.AddDays(3), null, null, null, null);
+
+        var (ok, error, _) = await _logica.Actualizar(turno.Id, pedido, administrador);
+
+        Assert.False(ok);
+        Assert.StartsWith("Conflicto de estado", error);
+        Assert.Equal(DateTime.Today, turno.FechaInicio);
+    }
+
+    [Fact]
+    public async Task El_paciente_no_cancela_un_turno_que_ya_empezo_pero_el_personal_si()
+    {
+        // Preparar: el turno es hoy a las 10:00 y ya son las 10:00.
+        var turno = AgregarTurno(IdPacientePropio, "confirmado", DateTime.Today);
+        var paciente = new Solicitante(IdUsuarioPaciente, "paciente");
+        var administrador = new Solicitante(1, "administrador");
+
+        // Ejecutar
+        var (okPaciente, errorPaciente) = await _logica.Cancelar(turno.Id, paciente);
+        var estadoDespuesDelPaciente = turno.Estado;
+        var (okAdministrador, _) = await _logica.Cancelar(turno.Id, administrador);
+
+        // Verificar
+        Assert.False(okPaciente);
+        Assert.NotNull(errorPaciente);
+        Assert.Equal("confirmado", estadoDespuesDelPaciente);
+        Assert.True(okAdministrador);
+        Assert.Equal("cancelado", turno.Estado);
+    }
+
+    [Fact]
+    public async Task La_notificacion_lleva_la_hora_del_reloj()
+    {
+        var turno = AgregarTurno(IdPacientePropio, "pendiente", DateTime.Today.AddDays(1));
+        var paciente = new Solicitante(IdUsuarioPaciente, "paciente");
+
+        await _logica.Cancelar(turno.Id, paciente);
+
+        Assert.Equal(_reloj.Momento, _notificaciones.Notificaciones.Single().Fecha);
+    }
+
+    /// <summary>Un PUT que solo cambia el estado.</summary>
+    private static TurnoUpdateDto Estado(string estado) => new TurnoUpdateDto(null, null, null, estado, null);
 }

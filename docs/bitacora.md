@@ -474,3 +474,19 @@ solo pendientes y confirmados, ordenados, de a 6. La ficha del paciente
 muestra el último turno atendido. El seeder recorre de a 100.
 **Ojo:** sin migración. Durante el despliegue, si la Web llega antes que
 la API, las tarjetas de Turnos muestran "—" unos minutos.
+
+## 2026-10-08 — mejoras, paso 5: reglas de estado, doble reserva y hora de Argentina
+**Hecho:** estado nuevo `ausente`. `EstadosTurno.PuedeCambiar` decide los
+cambios permitidos: completado y ausente recién cuando empieza el turno,
+y completado, ausente y cancelado son finales. PUT /turnos valida el
+estado y, para reprogramar, que el turno esté en pie, el horario del
+doctor y el choque. La hora sale de `IReloj` (hora de Argentina): el
+paciente no reserva ni cancela un horario que ya pasó, y la
+disponibilidad de hoy ya no depende del reloj de Azure. Índice único
+filtrado contra la doble reserva (migración EvitarTurnosDuplicados), con
+409. En la Web: "Marcar ausente", tarjeta de ausentes, completar y
+ausente solo cuando empezó, y la hora de Argentina en los seis lugares
+que usaban la del servidor. El seeder no fuerza "completado" en un turno
+que todavía no empezó.
+**Ojo:** antes de correr la migración en Azure, revisar que no haya
+turnos duplicados (si hay, el índice no se crea).

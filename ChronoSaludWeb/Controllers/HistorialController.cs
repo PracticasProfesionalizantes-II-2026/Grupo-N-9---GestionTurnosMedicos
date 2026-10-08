@@ -90,7 +90,7 @@ public class HistorialController : ControladorBase
         var modelo = new EntradaHistorialCrearViewModel
         {
             IdPaciente = paciente,
-            Fecha = DateTime.Today
+            Fecha = FechaArgentina.Hoy()
         };
 
         await CargarListaAsync(modelo);

@@ -478,19 +478,21 @@ while (cantidadLote > 0);
 var hoy = DateTime.Today;
 var creados = 0;
 var saltados = 0;
-var aRevisar = new List<(int Id, string EstadoActual, string EstadoDeseado)>();
+var aRevisar = new List<(int Id, string EstadoActual, string EstadoDeseado, DateTime Inicio)>();
 
 foreach (var turno in DatosDemo.Turnos)
 {
     var fecha = SumarDiasHabiles(hoy, turno.Dia);
     var clave = Clave(nombreDoctor[turno.Doctor], nombrePaciente[turno.Paciente], fecha);
+    var inicio = fecha + TimeSpan.Parse(turno.Desde, CultureInfo.InvariantCulture);
 
     if (existentes.TryGetValue(clave, out var ya))
     {
         aRevisar.Add((
             Json.Entero(ya, "idTurno", "id_turno"),
             Json.Texto(ya, "estado"),
-            turno.Estado));
+            turno.Estado,
+            inicio));
         saltados++;
         continue;
     }
@@ -512,7 +514,7 @@ foreach (var turno in DatosDemo.Turnos)
               $"{nombreDoctor[turno.Doctor]} el {fecha:dd/MM} (HTTP {alta.Estado}): {alta.Error}");
     }
 
-    aRevisar.Add((Json.Entero(alta.Datos, "id_turno", "idTurno"), "pendiente", turno.Estado));
+    aRevisar.Add((Json.Entero(alta.Datos, "id_turno", "idTurno"), "pendiente", turno.Estado, inicio));
     creados++;
     Alta($"{fecha:dd/MM} {turno.Desde} - {nombrePaciente[turno.Paciente]} con {nombreDoctor[turno.Doctor]}");
 }
@@ -527,26 +529,43 @@ if (saltados > 0)
 Paso("Estados");
 var actualizados = 0;
 
+var noCambiaron = 0;
+
 foreach (var item in aRevisar)
 {
-    if (string.Equals(item.EstadoActual, item.EstadoDeseado, StringComparison.OrdinalIgnoreCase))
+    var deseado = item.EstadoDeseado;
+
+    // La API marca "completado" solo un turno que ya empezo. Si la demo se
+    // carga antes de esa hora (o un fin de semana, que corre los turnos de
+    // "hoy" al lunes), el turno queda confirmado.
+    if (deseado == "completado" && item.Inicio > DateTime.Now)
+    {
+        deseado = "confirmado";
+    }
+
+    if (string.Equals(item.EstadoActual, deseado, StringComparison.OrdinalIgnoreCase))
     {
         continue;
     }
 
     // Mandamos solo el estado: si no viaja fecha ni hora, la API no revalida
     // conflictos de agenda, que es justo lo que queremos aca.
-    var cambio = await api.PutAsync($"/turnos/{item.Id}", new { Estado = item.EstadoDeseado }, tokenAdmin);
+    var cambio = await api.PutAsync($"/turnos/{item.Id}", new { Estado = deseado }, tokenAdmin);
 
     if (!cambio.Ok)
     {
-        Morir($"No se pudo pasar el turno {item.Id} a '{item.EstadoDeseado}' (HTTP {cambio.Estado}): {cambio.Error}");
+        // Por ejemplo, un turno de la demo que alguien ya cancelo: la API no
+        // deja volver atras un estado final. Se avisa y se sigue con el resto.
+        Escribir($"   ! El turno {item.Id} quedo '{item.EstadoActual}': la API no lo deja pasar a '{deseado}' ({cambio.Error})",
+            ConsoleColor.Yellow);
+        noCambiaron++;
+        continue;
     }
 
     actualizados++;
 }
 
-Escribir($"   {actualizados} turno(s) cambiaron de estado, {aRevisar.Count - actualizados} ya estaban bien",
+Escribir($"   {actualizados} turno(s) cambiaron de estado, {aRevisar.Count - actualizados - noCambiaron} ya estaban bien",
     ConsoleColor.DarkGray);
 
 foreach (var grupo in DatosDemo.Turnos.GroupBy(t => t.Estado).OrderBy(g => g.Key, StringComparer.Ordinal))

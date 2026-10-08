@@ -78,6 +78,22 @@ public class AppDbContext : DbContext
             .HasForeignKey(t => t.IdDoctor)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Un doctor no puede tener dos turnos en pie el mismo día a la misma
+        // hora. Los cancelados no cuentan: ese horario se puede volver a dar.
+        // Si dos pedidos reservan a la vez, la base frena el segundo
+        // (TurnoRepository lo traduce a DatoRepetidoException).
+        modelBuilder.Entity<Turno>()
+            .HasIndex(t => new { t.IdDoctor, t.FechaInicio, t.HoraInicio })
+            .IsUnique()
+            .HasFilter("[Estado] <> 'cancelado'")
+            .HasDatabaseName("IX_Turnos_Doctor_Dia_Hora");
+
+        // El índice de siempre sobre IdDoctor se declara a mano: sin esto, EF
+        // lo borraría porque el de arriba también empieza por IdDoctor, pero
+        // ese tiene filtro y no sirve para buscar los turnos cancelados.
+        modelBuilder.Entity<Turno>()
+            .HasIndex(t => t.IdDoctor);
+
         // PacienteCobertura -> Paciente
         modelBuilder.Entity<PacienteCobertura>()
             .HasOne(pc => pc.Paciente)

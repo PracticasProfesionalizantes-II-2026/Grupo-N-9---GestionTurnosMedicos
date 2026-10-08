@@ -107,11 +107,13 @@ else
         }
     </div>
 
-    @* Acciones sobre el turno. Confirmar y completar son del personal (cada
-       doctor en su agenda y la administración en cualquiera); cancelar, también
-       del paciente. Un turno completado o cancelado es final: no muestra ninguna. *@
+    @* Acciones sobre el turno. Confirmar, completar y marcar ausente son del
+       personal (cada doctor en su agenda y la administración en cualquiera);
+       cancelar, también del paciente, mientras el turno no haya empezado.
+       Completado, ausente y cancelado son finales: no muestran ninguna. *@
     var puedeCambiarEstado = Auth.PuedeCambiarEstadoTurno && !Model.EsTerminal;
-    var puedeCancelar = Auth.PuedeCancelarTurnos && Model.PuedeCancelarse;
+    var puedeCancelar = Auth.PuedeCancelarTurnos && Model.PuedeCancelarse
+                        && (Auth.PuedeCambiarEstadoTurno || !Model.YaEmpezo);
 
     @if (puedeCambiarEstado || puedeCancelar)
     {
@@ -147,6 +149,23 @@ else
                         </button>
                     </form>
                 }
+                @if (puedeCambiarEstado && Model.PuedeMarcarAusente)
+                {
+                    <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
+                        <input type="hidden" name="estado" value="ausente" />
+                        <button type="submit"
+                                class="boton boton-secundario">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="m17 8 5 5" />
+                                <path d="m22 8-5 5" />
+                            </svg>
+                            Marcar ausente
+                        </button>
+                    </form>
+                }
                 @if (puedeCancelar)
                 {
                     @* Lleva a la pantalla de confirmación: cancelar no se hace con un solo clic. *@
@@ -162,6 +181,12 @@ else
                     </a>
                 }
             </div>
+            @if (puedeCambiarEstado && !Model.YaEmpezo)
+            {
+                <p class="mt-3 text-xs text-muted">
+                    Cuando llegue la hora del turno vas a poder marcarlo como completado o ausente.
+                </p>
+            }
         </div>
     }
 }

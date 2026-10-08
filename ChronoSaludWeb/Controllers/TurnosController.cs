@@ -262,8 +262,8 @@ public class TurnosController : ControladorBase
                 "El estado de un turno lo cambia el personal: cada doctor en sus propios turnos, " +
                 "y la administración en cualquiera.");
 
-        // El estado llega del formulario y la API lo guardaría tal cual, sin
-        // validarlo, así que la lista blanca la ponemos nosotros.
+        // El estado llega del formulario: además de lo que valida la API, la
+        // lista blanca la ponemos nosotros.
         if (!EstadosQueSePuedenAplicar.Contains(estado))
         {
             TempData["Error"] = $"\"{estado}\" no es un estado que se pueda aplicar desde acá.";
@@ -284,16 +284,24 @@ public class TurnosController : ControladorBase
 
             // Se valida contra el estado real que devolvió la API, no contra el que
             // tenía la página cuando se pintó: el turno pudo moverse mientras tanto.
-            var actual = new TurnoDetalleViewModel { Estado = turno.Estado };
+            var actual = new TurnoDetalleViewModel
+            {
+                Estado = turno.Estado,
+                FechaInicio = turno.FechaInicio,
+                HoraInicio = turno.HoraInicio
+            };
 
-            var habilitado = estado == "confirmado"
-                ? actual.PuedeConfirmarse
-                : actual.PuedeCompletarse;
+            var habilitado = false;
+            if (estado == "confirmado") habilitado = actual.PuedeConfirmarse;
+            if (estado == "completado") habilitado = actual.PuedeCompletarse;
+            if (estado == "ausente")    habilitado = actual.PuedeMarcarAusente;
 
             if (!habilitado)
             {
-                TempData["Error"] =
-                    $"El turno #{id} está {turno.Estado} y no se puede pasar a {estado}.";
+                // Completado y ausente esperan a que llegue la hora del turno.
+                TempData["Error"] = actual.EstaEnPie && !actual.YaEmpezo && estado != "confirmado"
+                    ? $"El turno #{id} todavía no empezó: se puede marcar como {estado} recién a la hora del turno."
+                    : $"El turno #{id} está {turno.Estado} y no se puede pasar a {estado}.";
                 return VolverDe(volverA, id, volver);
             }
 
@@ -311,10 +319,10 @@ public class TurnosController : ControladorBase
     }
 
     /// <summary>
-    /// Los dos únicos estados que el front aplica por PUT. "cancelado" queda
-    /// afuera porque va por DELETE, y "pendiente" porque no se vuelve atrás.
+    /// Los estados que el front aplica por PUT. "cancelado" queda afuera
+    /// porque va por DELETE, y "pendiente" porque no se vuelve atrás.
     /// </summary>
-    private static readonly string[] EstadosQueSePuedenAplicar = ["confirmado", "completado"];
+    private static readonly string[] EstadosQueSePuedenAplicar = ["confirmado", "completado", "ausente"];
 
     /// <summary>
     /// Devuelve al usuario a donde estaba: al listado si apretó el botón desde

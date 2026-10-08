@@ -136,8 +136,8 @@ public class RecetasController : ControladorBase
         var modelo = new RecetaCrearViewModel
         {
             IdPaciente = paciente,
-            Fecha = DateTime.Today,
-            Vigencia = DateTime.Today.AddDays(30)
+            Fecha = FechaArgentina.Hoy(),
+            Vigencia = FechaArgentina.Hoy().AddDays(30)
         };
 
         await CargarFormularioAsync(modelo);

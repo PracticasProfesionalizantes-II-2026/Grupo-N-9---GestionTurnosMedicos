@@ -20,6 +20,7 @@ public class HorarioLaboralLogicaTests
     private readonly TurnoRepositoryFalso _turnos = new TurnoRepositoryFalso();
     private readonly DoctorRepositoryFalso _doctores = new DoctorRepositoryFalso();
     private readonly RegistroMovimientosFalso _movimientos = new RegistroMovimientosFalso();
+    private readonly RelojFijo _reloj = new RelojFijo();
     private readonly HorarioLaboralRepositoryFalso _horarios;
 
     private readonly HorarioLaboralLogica _logica;
@@ -36,7 +37,8 @@ public class HorarioLaboralLogicaTests
             _doctores,
             _turnos,
             NullLogger<HorarioLaboralLogica>.Instance,
-            _movimientos);
+            _movimientos,
+            _reloj);
     }
 
     [Fact]
@@ -127,5 +129,27 @@ public class HorarioLaboralLogicaTests
             HoraFin = new TimeSpan(10, 30, 0),
             Estado = "confirmado"
         });
+    }
+
+    [Fact]
+    public async Task Hoy_no_ofrece_las_franjas_que_ya_empezaron()
+    {
+        // Preparar: el doctor atiende hoy de 08:00 a 12:00 y son las 10:00
+        // en Argentina (el reloj de la prueba).
+        _reloj.Momento = DateTime.Today.AddHours(10);
+        _horarios.Horarios.Add(new HorarioLaboral
+        {
+            IdDoctor = IdDoctorPropio,
+            DiaSemana = (int)DateTime.Today.DayOfWeek,
+            HoraInicio = new TimeSpan(8, 0, 0),
+            HoraFin = new TimeSpan(12, 0, 0)
+        });
+
+        // Ejecutar
+        var (franjas, error) = await _logica.ObtenerDisponibilidad(IdDoctorPropio, DateTime.Today);
+
+        // Verificar: quedan de las 10:00 en adelante.
+        Assert.Null(error);
+        Assert.Equal(new[] { "10:00", "10:30", "11:00", "11:30" }, franjas!.Select(f => f.HoraInicio));
     }
 }

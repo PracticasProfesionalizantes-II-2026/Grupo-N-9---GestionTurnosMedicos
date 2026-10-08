@@ -1,3 +1,6 @@
+using System.Globalization;
+using ChronoSaludWeb.Services;
+
 namespace ChronoSaludWeb.Models;
 
 public class TurnoDetalleViewModel
@@ -46,14 +49,39 @@ public class TurnoDetalleViewModel
 
     public bool TieneObservaciones => !string.IsNullOrWhiteSpace(Observaciones);
 
+    /// <summary>
+    /// La hora de ahora en Argentina. Se toma una sola vez; las pruebas pueden
+    /// poner otra para probar un turno que ya empezó o que todavía no.
+    /// </summary>
+    public DateTime Ahora { get; init; } = FechaArgentina.Ahora();
+
+    /// <summary>
+    /// Ya llegó la hora de inicio del turno. Sin hora (o con una que no se
+    /// entiende) se toma el comienzo del día.
+    /// </summary>
+    public bool YaEmpezo
+    {
+        get
+        {
+            var inicio = FechaInicio.Date;
+            if (TimeSpan.TryParseExact(HoraInicio, @"hh\:mm", CultureInfo.InvariantCulture, out var hora))
+                inicio = inicio + hora;
+
+            return Ahora >= inicio;
+        }
+    }
+
     // Estados del dominio (Turno.Estado en la API): pendiente, confirmado,
-    // completado y cancelado, siempre en minúscula. Se comparan sin distinguir
-    // mayúsculas porque el PUT no valida el string y podría entrar cualquier cosa.
+    // completado, ausente y cancelado, siempre en minúscula. Se comparan sin
+    // distinguir mayúsculas por si en la base quedó alguno escrito distinto.
     private bool EstadoEs(string otro) =>
         string.Equals(Estado, otro, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Completado y cancelado son finales: de ahí el turno no se mueve más.</summary>
-    public bool EsTerminal => EstadoEs("completado") || EstadoEs("cancelado");
+    /// <summary>Pendiente o confirmado: el turno todavía puede pasar.</summary>
+    public bool EstaEnPie => EstadoEs("pendiente") || EstadoEs("confirmado");
+
+    /// <summary>Completado, ausente y cancelado son finales: de ahí el turno no se mueve más.</summary>
+    public bool EsTerminal => !EstaEnPie;
 
     public bool PuedeConfirmarse => EstadoEs("pendiente");
 
@@ -61,7 +89,10 @@ public class TurnoDetalleViewModel
     /// La API solo cancela un turno pendiente o confirmado (DELETE /turnos/{id}
     /// contesta 409 con cualquier otro estado).
     /// </summary>
-    public bool PuedeCancelarse => EstadoEs("pendiente") || EstadoEs("confirmado");
+    public bool PuedeCancelarse => EstaEnPie;
 
-    public bool PuedeCompletarse => EstadoEs("pendiente") || EstadoEs("confirmado");
+    /// <summary>Completado o ausente: solo un turno en pie que ya empezó (la API pide lo mismo).</summary>
+    public bool PuedeCompletarse => EstaEnPie && YaEmpezo;
+
+    public bool PuedeMarcarAusente => EstaEnPie && YaEmpezo;
 }

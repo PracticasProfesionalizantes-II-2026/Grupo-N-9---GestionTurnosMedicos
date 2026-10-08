@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 4
+# Cambios en la API — Mejoras, pasos 2 a 5
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3) y `fix/listados-paginados` (paso 3b y paso 4)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4) y `feature/reglas-de-turnos` (paso 5)
 
 Un apartado por cada paso.
 
@@ -152,4 +152,77 @@ Un apartado por cada paso.
 | `Endpoints/TurnoEndpoints.cs` | Parámetros `estados`, `orden` y `dir`; `conteos` en la respuesta; tope de 100 |
 | `Endpoints/PacienteEndpoints.cs`, `DoctorEndpoints.cs` | Tope de 200 |
 | `Endpoints/ReporteEndpoints.cs` | Cuentan en la base |
+
+---
+
+## Paso 5 — Reglas de estado, doble reserva y hora de Argentina
+
+**Hay migración:** `EvitarTurnosDuplicados`. Crea un índice único en `Turnos`:
+
+```sql
+CREATE UNIQUE INDEX [IX_Turnos_Doctor_Dia_Hora] ON [Turnos] ([IdDoctor], [FechaInicio], [HoraInicio]) WHERE [Estado] <> 'cancelado';
+```
+
+- No toca datos, pero **falla si ya hay dos turnos en pie del mismo doctor, el mismo día y a la misma hora**. Antes de correrla en Azure, hay que revisar que no haya ninguno (la consulta está en el resumen del paso).
+- Se corre en Azure **antes** del merge, como siempre. Si llegara a quedar para después, no pasa nada grave: la API nueva funciona sin el índice. Lo que se pierde es la protección contra dos reservas del mismo horario al mismo tiempo.
+
+### Estados del turno
+
+Hay un estado nuevo, `ausente`: el paciente no vino. Los cambios permitidos son:
+
+| De | A | Cuándo |
+|---|---|---|
+| pendiente | confirmado | siempre |
+| pendiente o confirmado | completado o ausente | cuando ya llegó la hora del turno |
+| pendiente o confirmado | cancelado | siempre (el paciente, solo si el turno no empezó) |
+| completado, ausente o cancelado | — | nunca: son finales |
+
+- **`PUT /turnos/{id}` con `estado`:**
+  - Se aceptan mayúsculas y espacios: `" Ausente "` se guarda como `ausente`.
+  - Un estado que no existe → `400`.
+  - Un cambio que no está en la tabla → `409`, con el motivo (por ejemplo, *"Conflicto de estado: todavía no es la hora del turno..."*).
+  - Antes se guardaba cualquier texto.
+- **Reprogramar** (`PUT` con otra fecha u hora):
+  - El turno tiene que estar pendiente o confirmado; si no → `409`.
+  - El horario nuevo pasa por las mismas reglas que un turno nuevo: horario del doctor y fecha no pasada → `400` con el motivo. Si choca con otro turno → `409`.
+  - Si se manda la misma fecha y hora que ya tenía, no cuenta como reprogramar.
+
+### Horas que ya pasaron (hora de Argentina)
+
+- **`POST /turnos` de un paciente** a una hora de hoy que ya pasó → `400` *"Ese horario ya pasó. Elegí uno más adelante."*. El personal sí puede cargarlo (por ejemplo, alguien que se atendió sin turno).
+- **`DELETE /turnos/{id}` de un paciente** sobre un turno que ya empezó → `400`. El personal sí puede.
+- **`GET /doctores/{id}/disponibilidad`** usa la hora de Argentina. Antes usaba la del servidor: en Azure (UTC), desde las 21:00 de acá ya era "mañana", y de 9:00 a 12:00 se ofrecían franjas que ya habían pasado.
+- **Las notificaciones** guardan la fecha en hora de Argentina.
+
+### Doble reserva
+
+- Si dos pedidos reservan el mismo horario a la vez, el índice único frena el segundo. Responde `409` *"Conflicto de horario: ese horario se acaba de ocupar. Elegí otro."*, en lugar de un `500`.
+- Lo mismo al reprogramar.
+
+### Listado e historial
+
+- `GET /turnos` suma `ausente` en `conteos`, y acepta `estado=ausente`.
+- Historial de movimientos: acción nueva `turno.ausente`.
+
+### A quién le pega
+
+- **La Web vieja con la API nueva:** si alguien toca "Marcar como completado" en un turno que todavía no empezó, ve el mensaje de la API en vez de completarlo.
+- **El seeder:** un turno de la demo que tendría que quedar completado pero todavía no empezó (por ejemplo, porque se carga temprano o un fin de semana) queda confirmado. Si la API no deja cambiar el estado de un turno (por ejemplo, uno de la demo que alguien ya canceló), avisa en amarillo y sigue.
+- **Scalar o Postman:** un `PUT` con un estado inventado ahora recibe `400`.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/Reloj.cs` | Nuevo: `IReloj` (la hora actual) y `RelojArgentina` |
+| `Logica/EstadosTurno.cs` | Nuevo: los estados y `PuedeCambiar` |
+| `Logica/FechaArgentina.cs` | `Ahora()` |
+| `Logica/TurnoLogica.cs` | Reglas de estado, reprogramación, horas pasadas, `409` por dato repetido, notificación con hora de Argentina |
+| `Logica/HorarioLaboralLogica.cs` | Usa `IReloj` en lugar de `DateTime.Today` y `DateTime.Now` |
+| `Repositorios/TurnoRepository.cs` | `Agregar` y `Actualizar` traducen el dato repetido |
+| `Repositorios/FiltroTurnos.cs` | `ausente` entre los estados que se cuentan |
+| `Datos/AppDbContext.cs` | El índice único (y el de `IdDoctor`, declarado a mano para que no se borre) |
+| `Entidades/Movimiento.cs` | `TurnoAusente` |
+| `Entidades/Notificacion.cs` | La fecha por defecto en hora de Argentina |
+| `Program.cs` | Registra `IReloj` |
 
