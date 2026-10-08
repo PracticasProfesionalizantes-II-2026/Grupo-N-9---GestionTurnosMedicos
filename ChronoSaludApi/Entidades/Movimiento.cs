@@ -45,9 +45,10 @@ public static class AccionesMovimiento
     public const string TurnoConfirmado   = "turno.confirmado";
     public const string TurnoCancelado    = "turno.cancelado";
     public const string TurnoCompletado   = "turno.completado";
+    public const string TurnoAusente      = "turno.ausente";
     public const string TurnoReprogramado = "turno.reprogramado";
 
-    // El turno pasó a un estado que no es confirmado, completado ni cancelado.
+    // El turno pasó a un estado que no es confirmado, completado, ausente ni cancelado.
     public const string TurnoEstadoCambiado = "turno.estado_cambiado";
 
     public const int LargoMaximoDelResumen = 300;

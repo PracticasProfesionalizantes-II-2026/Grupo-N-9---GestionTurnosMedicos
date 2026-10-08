@@ -171,5 +171,5 @@ public class PacienteCreateViewModel
 public sealed class NoFuturaAttribute : ValidationAttribute
 {
     public override bool IsValid(object? value) =>
-        value is not DateOnly fecha || fecha <= DateOnly.FromDateTime(DateTime.Today);
+        value is not DateOnly fecha || fecha <= DateOnly.FromDateTime(FechaArgentina.Hoy());
 }

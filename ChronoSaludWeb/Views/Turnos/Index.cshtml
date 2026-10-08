@@ -171,7 +171,7 @@ else
        que es lo que la apaga. El formulario es la grilla misma y se cierra
        antes de la tabla, así no queda anidado con los de las filas. Adentro
        van <span> porque un <button> no admite elementos de bloque. *@
-    <form method="get" asp-action="Index" class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <form method="get" asp-action="Index" class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         @if (Model.Filtros.Desde is { } desde)
         {
             <input type="hidden" name="desde" value="@desde.ToString("yyyy-MM-dd")" />
@@ -236,6 +236,23 @@ else
                 Completados
             </span>
             <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</span>
+        </button>
+
+        <button type="submit" name="estado"
+                value="@(Model.Filtros.EstaActivo("ausente") ? "" : "ausente")"
+                aria-pressed="@(Model.Filtros.EstaActivo("ausente") ? "true" : "false")"
+                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+            <span class="flex items-center gap-2 text-sm text-muted">
+                <svg class="h-4 w-4 text-muted" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="m17 8 5 5" />
+                    <path d="m22 8-5 5" />
+                </svg>
+                Ausentes
+            </span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Ausentes</span>
         </button>
 
         <button type="submit" name="estado"
@@ -364,7 +381,8 @@ else
                                                     </button>
                                                 </form>
                                             }
-                                            @if (turno.PuedeCancelarse)
+                                            @* El paciente no cancela un turno que ya empezó. *@
+                                            @if (turno.PuedeCancelarse && (Auth.PuedeCambiarEstadoTurno || !turno.YaEmpezo))
                                             {
                                                 <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1 text-status-cancelado">

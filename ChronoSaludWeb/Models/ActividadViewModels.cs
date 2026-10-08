@@ -60,6 +60,7 @@ public class ActividadViewModel
         ("turno.confirmado",      "Confirmó un turno"),
         ("turno.reprogramado",    "Reprogramó un turno"),
         ("turno.completado",      "Completó un turno"),
+        ("turno.ausente",         "Marcó ausente a un paciente"),
         ("turno.cancelado",       "Canceló un turno"),
         ("turno.estado_cambiado", "Cambió el estado de un turno"),
         ("horario.cambiado",      "Cambió un horario"),

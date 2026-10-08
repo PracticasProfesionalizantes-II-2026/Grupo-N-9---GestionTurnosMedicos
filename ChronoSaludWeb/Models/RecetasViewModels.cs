@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
 
@@ -110,7 +111,7 @@ public class RecetaFilaViewModel
     public IReadOnlyList<RecetaMedicamentoViewModel> Medicamentos { get; init; }
         = Array.Empty<RecetaMedicamentoViewModel>();
 
-    public bool Vigente => Vigencia.Date >= DateTime.Today;
+    public bool Vigente => Vigencia.Date >= FechaArgentina.Hoy();
 
     public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
     public string VigenciaCorta => Vigencia.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);

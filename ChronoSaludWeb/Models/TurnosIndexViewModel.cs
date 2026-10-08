@@ -75,6 +75,25 @@ public class TurnoFilaViewModel
     /// </summary>
     public bool PuedeConfirmarse =>
         string.Equals(Estado, "pendiente", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>La hora de ahora en Argentina; las pruebas pueden poner otra.</summary>
+    public DateTime Ahora { get; init; } = FechaArgentina.Ahora();
+
+    /// <summary>
+    /// Ya llegó la hora de inicio del turno. El paciente no cancela un turno
+    /// que ya empezó (la API tampoco lo deja), así que no se le ofrece.
+    /// </summary>
+    public bool YaEmpezo
+    {
+        get
+        {
+            var inicio = FechaInicio.Date;
+            if (TimeSpan.TryParseExact(Hora, @"hh\:mm", CultureInfo.InvariantCulture, out var hora))
+                inicio = inicio + hora;
+
+            return Ahora >= inicio;
+        }
+    }
 }
 
 /// <summary>
@@ -84,11 +103,11 @@ public class TurnoFilaViewModel
 public class TurnosFiltroViewModel
 {
     /// <summary>
-    /// Los cuatro estados que maneja la API, en el orden en que se muestran
-    /// las tarjetas.
+    /// Los estados que maneja la API, en el orden en que se muestran las
+    /// tarjetas.
     /// </summary>
     public static readonly string[] EstadosTurno =
-        { "confirmado", "pendiente", "completado", "cancelado" };
+        { "confirmado", "pendiente", "completado", "ausente", "cancelado" };
 
     /// <summary>Las columnas por las que se puede ordenar la tabla.</summary>
     public static readonly string[] Columnas = { "hora", "paciente", "fecha", "estado" };
@@ -249,6 +268,7 @@ public class TurnosIndexViewModel
     public string Confirmados => Conteo("confirmado");
     public string Pendientes  => Conteo("pendiente");
     public string Completados => Conteo("completado");
+    public string Ausentes    => Conteo("ausente");
     public string Cancelados  => Conteo("cancelado");
 
     /// <summary>No hay turnos, y la tarjeta de un estado está filtrando.</summary>
@@ -283,7 +303,7 @@ public class TurnosIndexViewModel
         if (Conteos is null)
             return "—";
 
-        // La API manda los cuatro estados; si faltara alguno, es que no hay.
+        // La API manda todos los estados; si faltara alguno, es que no hay.
         return Conteos.TryGetValue(estado, out var cantidad) ? $"{cantidad}" : "0";
     }
 

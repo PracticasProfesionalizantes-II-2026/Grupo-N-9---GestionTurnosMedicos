@@ -13,6 +13,7 @@ public class TurnoLogica : ITurnoLogica
     private readonly ILogger<TurnoLogica> _logger;
     private readonly IHorarioLaboralLogica _horarioLogica;
     private readonly IRegistroMovimientos _movimientos;
+    private readonly IReloj _reloj;
 
     public TurnoLogica(
         ITurnoRepository repo,
@@ -21,7 +22,8 @@ public class TurnoLogica : ITurnoLogica
         INotificacionRepository notifRepo,
         ILogger<TurnoLogica> logger,
         IHorarioLaboralLogica horarioLogica,
-        IRegistroMovimientos movimientos)
+        IRegistroMovimientos movimientos,
+        IReloj reloj)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
@@ -30,6 +32,7 @@ public class TurnoLogica : ITurnoLogica
         _logger = logger;
         _horarioLogica = horarioLogica;
         _movimientos = movimientos;
+        _reloj = reloj;
     }
 
     // Un fallo al insertar la notificación nunca puede hacer fracasar ni
@@ -45,7 +48,8 @@ public class TurnoLogica : ITurnoLogica
             {
                 IdUsuario = paciente.Usuario.Id,
                 Tipo      = "turno",
-                Mensaje   = mensaje
+                Mensaje   = mensaje,
+                Fecha     = _reloj.Ahora()
             });
         }
         catch (Exception ex)
@@ -161,6 +165,11 @@ public class TurnoLogica : ITurnoLogica
         if (!TimeSpan.TryParse(dto.HoraFin, out var horaFin))
             return (null, "Formato de hora fin inválido. Use HH:MM.");
 
+        // El paciente no reserva un horario que ya pasó. El personal sí puede
+        // cargar uno de hoy (por ejemplo, alguien que se atendió sin turno).
+        if (solicitante.EsPaciente && YaEmpezo(dto.FechaInicio, horaInicio))
+            return (null, "Ese horario ya pasó. Elegí uno más adelante.");
+
         var (horarioOk, errorHorario) = await _horarioLogica.ValidarHorarioLaboral(dto.IdDoctor, dto.FechaInicio, horaInicio, horaFin);
         if (!horarioOk)
             return (null, errorHorario);
@@ -176,11 +185,20 @@ public class TurnoLogica : ITurnoLogica
             FechaInicio  = dto.FechaInicio,
             HoraInicio   = horaInicio,
             HoraFin      = horaFin,
-            Estado       = "pendiente",
+            Estado       = EstadosTurno.Pendiente,
             Observaciones = dto.Observaciones
         };
 
-        await _repo.Agregar(turno);
+        try
+        {
+            await _repo.Agregar(turno);
+        }
+        catch (DatoRepetidoException)
+        {
+            // Dos reservas del mismo horario al mismo tiempo: las dos pasaron
+            // el chequeo de arriba, pero la base (índice único) frenó la segunda.
+            return (null, "Conflicto de horario: ese horario se acaba de ocupar. Elegí otro.");
+        }
 
         await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCreado, "turno", turno.Id, turno.IdDoctor,
             $"Turno #{turno.Id} del {Cuando(turno)}: creado.");
@@ -211,33 +229,63 @@ public class TurnoLogica : ITurnoLogica
         var estadoAnterior = turno.Estado;
         var cuandoAnterior = Cuando(turno);
 
-        if (dto.FechaInicio.HasValue) turno.FechaInicio = dto.FechaInicio.Value;
+        // 1. Reprogramar. Lo que no viene en el pedido queda como estaba.
+        var nuevaFecha = dto.FechaInicio ?? turno.FechaInicio;
+        var nuevaHoraInicio = turno.HoraInicio;
+        var nuevaHoraFin = turno.HoraFin;
 
-        if (!string.IsNullOrEmpty(dto.HoraInicio))
-        {
-            if (!TimeSpan.TryParse(dto.HoraInicio, out var hi))
-                return (false, "Formato de hora inicio inválido.", false);
-            turno.HoraInicio = hi;
-        }
-        if (!string.IsNullOrEmpty(dto.HoraFin))
-        {
-            if (!TimeSpan.TryParse(dto.HoraFin, out var hf))
-                return (false, "Formato de hora fin inválido.", false);
-            turno.HoraFin = hf;
-        }
+        if (!string.IsNullOrEmpty(dto.HoraInicio) && !TimeSpan.TryParse(dto.HoraInicio, out nuevaHoraInicio))
+            return (false, "Formato de hora inicio inválido.", false);
+        if (!string.IsNullOrEmpty(dto.HoraFin) && !TimeSpan.TryParse(dto.HoraFin, out nuevaHoraFin))
+            return (false, "Formato de hora fin inválido.", false);
 
-        // Verificar conflicto si se modificó la fecha u hora
-        if (dto.FechaInicio.HasValue || dto.HoraInicio != null || dto.HoraFin != null)
+        var cambiaHorario = nuevaFecha != turno.FechaInicio
+                            || nuevaHoraInicio != turno.HoraInicio
+                            || nuevaHoraFin != turno.HoraFin;
+
+        if (cambiaHorario)
         {
-            var conflicto = await _repo.HayConflictoHorario(turno.IdDoctor, turno.FechaInicio, turno.HoraInicio, turno.HoraFin, id);
+            if (!EstadosTurno.EstaEnPie(turno.Estado))
+                return (false, $"Conflicto de estado: el turno está {turno.Estado} y solo se reprograma uno pendiente o confirmado.", false);
+
+            // El horario nuevo pasa por las mismas reglas que un turno nuevo.
+            var (horarioOk, errorHorario) = await _horarioLogica.ValidarHorarioLaboral(
+                turno.IdDoctor, nuevaFecha, nuevaHoraInicio, nuevaHoraFin);
+            if (!horarioOk)
+                return (false, errorHorario, false);
+
+            var conflicto = await _repo.HayConflictoHorario(turno.IdDoctor, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, id);
             if (conflicto)
                 return (false, "Conflicto de horario al reprogramar.", false);
+
+            turno.FechaInicio = nuevaFecha;
+            turno.HoraInicio  = nuevaHoraInicio;
+            turno.HoraFin     = nuevaHoraFin;
         }
 
-        if (!string.IsNullOrEmpty(dto.Estado))       turno.Estado        = dto.Estado;
+        // 2. Estado: solo los cambios que permite EstadosTurno.
+        if (!string.IsNullOrWhiteSpace(dto.Estado))
+        {
+            var nuevoEstado = dto.Estado.Trim().ToLowerInvariant();
+            var yaEmpezo = YaEmpezo(turno.FechaInicio, turno.HoraInicio);
+
+            var (puede, motivo) = EstadosTurno.PuedeCambiar(turno.Estado, nuevoEstado, yaEmpezo);
+            if (!puede)
+                return (false, motivo, false);
+
+            turno.Estado = nuevoEstado;
+        }
+
         if (!string.IsNullOrEmpty(dto.Observaciones)) turno.Observaciones = dto.Observaciones;
 
-        await _repo.Actualizar(turno);
+        try
+        {
+            await _repo.Actualizar(turno);
+        }
+        catch (DatoRepetidoException)
+        {
+            return (false, "Conflicto de horario: ese horario se acaba de ocupar.", false);
+        }
 
         await RegistrarCambios(turno, estadoAnterior, cuandoAnterior, solicitante);
 
@@ -260,12 +308,17 @@ public class TurnoLogica : ITurnoLogica
         if (!await PuedeCancelar(turno, solicitante))
             return (false, "Turno no encontrado.");
 
-        if (turno.Estado != "pendiente" && turno.Estado != "confirmado")
+        if (!EstadosTurno.EstaEnPie(turno.Estado))
             return (false, $"Conflicto de estado: el turno está {turno.Estado} y no se puede cancelar.");
+
+        // Un turno que ya empezó lo resuelve el personal (completado o
+        // ausente): el paciente ya no lo cancela.
+        if (solicitante.EsPaciente && YaEmpezo(turno.FechaInicio, turno.HoraInicio))
+            return (false, "Ese turno ya empezó y no se puede cancelar desde tu cuenta. Si hace falta, hablá con la administración.");
 
         var estadoPrevio = turno.Estado;
 
-        turno.Estado = "cancelado";
+        turno.Estado = EstadosTurno.Cancelado;
         await _repo.Eliminar(turno);
 
         await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCancelado, "turno", turno.Id, turno.IdDoctor,
@@ -280,8 +333,8 @@ public class TurnoLogica : ITurnoLogica
     /// <summary>
     /// Lo que deja en el historial un PUT de turno: "reprogramado" si cambió el
     /// día o la hora, y la acción del estado nuevo si cambió el estado. Pueden
-    /// ser las dos. Un estado nuevo que no es confirmado, completado ni
-    /// cancelado se registra como "estado cambiado".
+    /// ser las dos. Cualquier otro estado nuevo se registra como "estado
+    /// cambiado" (hoy no pasa: EstadosTurno ya no deja guardar otros).
     /// </summary>
     private async Task RegistrarCambios(Turno turno, string estadoAnterior, string cuandoAnterior, Solicitante solicitante)
     {
@@ -299,6 +352,7 @@ public class TurnoLogica : ITurnoLogica
             {
                 "confirmado" => AccionesMovimiento.TurnoConfirmado,
                 "completado" => AccionesMovimiento.TurnoCompletado,
+                "ausente"    => AccionesMovimiento.TurnoAusente,
                 "cancelado"  => AccionesMovimiento.TurnoCancelado,
                 _            => AccionesMovimiento.TurnoEstadoCambiado
             };
@@ -310,17 +364,21 @@ public class TurnoLogica : ITurnoLogica
         }
     }
 
-    // Los únicos estados que se nombran en el historial.
-    private static readonly string[] EstadosConocidos = ["pendiente", "confirmado", "completado", "cancelado"];
-
     /// <summary>
-    /// El estado de un turno para el resumen del historial. PUT /turnos guarda
-    /// cualquier texto como estado, y ese texto puede traer cualquier cosa: al
-    /// historial solo llegan los cuatro estados conocidos. Cualquier otro se
-    /// anota como "otro estado", sin copiar nada de lo que se escribió.
+    /// El estado de un turno para el resumen del historial. Antes PUT /turnos
+    /// guardaba cualquier texto como estado, y en la base puede haber quedado
+    /// alguno: al historial solo llegan los estados conocidos. Cualquier otro
+    /// se anota como "otro estado", sin copiar nada de lo que se escribió.
     /// </summary>
     private static string EstadoParaResumen(string? estado) =>
-        EstadosConocidos.Contains(estado) ? estado! : "otro estado";
+        EstadosTurno.Todos.Contains(estado) ? estado! : "otro estado";
+
+    /// <summary>
+    /// Si ya llegó la hora de inicio del turno, en hora de Argentina. Un turno
+    /// de hoy a las 10:00 empezó a las 10:00 en punto.
+    /// </summary>
+    private bool YaEmpezo(DateTime fecha, TimeSpan horaInicio) =>
+        _reloj.Ahora() >= fecha.Date + horaInicio;
 
     /// <summary>Día y horas del turno para el resumen del historial: "14/10/2026 de 13:00 a 13:30".</summary>
     private static string Cuando(Turno turno) =>

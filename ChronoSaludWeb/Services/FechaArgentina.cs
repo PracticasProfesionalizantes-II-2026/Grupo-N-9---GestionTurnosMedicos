@@ -11,6 +11,10 @@ public static class FechaArgentina
 
     public static DateTime Hoy() => Hoy(DateTime.UtcNow);
 
+    /// <summary>La fecha y la hora de ahora en Argentina.</summary>
+    public static DateTime Ahora() =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Zona);
+
     /// <summary>
     /// El día que es en Argentina en ese instante UTC, a las 00:00. Recibe la
     /// hora por parámetro para poder probar un instante puntual (por ejemplo

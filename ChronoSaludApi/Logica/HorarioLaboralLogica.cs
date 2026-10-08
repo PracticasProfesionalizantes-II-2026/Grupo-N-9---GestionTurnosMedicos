@@ -16,19 +16,22 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
     private readonly ITurnoRepository _turnoRepo;
     private readonly ILogger<HorarioLaboralLogica> _logger;
     private readonly IRegistroMovimientos _movimientos;
+    private readonly IReloj _reloj;
 
     public HorarioLaboralLogica(
         IHorarioLaboralRepository repo,
         IDoctorRepository doctorRepo,
         ITurnoRepository turnoRepo,
         ILogger<HorarioLaboralLogica> logger,
-        IRegistroMovimientos movimientos)
+        IRegistroMovimientos movimientos,
+        IReloj reloj)
     {
         _repo = repo;
         _doctorRepo = doctorRepo;
         _turnoRepo = turnoRepo;
         _logger = logger;
         _movimientos = movimientos;
+        _reloj = reloj;
     }
 
     public async Task<(IEnumerable<HorarioLaboralDto>? horarios, string? error)> ObtenerPorDoctor(int idDoctor)
@@ -76,7 +79,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         IReadOnlyList<Turno> frenan;
         try
         {
-            (anteriores, frenan) = await _repo.ReemplazarHorarios(idDoctor, nuevos, FechaArgentina.Hoy(), TurnosQueQuedanFuera(nuevos));
+            (anteriores, frenan) = await _repo.ReemplazarHorarios(idDoctor, nuevos, _reloj.Ahora().Date, TurnosQueQuedanFuera(nuevos));
         }
         catch (BaseOcupadaException ex)
         {
@@ -222,8 +225,11 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         if (doctor == null) return (null, "Doctor no encontrado.");
         if (!doctor.Activo) return (null, "El doctor no está activo.");
 
+        // Hora de Argentina: DateTime.Today y DateTime.Now darían la del
+        // servidor, que en Azure está tres horas adelante.
+        var ahora = _reloj.Ahora();
         var dia = fecha.Date;
-        var hoy = DateTime.Today;
+        var hoy = ahora.Date;
         if (dia < hoy) return (Enumerable.Empty<FranjaDisponibleDto>(), null);
 
         var horario = await _repo.ObtenerPorDoctorYDia(idDoctor, (int)dia.DayOfWeek);
@@ -234,14 +240,14 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             .ToList();
 
         var duracion = TimeSpan.FromMinutes(DuracionFranjaMinutos);
-        var ahora = DateTime.Now.TimeOfDay;
         var franjas = new List<FranjaDisponibleDto>();
 
         for (var inicio = horario.HoraInicio; inicio + duracion <= horario.HoraFin; inicio += duracion)
         {
             var fin = inicio + duracion;
 
-            if (dia == hoy && inicio < ahora) continue;
+            // Hoy no se ofrecen las franjas que ya empezaron.
+            if (dia == hoy && inicio < ahora.TimeOfDay) continue;
             if (ocupados.Any(t => t.HoraInicio < fin && t.HoraFin > inicio)) continue;
 
             franjas.Add(new FranjaDisponibleDto(inicio.ToString(@"hh\:mm"), fin.ToString(@"hh\:mm")));
@@ -270,7 +276,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         if (horaFin <= horaInicio)
             return (false, "La hora de fin debe ser posterior a la hora de inicio.");
 
-        if (fecha.Date < DateTime.Today)
+        if (fecha.Date < _reloj.Ahora().Date)
             return (false, "No se pueden crear turnos en fechas pasadas.");
 
         var diaSemana = (int)fecha.DayOfWeek;

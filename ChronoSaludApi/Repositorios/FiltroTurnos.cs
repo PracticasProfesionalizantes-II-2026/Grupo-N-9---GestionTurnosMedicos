@@ -16,6 +16,9 @@ public class FiltroTurnos
     public DateTime? Desde { get; set; }
     public DateTime? Hasta { get; set; }
 
-    /// <summary>Los cuatro estados de un turno: los que cuenta el listado.</summary>
-    public static readonly string[] EstadosConocidos = { "pendiente", "confirmado", "completado", "cancelado" };
+    /// <summary>
+    /// Los estados de un turno: los que cuenta el listado. Son los mismos que
+    /// EstadosTurno.Todos (una prueba revisa que no se separen).
+    /// </summary>
+    public static readonly string[] EstadosConocidos = { "pendiente", "confirmado", "completado", "ausente", "cancelado" };
 }

@@ -9,9 +9,12 @@ public static class FechaArgentina
 {
     public static readonly TimeZoneInfo Zona = BuscarZona();
 
+    /// <summary>La fecha y la hora de ahora en Argentina.</summary>
+    public static DateTime Ahora() =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Zona);
+
     /// <summary>El día que es ahora en Argentina, a las 00:00.</summary>
-    public static DateTime Hoy() =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Zona).Date;
+    public static DateTime Hoy() => Ahora().Date;
 
     /// <summary>
     /// El instante UTC en que empieza ese día en Argentina. Solo se mira la

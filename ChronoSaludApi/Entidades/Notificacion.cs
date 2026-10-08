@@ -1,3 +1,5 @@
+using ChronoSaludApi.Logica;
+
 namespace ChronoSaludApi.Entidades;
 
 public class Notificacion
@@ -11,7 +13,8 @@ public class Notificacion
 
     public string Mensaje { get; set; } = string.Empty;
 
-    public DateTime Fecha { get; set; } = DateTime.Now;
+    // Hora de Argentina: DateTime.Now sería la del servidor (UTC en Azure).
+    public DateTime Fecha { get; set; } = FechaArgentina.Ahora();
 
     public bool Leida { get; set; } = false;
 
