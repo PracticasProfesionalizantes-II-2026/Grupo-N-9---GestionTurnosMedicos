@@ -450,3 +450,27 @@ levantar todo (`levantar.ps1`).
 **Sigue:** paso 4, listados ordenados y paginados en la base.
 **Ojo:** que el turno sea del paciente lo revisan `TurnosController`
 (con el ámbito) y la API; la Web solo mira el rol para mostrar el botón.
+
+## 2026-10-08 — mejoras, paso 3b: el aviso de migraciones dice qué base
+**Hecho:** el aviso de migraciones pendientes nombra la base que revisó
+y da el `dotnet ef database update` con `--connection` de esa misma
+base. Si la base pide usuario y contraseña (Azure), no muestra la
+cadena y remite al script en SSMS. El README explica de dónde sale la
+cadena de conexión.
+**Ojo:** el "Error 500" local después del paso 2 era la migración
+aplicada en Azure (user-secrets) y no en la base de `levantar.ps1`.
+Para la base local, `dotnet ef database update` va siempre con
+`--connection`.
+
+## 2026-10-08 — mejoras, paso 4: listados ordenados y paginados en la base
+**Hecho:** GET /turnos filtra, ordena (`orden`, `dir`) y pagina en SQL,
+acepta varios estados (`estados`) y devuelve `conteos` por estado. Lo
+mismo para pacientes, doctores y notificaciones; los reportes cuentan en
+la base. En la Web, Turnos pagina de a 20 con el orden de la API, arranca
+en "de hoy en adelante" con "Ver todos, también los pasados", y se fue el
+orden en memoria (`OrdenTurnos`). Paginador compartido
+(`Shared/_Paginador`) en Turnos, Usuarios y Actividad. El inicio pide
+solo pendientes y confirmados, ordenados, de a 6. La ficha del paciente
+muestra el último turno atendido. El seeder recorre de a 100.
+**Ojo:** sin migración. Durante el despliegue, si la Web llega antes que
+la API, las tarjetas de Turnos muestran "—" unos minutos.

@@ -12,11 +12,8 @@ public class PacienteLogica : IPacienteLogica
     public async Task<(int total, IEnumerable<PacienteListaDto> pacientes)> ObtenerTodos(
         string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
-        var todos = await _repo.ObtenerTodos(nombre, dni, coberturaId);
-        var total = todos.Count();
-        var resultado = todos
-            .Skip((pagina - 1) * limite)
-            .Take(limite)
+        var (total, pacientes) = await _repo.Buscar(nombre, dni, coberturaId, pagina, limite);
+        var resultado = pacientes
             .Select(p => new PacienteListaDto(
                 p.Id,
                 p.IdUsuario,

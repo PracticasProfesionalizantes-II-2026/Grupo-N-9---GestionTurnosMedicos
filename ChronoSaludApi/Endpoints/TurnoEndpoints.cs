@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
+using ChronoSaludApi.Repositorios;
 
 namespace ChronoSaludApi.Endpoints;
 
@@ -17,8 +18,11 @@ public static class TurnoEndpoints
             int? paciente_id,
             int? doctor_id,
             string? estado,
+            string? estados,
             DateTime? fecha_desde,
             DateTime? fecha_hasta,
+            string? orden,
+            string? dir,
             int pagina = 1,
             int limite = 20) =>
         {
@@ -29,15 +33,28 @@ public static class TurnoEndpoints
             var callerEsPaciente = ctx.User.IsInRole("paciente");
             var callerEsDoctor   = ctx.User.IsInRole("doctor");
 
-            var (total, turnos, error) = await logica.ObtenerTodos(
-                paciente_id, doctor_id, estado,
-                fecha_desde, fecha_hasta, pagina, limite,
+            // Una página nunca trae más de 100 turnos.
+            pagina = Math.Max(pagina, 1);
+            limite = Math.Clamp(limite, 1, 100);
+
+            var filtro = new FiltroTurnos
+            {
+                PacienteId = paciente_id,
+                DoctorId   = doctor_id,
+                Estados    = LeerEstados(estado, estados),
+                Desde      = fecha_desde,
+                Hasta      = fecha_hasta
+            };
+            var descendente = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase);
+
+            var (total, turnos, conteos, error) = await logica.ObtenerTodos(
+                filtro, LeerOrden(orden), descendente, pagina, limite,
                 idUsuario, callerEsPaciente, callerEsDoctor);
 
             if (error != null) return Results.NotFound(new { error });
-            return Results.Ok(new { total, turnos });
+            return Results.Ok(new { total, turnos, conteos });
         })
-        .WithSummary("Listar turnos con filtros");
+        .WithSummary("Listar turnos con filtros, orden y página");
 
         // GET /turnos/{id}
         grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, ITurnoLogica logica) =>
@@ -122,5 +139,43 @@ public static class TurnoEndpoints
             return Results.NoContent();
         })
         .WithSummary("Cancelar turno");
+    }
+
+    /// <summary>
+    /// Junta "estado" (uno solo, como siempre) y "estados" (varios separados
+    /// por coma, por ejemplo "pendiente,confirmado") en una sola lista.
+    /// </summary>
+    public static List<string> LeerEstados(string? estado, string? estados)
+    {
+        var lista = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(estado))
+            lista.Add(estado.Trim().ToLowerInvariant());
+
+        if (!string.IsNullOrWhiteSpace(estados))
+        {
+            foreach (var parte in estados.Split(','))
+            {
+                var limpio = parte.Trim().ToLowerInvariant();
+                if (limpio != "" && !lista.Contains(limpio))
+                    lista.Add(limpio);
+            }
+        }
+
+        return lista;
+    }
+
+    /// <summary>
+    /// Las columnas por las que se puede ordenar. Cualquier otro valor, o
+    /// ninguno, ordena por fecha y hora.
+    /// </summary>
+    public static string LeerOrden(string? orden)
+    {
+        var limpio = (orden ?? "").Trim().ToLowerInvariant();
+
+        if (limpio == "paciente" || limpio == "estado")
+            return limpio;
+
+        return "fecha";
     }
 }

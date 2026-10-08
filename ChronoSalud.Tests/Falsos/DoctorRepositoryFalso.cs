@@ -14,7 +14,8 @@ public class DoctorRepositoryFalso : IDoctorRepository
         return Task.FromResult<IEnumerable<Doctor>>(activos);
     }
 
-    public Task<IEnumerable<DoctorConHorario>> ObtenerTodosConHorario(string? especialidad, int? coberturaId)
+    public Task<(int total, List<DoctorConHorario> doctores)> BuscarConHorario(
+        string? especialidad, int? coberturaId, int pagina, int limite)
     {
         var resultado = new List<DoctorConHorario>();
 
@@ -24,7 +25,8 @@ public class DoctorRepositoryFalso : IDoctorRepository
                 resultado.Add(new DoctorConHorario(doctor, doctor.HorariosLaborales.Count > 0));
         }
 
-        return Task.FromResult<IEnumerable<DoctorConHorario>>(resultado);
+        var deLaPagina = resultado.Skip((pagina - 1) * limite).Take(limite).ToList();
+        return Task.FromResult((resultado.Count, deLaPagina));
     }
 
     public Task<Doctor?> ObtenerPorId(int id)

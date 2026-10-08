@@ -242,14 +242,26 @@ public class PacientesController : ControladorBase
         }
     }
 
+    /// <summary>
+    /// El día del último turno atendido (completado). Se le pide a la API uno
+    /// solo, ordenado del más nuevo al más viejo. Un turno futuro o cancelado
+    /// no cuenta como "último turno".
+    /// </summary>
     private async Task<DateTime?> ObtenerUltimoTurnoSinRomperAsync(int idPaciente)
     {
         try
         {
-            var pagina = await _turnos.ObtenerAsync(pacienteId: idPaciente, limite: Limite);
-            return pagina.Turnos.Count == 0
-                ? null
-                : pagina.Turnos.Max(t => t.FechaInicio);
+            var pagina = await _turnos.ObtenerAsync(
+                pacienteId: idPaciente,
+                estado: "completado",
+                orden: "fecha",
+                descendente: true,
+                limite: 1);
+
+            if (pagina.Turnos.Count == 0)
+                return null;
+
+            return pagina.Turnos[0].FechaInicio;
         }
         catch (ApiException)
         {

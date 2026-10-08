@@ -64,6 +64,25 @@ Después, crear la base con las migraciones:
 dotnet ef database update --project ChronoSaludApi
 ```
 
+**Ojo con qué base actualiza ese comando.** La API toma la cadena de conexión del primero
+de estos lugares que la tenga:
+
+1. la variable de entorno que pone [`levantar.ps1`](levantar.ps1): siempre la base local
+   (`localhost` o `localhost\SQLEXPRESS`, lo dice al arrancar en "Base de datos: …");
+2. los user secrets;
+3. `appsettings.Development.json`.
+
+`dotnet ef` no pasa por `levantar.ps1`: sin `--connection` usa los user secrets, y si
+ahí está la cadena de Azure, actualiza Azure. Para actualizar la base que usa
+`levantar.ps1`, indicala siempre a mano:
+
+```
+dotnet ef database update --project ChronoSaludApi --connection "Server=localhost;Database=ChronoSaludDB;Trusted_Connection=True;TrustServerCertificate=True;"
+```
+
+Si a la base le falta una migración, la API lo avisa al arrancar (en amarillo, en su
+ventana) con este mismo comando, ya armado para la base que está usando.
+
 Si no tenés la herramienta: `dotnet tool install --global dotnet-ef`.
 
 ### 2. Levantar la API

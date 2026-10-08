@@ -2,8 +2,6 @@
 @{
     ViewData["Title"] = "Usuarios";
     const string claseCampo = "campo mt-1.5";
-    const string clasePaso = "boton boton-secundario";
-    const string clasePasoInactivo = "boton cursor-default border border-border text-muted opacity-60";
 
     // Los filtros de la búsqueda actual, para que "Reintentar" la repita. Un
     // filtro vacío no viaja: así la URL queda igual que sin él.
@@ -115,31 +113,5 @@ else
         </ul>
     </div>
 
-    @* Paginación con enlaces: conservan el texto y el rol de la búsqueda. *@
-    <nav aria-label="Páginas de resultados" class="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-muted">
-            Página <span class="font-semibold tabular-nums text-ink">@Model.Pagina</span>
-            de <span class="font-semibold tabular-nums text-ink">@Model.TotalPaginas</span>
-        </p>
-        <div class="flex items-center gap-2">
-            @if (Model.HayAnterior)
-            {
-                <a asp-action="Index" asp-route-buscar="@Model.Buscar" asp-route-rol="@Model.Rol" asp-route-pagina="@(Model.Pagina - 1)"
-                   rel="prev" class="@clasePaso">Anterior</a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
-            }
-            @if (Model.HaySiguiente)
-            {
-                <a asp-action="Index" asp-route-buscar="@Model.Buscar" asp-route-rol="@Model.Rol" asp-route-pagina="@(Model.Pagina + 1)"
-                   rel="next" class="@clasePaso">Siguiente</a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
-            }
-        </div>
-    </nav>
+    <partial name="_Paginador" model="Model.Paginador" />
 }

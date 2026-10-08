@@ -2,6 +2,7 @@ using ChronoSalud.Tests.Falsos;
 using ChronoSaludApi.Entidades;
 using ChronoSaludApi.Logica;
 using ChronoSaludApi.Logica.DTOs;
+using ChronoSaludApi.Repositorios;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ChronoSalud.Tests.Api;
@@ -168,5 +169,28 @@ public class TurnoLogicaTests
 
         _turnos.Turnos.Add(turno);
         return turno;
+    }
+
+    [Fact]
+    public async Task El_listado_del_paciente_trae_solo_sus_turnos_y_cuenta_cada_estado()
+    {
+        // Preparar: dos turnos propios (uno pendiente y uno cancelado) y uno de otro paciente.
+        _turnos.Turnos.Add(new Turno { Id = 1, IdPaciente = IdPacientePropio, IdDoctor = IdDoctor, Estado = "pendiente", FechaInicio = DateTime.Today.AddDays(1) });
+        _turnos.Turnos.Add(new Turno { Id = 2, IdPaciente = IdPacientePropio, IdDoctor = IdDoctor, Estado = "cancelado", FechaInicio = DateTime.Today.AddDays(2) });
+        _turnos.Turnos.Add(new Turno { Id = 3, IdPaciente = IdPacienteAjeno, IdDoctor = IdDoctor, Estado = "pendiente", FechaInicio = DateTime.Today.AddDays(1) });
+
+        // Ejecutar: pide los pendientes y, en la URL, los del otro paciente.
+        var filtro = new FiltroTurnos { PacienteId = IdPacienteAjeno, Estados = new List<string> { "pendiente" } };
+        var (total, turnos, conteos, error) = await _logica.ObtenerTodos(
+            filtro, "fecha", false, 1, 20, IdUsuarioPaciente, callerEsPaciente: true, callerEsDoctor: false);
+
+        // Verificar: la tabla trae solo su turno pendiente, y los conteos
+        // cuentan sus dos turnos, sin el filtro de estado.
+        Assert.Null(error);
+        Assert.Equal(1, total);
+        Assert.Equal(1, turnos.Single().IdTurno);
+        Assert.Equal(1, conteos["pendiente"]);
+        Assert.Equal(1, conteos["cancelado"]);
+        Assert.Equal(0, conteos["confirmado"]);
     }
 }

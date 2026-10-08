@@ -13,11 +13,8 @@ public class DoctorLogica : IDoctorLogica
     public async Task<(int total, IEnumerable<DoctorListaDto> doctores)> ObtenerTodos(
         string? especialidad, int? coberturaId, int pagina, int limite)
     {
-        var todos = await _repo.ObtenerTodosConHorario(especialidad, coberturaId);
-        var total = todos.Count();
-        var resultado = todos
-            .Skip((pagina - 1) * limite)
-            .Take(limite)
+        var (total, doctores) = await _repo.BuscarConHorario(especialidad, coberturaId, pagina, limite);
+        var resultado = doctores
             .Select(f => new DoctorListaDto(
                 f.Doctor.Id,
                 $"{f.Doctor.Usuario?.Nombre} {f.Doctor.Usuario?.Apellido}",

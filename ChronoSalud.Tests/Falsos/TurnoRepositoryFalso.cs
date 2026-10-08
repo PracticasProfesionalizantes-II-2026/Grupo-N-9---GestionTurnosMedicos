@@ -29,6 +29,81 @@ public class TurnoRepositoryFalso : ITurnoRepository
         return Task.FromResult<IEnumerable<Turno>>(resultado);
     }
 
+    /// <summary>
+    /// Filtra y pagina la lista. El orden es solo por fecha, hora e Id: el
+    /// resto del orden lo resuelve SQL Server y se prueba a mano.
+    /// </summary>
+    public Task<(int total, List<Turno> turnos)> Buscar(
+        FiltroTurnos filtro, string orden, bool descendente, int pagina, int limite)
+    {
+        var filtrados = Filtrar(filtro, usarEstados: true)
+            .OrderBy(t => t.FechaInicio)
+            .ThenBy(t => t.HoraInicio)
+            .ThenBy(t => t.Id)
+            .ToList();
+
+        var deLaPagina = filtrados.Skip((pagina - 1) * limite).Take(limite).ToList();
+        return Task.FromResult((filtrados.Count, deLaPagina));
+    }
+
+    public Task<Dictionary<string, int>> ContarPorEstado(FiltroTurnos filtro)
+    {
+        var conteos = new Dictionary<string, int>();
+        var filtrados = Filtrar(filtro, usarEstados: false);
+
+        foreach (var estado in FiltroTurnos.EstadosConocidos)
+        {
+            conteos[estado] = filtrados.Count(t => t.Estado == estado);
+        }
+
+        return Task.FromResult(conteos);
+    }
+
+    public Task<int> ContarPacientesAtendidos(DateTime desde, DateTime hasta)
+    {
+        var pacientes = Turnos
+            .Where(t => t.Estado == "completado" && t.FechaInicio >= desde && t.FechaInicio <= hasta)
+            .Select(t => t.IdPaciente)
+            .Distinct()
+            .Count();
+
+        return Task.FromResult(pacientes);
+    }
+
+    public Task<Dictionary<int, int>> ContarOcupadosPorDoctor(int? doctorId, DateTime desde, DateTime hasta)
+    {
+        var resultado = new Dictionary<int, int>();
+        var filtro = new FiltroTurnos { DoctorId = doctorId, Desde = desde, Hasta = hasta };
+
+        foreach (var turno in Filtrar(filtro, usarEstados: false))
+        {
+            if (turno.Estado == "cancelado") continue;
+
+            resultado.TryGetValue(turno.IdDoctor, out var cantidad);
+            resultado[turno.IdDoctor] = cantidad + 1;
+        }
+
+        return Task.FromResult(resultado);
+    }
+
+    private List<Turno> Filtrar(FiltroTurnos filtro, bool usarEstados)
+    {
+        var resultado = new List<Turno>();
+
+        foreach (var turno in Turnos)
+        {
+            if (filtro.PacienteId.HasValue && turno.IdPaciente != filtro.PacienteId.Value) continue;
+            if (filtro.DoctorId.HasValue && turno.IdDoctor != filtro.DoctorId.Value) continue;
+            if (filtro.Desde.HasValue && turno.FechaInicio < filtro.Desde.Value) continue;
+            if (filtro.Hasta.HasValue && turno.FechaInicio > filtro.Hasta.Value) continue;
+            if (usarEstados && filtro.Estados.Count > 0 && !filtro.Estados.Contains(turno.Estado)) continue;
+
+            resultado.Add(turno);
+        }
+
+        return resultado;
+    }
+
     public Task<Turno?> ObtenerPorId(int id)
     {
         var turno = Turnos.FirstOrDefault(t => t.Id == id);

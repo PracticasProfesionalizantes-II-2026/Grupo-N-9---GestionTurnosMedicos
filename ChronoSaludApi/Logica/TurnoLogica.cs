@@ -54,33 +54,34 @@ public class TurnoLogica : ITurnoLogica
         }
     }
 
-    public async Task<(int total, IEnumerable<TurnoListaDto> turnos, string? error)> ObtenerTodos(
-        int? pacienteId, int? doctorId, string? estado,
-        DateTime? desde, DateTime? hasta, int pagina, int limite,
+    public async Task<(int total, IEnumerable<TurnoListaDto> turnos, Dictionary<string, int> conteos, string? error)> ObtenerTodos(
+        FiltroTurnos filtro, string orden, bool descendente, int pagina, int limite,
         int idUsuarioCaller, bool callerEsPaciente, bool callerEsDoctor)
     {
+        var sinConteos = new Dictionary<string, int>();
+
         // El paciente/doctor autenticado nunca elige de quién ve la agenda:
         // se ignora lo que venga en la query y se fuerza siempre lo propio.
         if (callerEsPaciente)
         {
             var paciente = await _pacienteRepo.ObtenerPorIdUsuario(idUsuarioCaller);
             if (paciente == null)
-                return (0, Enumerable.Empty<TurnoListaDto>(), "Tu usuario no tiene un perfil de paciente asociado.");
-            pacienteId = paciente.Id;
+                return (0, Enumerable.Empty<TurnoListaDto>(), sinConteos, "Tu usuario no tiene un perfil de paciente asociado.");
+            filtro.PacienteId = paciente.Id;
         }
         else if (callerEsDoctor)
         {
             var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
             if (doctor == null)
-                return (0, Enumerable.Empty<TurnoListaDto>(), "Tu usuario no tiene un perfil de doctor asociado.");
-            doctorId = doctor.Id;
+                return (0, Enumerable.Empty<TurnoListaDto>(), sinConteos, "Tu usuario no tiene un perfil de doctor asociado.");
+            filtro.DoctorId = doctor.Id;
         }
 
-        var todos = await _repo.ObtenerTodos(pacienteId, doctorId, estado, desde, hasta);
-        var total = todos.Count();
-        var resultado = todos
-            .Skip((pagina - 1) * limite)
-            .Take(limite)
+        // El total y la página salen de la base; los conteos por estado, también.
+        var (total, turnos) = await _repo.Buscar(filtro, orden, descendente, pagina, limite);
+        var conteos = await _repo.ContarPorEstado(filtro);
+
+        var resultado = turnos
             .Select(t => new TurnoListaDto(
                 t.Id,
                 t.FechaInicio,
@@ -89,8 +90,10 @@ public class TurnoLogica : ITurnoLogica
                 $"{t.Doctor?.Usuario?.Nombre} {t.Doctor?.Usuario?.Apellido}",
                 t.Doctor?.Especialidad ?? string.Empty,
                 $"{t.Paciente?.Usuario?.Nombre} {t.Paciente?.Usuario?.Apellido}"
-            ));
-        return (total, resultado, null);
+            ))
+            .ToList();
+
+        return (total, resultado, conteos, null);
     }
 
     public async Task<(TurnoDto? turno, string? error)> ObtenerPorId(

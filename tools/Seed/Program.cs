@@ -336,7 +336,7 @@ var paginaDoctores = 1;
 
 while (true)
 {
-    var listado = await api.GetAsync($"/doctores?pagina={paginaDoctores}&limite=200", tokenAdmin);
+    var listado = await api.GetAsync($"/doctores?pagina={paginaDoctores}&limite=100", tokenAdmin);
     if (!listado.Ok)
     {
         Morir($"No se pudieron listar los doctores (HTTP {listado.Estado}): {listado.Error}");
@@ -354,7 +354,7 @@ while (true)
         }
     }
 
-    if (cantidad == 0 || paginaDoctores * 200 >= total)
+    if (cantidad == 0 || paginaDoctores * 100 >= total)
     {
         break;
     }
@@ -435,7 +435,7 @@ int cantidadLote;
 
 do
 {
-    var listado = await api.GetAsync($"/turnos?pagina={pagina}&limite=200", tokenAdmin);
+    var listado = await api.GetAsync($"/turnos?pagina={pagina}&limite=100", tokenAdmin);
     if (!listado.Ok)
     {
         Morir($"No se pudieron listar los turnos existentes (HTTP {listado.Estado}): {listado.Error}");
@@ -466,7 +466,7 @@ do
         }
     }
 
-    if (pagina * 200 >= total)
+    if (pagina * 100 >= total)
     {
         break;
     }

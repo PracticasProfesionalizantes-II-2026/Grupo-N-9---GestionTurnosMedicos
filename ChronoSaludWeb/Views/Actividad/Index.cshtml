@@ -3,8 +3,6 @@
     ViewData["Title"] = Model.Titulo;
     const string claseCampo = "campo mt-1.5";
     const string claseEtiqueta = "block text-sm font-medium text-ink";
-    const string clasePaso = "boton boton-secundario";
-    const string clasePasoInactivo = "boton cursor-default border border-border text-muted opacity-60";
 
     // La misma vista arma "Actividad" y "Mi actividad": el formulario, el
     // paginado y "Reintentar" vuelven a la acción que la mostró.
@@ -180,31 +178,5 @@ else
         </ul>
     </div>
 
-    @* Paginación con enlaces: conservan los filtros. *@
-    <nav aria-label="Páginas de resultados" class="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-muted">
-            Página <span class="font-semibold tabular-nums text-ink">@Model.Pagina</span>
-            de <span class="font-semibold tabular-nums text-ink">@Model.TotalPaginas</span>
-        </p>
-        <div class="flex items-center gap-2">
-            @if (Model.HayAnterior)
-            {
-                <a asp-action="@accion" asp-all-route-data="Model.Ruta(Model.Pagina - 1)"
-                   rel="prev" class="@clasePaso">Anterior</a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
-            }
-            @if (Model.HaySiguiente)
-            {
-                <a asp-action="@accion" asp-all-route-data="Model.Ruta(Model.Pagina + 1)"
-                   rel="next" class="@clasePaso">Siguiente</a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
-            }
-        </div>
-    </nav>
+    <partial name="_Paginador" model="Model.Paginador" />
 }

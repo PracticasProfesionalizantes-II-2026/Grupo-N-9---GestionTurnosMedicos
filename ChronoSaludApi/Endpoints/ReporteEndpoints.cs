@@ -1,4 +1,3 @@
-using ChronoSaludApi.Logica;
 using ChronoSaludApi.Repositorios;
 
 namespace ChronoSaludApi.Endpoints;
@@ -13,7 +12,7 @@ public static class ReporteEndpoints
 
         // GET /reportes/turnos
         grupo.MapGet("/turnos", async (
-            ITurnoLogica logica,
+            ITurnoRepository turnoRepo,
             DateTime? fecha_desde,
             DateTime? fecha_hasta,
             int? doctor_id,
@@ -23,20 +22,16 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            var (total, turnos, _) = await logica.ObtenerTodos(
-                null, doctor_id, null, fecha_desde, fecha_hasta, 1, int.MaxValue,
-                idUsuarioCaller: 0, callerEsPaciente: false, callerEsDoctor: false);
-
-            var completados = turnos.Count(t => t.Estado == "completado");
-            var cancelados  = turnos.Count(t => t.Estado == "cancelado");
-            var pendientes  = turnos.Count(t => t.Estado == "pendiente");
+            // Cuenta la base: no se trae ningún turno.
+            var filtro = new FiltroTurnos { DoctorId = doctor_id, Desde = fecha_desde, Hasta = fecha_hasta };
+            var conteos = await turnoRepo.ContarPorEstado(filtro);
 
             return Results.Ok(new
             {
-                total_turnos = total,
-                completados,
-                cancelados,
-                pendientes,
+                total_turnos = conteos.Values.Sum(),
+                completados  = conteos["completado"],
+                cancelados   = conteos["cancelado"],
+                pendientes   = conteos["pendiente"],
                 periodo = new { desde = fecha_desde, hasta = fecha_hasta }
             });
         })
@@ -53,21 +48,20 @@ public static class ReporteEndpoints
             if (!fecha_desde.HasValue || !fecha_hasta.HasValue)
                 return Results.BadRequest(new { error = "fecha_desde y fecha_hasta son requeridos." });
 
-            var totalPacientes = (await pacienteRepo.ObtenerTodos(null, null, null)).Count();
+            // Todo se cuenta en la base. Del listado de pacientes alcanza con
+            // el total: se pide una página de uno.
+            var (totalPacientes, _) = await pacienteRepo.Buscar(null, null, null, 1, 1);
 
-            var turnosPeriodo = (await turnoRepo.ObtenerTodos(null, null, null, fecha_desde, fecha_hasta)).ToList();
-            var pacientesAtendidos = turnosPeriodo
-                .Where(t => t.Estado == "completado")
-                .Select(t => t.IdPaciente)
-                .Distinct()
-                .Count();
+            var filtro = new FiltroTurnos { Desde = fecha_desde, Hasta = fecha_hasta };
+            var turnosEnPeriodo = (await turnoRepo.ContarPorEstado(filtro)).Values.Sum();
+            var pacientesAtendidos = await turnoRepo.ContarPacientesAtendidos(fecha_desde.Value, fecha_hasta.Value);
 
             return Results.Ok(new
             {
                 mensaje = "Reporte de pacientes generado.",
                 periodo = new { desde = fecha_desde, hasta = fecha_hasta },
                 total_pacientes = totalPacientes,
-                turnos_en_periodo = turnosPeriodo.Count,
+                turnos_en_periodo = turnosEnPeriodo,
                 pacientes_atendidos_en_periodo = pacientesAtendidos
             });
         })
@@ -87,11 +81,7 @@ public static class ReporteEndpoints
 
             // Nivel 2 acotado: Doctor no tiene ningún campo de horario laboral,
             // así que se reporta ocupación real (turnos no cancelados), no huecos libres.
-            var turnosPeriodo = await turnoRepo.ObtenerTodos(null, doctor_id, null, fecha_desde, fecha_hasta);
-            var ocupadosPorDoctor = turnosPeriodo
-                .Where(t => t.Estado != "cancelado")
-                .GroupBy(t => t.IdDoctor)
-                .ToDictionary(g => g.Key, g => g.Count());
+            var ocupadosPorDoctor = await turnoRepo.ContarOcupadosPorDoctor(doctor_id, fecha_desde.Value, fecha_hasta.Value);
 
             if (doctor_id.HasValue)
             {

@@ -10,9 +10,12 @@ public class PacienteRepository : IPacienteRepository
 
     public PacienteRepository(AppDbContext db) => _db = db;
 
-    public async Task<IEnumerable<Paciente>> ObtenerTodos(string? nombre, string? dni, int? coberturaId)
+    // Una página del listado. El total, el orden y la página los resuelve
+    // SQL Server: de la base viajan solo los pacientes que se muestran.
+    public async Task<(int total, List<Paciente> pacientes)> Buscar(
+        string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
-        var query = _db.Pacientes.Include(p => p.Usuario).AsQueryable();
+        var query = _db.Pacientes.AsNoTracking().Include(p => p.Usuario).AsQueryable();
 
         if (!string.IsNullOrEmpty(nombre))
             query = query.Where(p =>
@@ -26,7 +29,17 @@ public class PacienteRepository : IPacienteRepository
             query = query.Where(p =>
                 p.PacienteCoberturas.Any(pc => pc.IdCobertura == coberturaId));
 
-        return await query.ToListAsync();
+        var total = await query.CountAsync();
+
+        var pacientes = await query
+            .OrderBy(p => p.Usuario!.Apellido)
+            .ThenBy(p => p.Usuario!.Nombre)
+            .ThenBy(p => p.Id)
+            .Skip((pagina - 1) * limite)
+            .Take(limite)
+            .ToListAsync();
+
+        return (total, pacientes);
     }
 
     public async Task<Paciente?> ObtenerPorId(int id)

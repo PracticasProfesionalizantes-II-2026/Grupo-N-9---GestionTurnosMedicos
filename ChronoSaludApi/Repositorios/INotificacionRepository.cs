@@ -4,7 +4,7 @@ namespace ChronoSaludApi.Repositorios;
 
 public interface INotificacionRepository
 {
-    Task<IEnumerable<Notificacion>> ObtenerDeUsuario(int usuarioId, bool? leida, string? tipo);
+    Task<(int total, List<Notificacion> notificaciones)> ObtenerDeUsuario(int usuarioId, bool? leida, string? tipo, int pagina, int limite);
     Task<Notificacion?> ObtenerPorId(int id);
     Task Agregar(Notificacion notificacion);
     Task Actualizar(Notificacion notificacion);
