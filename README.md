@@ -16,11 +16,12 @@ Sistema de gestión de turnos médicos. El repo tiene cuatro partes:
 ## Levantar todo de una vez
 
 ```
-dotnet run --project tools/Seed
+powershell -ExecutionPolicy Bypass -File levantar.ps1
 ```
 
-[`dotnet run --project tools/Seed`](dotnet run --project tools/Seed) inicia la base, la API y el frontend, y abre el navegador.
-Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran.
+[`levantar.ps1`](levantar.ps1) inicia la base, la API y el frontend, y abre el navegador.
+Deja dos ventanas abiertas (una por servicio); para frenar todo, se cierran. Para cargar
+los datos de prueba, con eso ya levantado, ver el paso 4 de abajo.
 
 El comando va en cualquier terminal de PowerShell: sirve la de VS Code (`Ctrl + Ñ`),
 parada en la carpeta del proyecto.

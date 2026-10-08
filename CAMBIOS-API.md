@@ -69,3 +69,24 @@ Un apartado por cada paso de la rama.
 | `Logica/PacienteLogica.cs` | `Actualizar` usa `FichaPaciente` y la regla del DNI |
 | `Repositorios/UsuarioRepository.cs` | `Agregar` traduce el dato repetido de SQL Server |
 | `Repositorios/ErroresDeBase.cs`, `DatoRepetidoException.cs` | Nuevos: reconocer el error de dato repetido |
+
+---
+
+## Paso 3 — El paciente cancela sus turnos
+
+**No hay migración ni cambios en los endpoints.** `DELETE /turnos/{id}` ya aceptaba al paciente sobre sus propios turnos (fase E); lo que cambia es la Web, que ahora le muestra el botón.
+
+### Aviso de migraciones pendientes (solo en Development)
+
+- Al arrancar, la API revisa si la base local está al día con el código:
+  - si el modelo cambió y falta generar la migración, avisa con `dotnet ef migrations add <Nombre> --project ChronoSaludApi`;
+  - si hay migraciones sin aplicar, las nombra y avisa con `dotnet ef database update --project ChronoSaludApi`.
+- El aviso sale en amarillo en la ventana "ChronoSalud - API". No frena el arranque: si la base no responde, también lo avisa y sigue.
+- En Azure (Production) no corre.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Datos/AvisoDeMigraciones.cs` | Nuevo: el aviso de arriba |
+| `Program.cs` | Lo llama al arrancar, solo en Development |

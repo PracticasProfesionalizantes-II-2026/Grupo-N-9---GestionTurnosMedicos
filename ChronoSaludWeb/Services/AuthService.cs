@@ -75,11 +75,12 @@ public class AuthService
     /// <summary>
     /// DELETE /turnos/{id} lo acepta la API del administrador sobre cualquier
     /// turno, del doctor sobre los de su agenda y del paciente sobre los
-    /// suyos. Acá queda en el personal (doctor y administrador): que el
-    /// paciente cancele desde la Web es una decisión aparte.
+    /// suyos. La Web espeja esa regla: los tres roles pueden cancelar, y que
+    /// el turno sea del usuario lo vuelven a revisar TurnosController (con el
+    /// ámbito) y la API.
     /// </summary>
     public bool PuedeCancelarTurnos =>
-        SesionActual?.Rol is "doctor" or "administrador";
+        SesionActual?.Rol is "paciente" or "doctor" or "administrador";
 
     /// <summary>
     /// PUT /turnos/{id} es el único camino para mover el estado de un turno, y la
