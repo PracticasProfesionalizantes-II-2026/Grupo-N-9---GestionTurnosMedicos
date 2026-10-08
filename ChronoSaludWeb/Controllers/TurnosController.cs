@@ -346,6 +346,173 @@ public class TurnosController : ControladorBase
             : RedirectToAction(nameof(Index));
 
     /// <summary>
+    /// Reprogramar: elegir otro día y horario con el mismo doctor, en la misma
+    /// tira de días que "pedir turno". Solo el personal: la API reserva PUT
+    /// /turnos a doctor (sus turnos) y administrador.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Reprogramar(int id, DateTime? fecha, DateTime? desde)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Reprogramar), new { id }));
+
+        if (!_auth.PuedeCambiarEstadoTurno)
+            return SinPermisoParaReprogramar();
+
+        TurnoDetalleViewModel? turno;
+        try
+        {
+            turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        if (turno is null)
+            return NoEncontrado(id, "Turno no encontrado", "turno");
+
+        if (!turno.EstaEnPie)
+        {
+            TempData["Error"] = $"El turno #{id} está {turno.Estado}: solo se reprograma uno pendiente o confirmado.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        var modelo = new TurnoReprogramarViewModel { Turno = turno };
+
+        try
+        {
+            modelo.Tira = await ArmarTiraAsync(
+                new List<int> { turno.IdDoctor }, fecha, desde, nameof(Reprogramar), modelo.RutaBase);
+            modelo.Fecha = modelo.Tira.DiaElegido;
+
+            if (modelo.Fecha is { } dia)
+            {
+                var franjas = await _doctores.ObtenerDisponibilidadAsync(turno.IdDoctor, DateOnly.FromDateTime(dia));
+                modelo.Franjas = franjas
+                    .Select(f => new FranjaViewModel { IdDoctor = turno.IdDoctor, HoraInicio = f.HoraInicio, HoraFin = f.HoraFin })
+                    .ToList();
+            }
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            modelo.AvisoFranjas = $"No se pudieron cargar los horarios libres: {error.Message}";
+        }
+
+        return View(modelo);
+    }
+
+    /// <summary>
+    /// Confirmación de la reprogramación: "de … a …". Todavía no cambió nada.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ConfirmarReprogramacion(int id, DateTime? fecha, string? inicio, string? fin)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Reprogramar), new { id }));
+
+        if (!_auth.PuedeCambiarEstadoTurno)
+            return SinPermisoParaReprogramar();
+
+        // El enlace pudo armarse a mano: si el horario no tiene sentido, se
+        // vuelve a elegir. Que siga libre lo controla la API al confirmar.
+        if (fecha is null || fecha.Value.Date < FechaArgentina.Hoy() || !TurnoConfirmarViewModel.HorarioValido(inicio, fin))
+        {
+            TempData["Error"] = "Ese horario no es válido. Elegí uno de la lista.";
+            return RedirectToAction(nameof(Reprogramar), new { id });
+        }
+
+        TurnoDetalleViewModel? turno;
+        try
+        {
+            turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        if (turno is null)
+            return NoEncontrado(id, "Turno no encontrado", "turno");
+
+        if (!turno.EstaEnPie)
+        {
+            TempData["Error"] = $"El turno #{id} está {turno.Estado}: solo se reprograma uno pendiente o confirmado.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        return View(new ConfirmarReprogramacionViewModel
+        {
+            Turno = turno,
+            Fecha = fecha.Value.Date,
+            HoraInicio = inicio!,
+            HoraFin = fin!
+        });
+    }
+
+    [HttpPost]
+    [ActionName(nameof(ConfirmarReprogramacion))]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmarReprogramacionPost(int id, DateTime? fecha, string? inicio, string? fin)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Reprogramar), new { id }));
+
+        if (!_auth.PuedeCambiarEstadoTurno)
+            return SinPermisoParaReprogramar();
+
+        if (fecha is null || !TurnoConfirmarViewModel.HorarioValido(inicio, fin))
+        {
+            TempData["Error"] = "Ese horario no es válido. Elegí uno de la lista.";
+            return RedirectToAction(nameof(Reprogramar), new { id });
+        }
+
+        TurnoDetalleViewModel? turno = null;
+        try
+        {
+            // Se revalida el ámbito antes de cambiar nada: si no, alcanzaba
+            // con postear el id de un turno ajeno.
+            turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+            if (turno is null)
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+
+            await _turnos.ReprogramarAsync(id, fecha.Value.Date, inicio!, fin!);
+
+            var nuevo = new ConfirmarReprogramacionViewModel { Turno = turno, Fecha = fecha.Value.Date, HoraInicio = inicio!, HoraFin = fin! };
+            TempData["Exito"] =
+                $"Turno #{id} reprogramado: del {nuevo.FechaActualLarga} a las {turno.HoraInicio} " +
+                $"al {nuevo.FechaNuevaLarga} a las {nuevo.HoraInicio}. Se le avisó al paciente.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            // 409: el horario se ocupó mientras tanto. 400: por ejemplo, ya
+            // pasó o quedó fuera del horario del doctor.
+            if (turno is null)
+            {
+                TempData["Error"] = error.Message;
+                return RedirectToAction(nameof(Detalle), new { id });
+            }
+
+            return View(nameof(ConfirmarReprogramacion), new ConfirmarReprogramacionViewModel
+            {
+                Turno = turno,
+                Fecha = fecha.Value.Date,
+                HoraInicio = inicio!,
+                HoraFin = fin!,
+                Error = error.Message
+            });
+        }
+    }
+
+    private IActionResult SinPermisoParaReprogramar() =>
+        SinPermiso(
+            "No podés reprogramar turnos con tu rol",
+            "Los turnos los reprograma el personal: cada doctor los de su agenda y la administración cualquiera.");
+
+    /// <summary>
     /// Trae el turno y le pega los nombres del paciente y del doctor, que
     /// TurnoDto no manda. Null si no existe o si no entra en el ámbito.
     /// </summary>
@@ -614,21 +781,34 @@ public class TurnosController : ControladorBase
                 return;
         }
 
-        await ArmarTiraAsync(modelo, fecha, desde);
+        var idsDoctor = new List<int>();
+        if (modelo.CualquierDoctor)
+            idsDoctor.AddRange(modelo.Doctores.Select(d => d.IdDoctor));
+        else
+            idsDoctor.Add(modelo.IdDoctor.Value);
+
+        modelo.Tira = await ArmarTiraAsync(
+            idsDoctor, fecha, desde, nameof(Crear), modelo.Ruta(modelo.Especialidad, modelo.IdDoctor));
+        modelo.Fecha = modelo.Tira.DiaElegido;
 
         if (modelo.Fecha is not null)
             await CargarFranjasAsync(modelo);
     }
 
     /// <summary>
-    /// La tira de dos semanas con cuántos horarios libres tiene cada día. Si
-    /// no se eligió un día (o el elegido no está en la tira), queda elegido el
-    /// primero con lugar.
+    /// La tira de dos semanas con cuántos horarios libres tiene cada día,
+    /// sumando los de los doctores de <paramref name="idsDoctor"/> (uno solo,
+    /// o todos los de la especialidad con "Cualquiera"). Si no se eligió un
+    /// día (o el elegido no está en la tira), queda elegido el primero con
+    /// lugar. La usan "pedir turno" y "reprogramar": cada una le pasa su
+    /// acción y su <paramref name="rutaBase"/>, lo que sus enlaces tienen que
+    /// conservar.
     /// </summary>
-    private async Task ArmarTiraAsync(TurnoCrearViewModel modelo, DateTime? fecha, DateTime? desde)
+    private async Task<TiraDeDiasViewModel> ArmarTiraAsync(
+        IReadOnlyList<int> idsDoctor, DateTime? fecha, DateTime? desde, string accion, IDictionary<string, string> rutaBase)
     {
         const int dias = TurnoCrearViewModel.DiasDeLaTira;
-        var hoy = modelo.Hoy;
+        var hoy = FechaArgentina.Hoy();
 
         // La tira arranca en "desde" (si no es un día pasado) o en hoy. Si el
         // día elegido queda afuera, arranca en ese día.
@@ -638,7 +818,7 @@ public class TurnosController : ControladorBase
         if (fecha is { } pedida && pedida.Date >= hoy && (pedida.Date < inicio || pedida.Date >= inicio.AddDays(dias)))
             inicio = pedida.Date;
 
-        var libres = await ContarLibresPorDiaAsync(modelo, inicio);
+        var libres = await ContarLibresPorDiaAsync(idsDoctor, inicio);
 
         // El día elegido: el de la URL si está en la tira; si no, el primero
         // con lugar (o el primero, si la API no informó cuántos hay).
@@ -653,8 +833,6 @@ public class TurnosController : ControladorBase
                 elegido = dia;
         }
 
-        modelo.Fecha = elegido;
-
         var lista = new List<DiaDeLaTira>();
         for (var i = 0; i < dias; i++)
         {
@@ -664,43 +842,36 @@ public class TurnosController : ControladorBase
                 Fecha = dia,
                 Libres = libres is null ? null : libres.GetValueOrDefault(dia),
                 Elegido = dia == elegido,
-                Ruta = modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, fecha: dia, desde: inicio)
+                Ruta = TiraDeDiasViewModel.RutaConFechas(rutaBase, dia, inicio)
             });
         }
 
         var anteriores = inicio.AddDays(-dias);
-        modelo.Tira = new TiraDeDiasViewModel
+        return new TiraDeDiasViewModel
         {
-            Accion = nameof(Crear),
+            Accion = accion,
             Dias = lista,
             // Antes de hoy no hay nada para reservar.
             RutaAnteriores = inicio > hoy
-                ? modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, desde: anteriores < hoy ? hoy : anteriores)
+                ? TiraDeDiasViewModel.RutaConFechas(rutaBase, null, anteriores < hoy ? hoy : anteriores)
                 : null,
-            RutaSiguientes = modelo.Ruta(modelo.Especialidad, modelo.IdDoctor, desde: inicio.AddDays(dias))
+            RutaSiguientes = TiraDeDiasViewModel.RutaConFechas(rutaBase, null, inicio.AddDays(dias))
         };
     }
 
     /// <summary>
-    /// Por día, cuántos horarios libres hay con el doctor elegido, o sumando
-    /// los de todos los doctores de la especialidad si es "Cualquiera". Null
-    /// si no se pudo saber de ninguno (por ejemplo, la API todavía no tiene
-    /// dias-disponibles durante un despliegue): la tira se muestra sin números.
-    /// Los pedidos van uno después del otro: el ApiClient lee el token de
-    /// HttpContext.Session, que no es seguro en concurrencia.
+    /// Por día, cuántos horarios libres hay sumando los de esos doctores.
+    /// Null si no se pudo saber de ninguno (por ejemplo, la API todavía no
+    /// tiene dias-disponibles durante un despliegue): la tira se muestra sin
+    /// números. Los pedidos van uno después del otro: el ApiClient lee el
+    /// token de HttpContext.Session, que no es seguro en concurrencia.
     /// </summary>
-    private async Task<Dictionary<DateTime, int>?> ContarLibresPorDiaAsync(TurnoCrearViewModel modelo, DateTime inicio)
+    private async Task<Dictionary<DateTime, int>?> ContarLibresPorDiaAsync(IReadOnlyList<int> idsDoctor, DateTime inicio)
     {
-        var ids = new List<int>();
-        if (modelo.CualquierDoctor)
-            ids.AddRange(modelo.Doctores.Select(d => d.IdDoctor));
-        else
-            ids.Add(modelo.IdDoctor!.Value);
-
         var conteo = new Dictionary<DateTime, int>();
         var respondieron = 0;
 
-        foreach (var id in ids)
+        foreach (var id in idsDoctor)
         {
             try
             {

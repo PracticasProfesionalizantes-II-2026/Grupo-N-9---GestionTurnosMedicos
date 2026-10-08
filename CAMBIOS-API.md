@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 6
+# Cambios en la API — Mejoras, pasos 2 a 7
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (paso 5) y `feature/pedir-turno` (paso 6)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) y `feature/reprogramar-turnos` (paso 7)
 
 Un apartado por cada paso.
 
@@ -265,4 +265,30 @@ Por cada día, cuántas franjas libres de 30 minutos tiene el doctor:
 | `Logica/HorarioLaboralLogica.cs` | `ObtenerDiasDisponibles`. El cálculo de franjas pasa a `FranjasLibres`, que comparten los dos pedidos |
 | `Logica/IHorarioLaboralLogica.cs`, `Logica/DTOs/HorarioLaboralDTOs.cs` | La firma y `DiaDisponibleDto` |
 | `Endpoints/HorarioLaboralEndpoints.cs` | El endpoint |
+
+---
+
+## Paso 7 — Reprogramar
+
+**No hay migración.** Las reglas para reprogramar ya estaban desde el paso 5. Lo único nuevo en la API es el aviso.
+
+### `PUT /turnos/{id}` con otra fecha u hora avisa al paciente
+
+- Cuando cambia el día o la hora del turno, el paciente recibe una notificación: *"Tu turno del 09/10/2026 a las 10:00 se pasó al 12/10/2026 a las 11:00."*
+- **El turno conserva su estado:** si estaba confirmado, sigue confirmado.
+- **Lo demás no cambia:**
+  - solo se reprograma un turno pendiente o confirmado (`409` si no);
+  - el horario nuevo tiene que estar dentro del horario del doctor y no puede ser una fecha pasada (`400`);
+  - si choca con otro turno → `409`;
+  - el historial anota `turno.reprogramado`.
+
+### A quién le pega
+
+- **A nadie:** es un aviso más.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/TurnoLogica.cs` | `Actualizar` avisa al paciente cuando cambia el horario |
 
