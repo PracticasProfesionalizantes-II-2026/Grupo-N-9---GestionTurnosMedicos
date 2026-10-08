@@ -29,6 +29,7 @@ public static class IconosLucide
         "info"           => """<circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />""",
         "persona"        => """<circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />""",
         "reloj"          => """<circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />""",
-        _               => """<circle cx="12" cy="12" r="10" />""",
+        "actividad"      => """<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />""",
+        _              => """<circle cx="12" cy="12" r="10" />""",
     };
 }

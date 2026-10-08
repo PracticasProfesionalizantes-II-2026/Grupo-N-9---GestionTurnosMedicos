@@ -76,6 +76,7 @@ builder.Services.AddScoped<HistorialService>();
 builder.Services.AddScoped<PerfilService>();
 builder.Services.AddScoped<CoberturaService>();
 builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<MovimientoService>();
 
 // Tope de intentos de login por IP. Singleton: el contador es uno solo para
 // toda la aplicación.

@@ -164,6 +164,7 @@ public class DoctoresController : ControladorBase
             {
                 IdDoctor = doctor.IdDoctor,
                 NombreDoctor = NombreDe(doctor),
+                EsPropio = _auth.EsDoctor,
                 Dias = estandar
                     ? HorarioEditarViewModel.DiasEstandar()
                     : HorarioEditarViewModel.DiasDesde(horarios),
@@ -202,6 +203,9 @@ public class DoctoresController : ControladorBase
             if (await SinPermisoDeHorarioAsync(id) is { } sinPermiso)
                 return sinPermiso;
 
+            // Un doctor que pasó el permiso está en su propio horario.
+            modelo.EsPropio = _auth.EsDoctor;
+
             // Las filas son siete y fijas, porque el día sale de la posición. Con
             // otra cantidad el formulario no es el nuestro: no se interpreta.
             if (modelo.Dias.Count != HorarioEditarViewModel.DiasPorSemana)
@@ -235,7 +239,9 @@ public class DoctoresController : ControladorBase
             {
                 ModelState.AddModelError(
                     string.Empty,
-                    "Marcaste días de atención y a la vez elegiste dejar al doctor sin horario. " +
+                    (modelo.EsPropio
+                        ? "Marcaste días de atención y a la vez elegiste quedar sin horario. "
+                        : "Marcaste días de atención y a la vez elegiste dejar al doctor sin horario. ") +
                     "No se guardó nada: destildá esos días, o usá \"Guardar horario\".");
                 return View(modelo);
             }
@@ -250,9 +256,13 @@ public class DoctoresController : ControladorBase
                 return View(modelo);
             }
 
-            TempData["Exito"] = nuevo.Count == 0
-                ? $"{modelo.NombreDoctor} quedó sin horario de atención."
-                : $"Horario de atención de {modelo.NombreDoctor} actualizado.";
+            TempData["Exito"] = (nuevo.Count == 0, modelo.EsPropio) switch
+            {
+                (true, true)   => "Quedaste sin horario de atención.",
+                (true, false)  => $"{modelo.NombreDoctor} quedó sin horario de atención.",
+                (false, true)  => "Tu horario de atención quedó actualizado.",
+                (false, false) => $"Horario de atención de {modelo.NombreDoctor} actualizado."
+            };
 
             return RedirectToAction(nameof(Detalle), new { id });
         }
