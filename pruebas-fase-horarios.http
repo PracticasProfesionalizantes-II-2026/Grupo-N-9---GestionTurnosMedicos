@@ -104,6 +104,16 @@ Authorization: Bearer {{tokenGomez}}
 @idDoctorGomez = {{meGomez.response.body.$.idDoctor}}
 
 
+### 0.6 Id de otro doctor (el de Cardiología), para probar el horario ajeno
+# @name otroDoctor
+GET {{baseUrl}}/doctores?especialidad=Cardiología
+Authorization: Bearer {{tokenAdmin}}
+
+###
+
+@idDoctorAjeno = {{otroDoctor.response.body.$.doctores[0].idDoctor}}
+
+
 ### ============================================================
 ### 1. Horarios — GET/PUT /doctores/{id}/horarios
 ### ============================================================
@@ -148,7 +158,7 @@ Content-Type: application/json
 
 
 ### 1.4 [Duarte] Un paciente intenta cambiar el horario
-### ESPERADO: 403 (solo administrador).
+### ESPERADO: 403 sin cuerpo (solo administrador, o el doctor en su horario).
 PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
 Authorization: Bearer {{tokenDuarte}}
 Content-Type: application/json
@@ -162,6 +172,60 @@ Content-Type: application/json
 ### ESPERADO: 200 con 5 elementos (diaSemana 1 a 5, 08:00 a 14:00).
 GET {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
 Authorization: Bearer {{tokenDuarte}}
+
+
+### 1.6 [Gómez] La doctora cambia su propio horario: el lunes termina 13:30
+### ESPERADO: 200 { mensaje: "Horario actualizado correctamente." }. Deja una
+### fila "horario.cambiado" con rol "doctor" (ver 1.9).
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "horarios": [
+    { "diaSemana": 1, "horaInicio": "08:00", "horaFin": "13:30" },
+    { "diaSemana": 2, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 3, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 4, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 5, "horaInicio": "08:00", "horaFin": "14:00" }
+  ]
+}
+
+
+### 1.7 [Gómez] Restaurar su horario: lunes a viernes de 08:00 a 14:00
+### ESPERADO: 200. Deja otra fila con rol "doctor". Si se manda dos veces, la
+### segunda también da 200 pero no deja fila: el horario quedó igual.
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "horarios": [
+    { "diaSemana": 1, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 2, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 3, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 4, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 5, "horaInicio": "08:00", "horaFin": "14:00" }
+  ]
+}
+
+
+### 1.8 [Gómez] La doctora intenta cambiar el horario de otro doctor
+### ESPERADO: 403 { error: "Solo podés cambiar tu propio horario." }. No se
+### guarda nada: el doctor sale del token, no de la ruta.
+PUT {{baseUrl}}/doctores/{{idDoctorAjeno}}/horarios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "horarios": []
+}
+
+
+### 1.9 [Gómez] Los cambios de horario en su historial
+### ESPERADO: 200 con las filas de 1.6 y 1.7 arriba, rolUsuario "doctor".
+GET {{baseUrl}}/movimientos?accion=horario.cambiado
+Authorization: Bearer {{tokenGomez}}
 
 
 ### ============================================================
@@ -273,6 +337,25 @@ Content-Type: application/json
   "horaInicio": "09:00",
   "horaFin": "09:30",
   "observaciones": "Fecha pasada"
+}
+
+
+### 3.7 [Gómez] Achicar su lunes a 10:00-14:00 con el turno de 3.1 reservado
+### ESPERADO: 409 con "conflictos": el turno de 3.1 (lunes 09:00) y cualquier
+### otro turno suyo de un lunes antes de las 10:00. No se guarda nada. El
+### control es el mismo que para el administrador.
+PUT {{baseUrl}}/doctores/{{idDoctorGomez}}/horarios
+Authorization: Bearer {{tokenGomez}}
+Content-Type: application/json
+
+{
+  "horarios": [
+    { "diaSemana": 1, "horaInicio": "10:00", "horaFin": "14:00" },
+    { "diaSemana": 2, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 3, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 4, "horaInicio": "08:00", "horaFin": "14:00" },
+    { "diaSemana": 5, "horaInicio": "08:00", "horaFin": "14:00" }
+  ]
 }
 
 

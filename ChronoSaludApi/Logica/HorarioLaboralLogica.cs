@@ -44,15 +44,33 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
         )), null);
     }
 
-    // El solicitante todavía no decide permisos acá (el endpoint solo deja
-    // pasar al administrador): se usa para dejar en el historial quién cambió
-    // el horario.
-    public async Task<(bool ok, string? error, IReadOnlyList<TurnoEnConflictoDto> conflictos, bool reintentar)> Reemplazar(
+    // El mismo texto que da GET /movimientos a un doctor sin perfil.
+    public const string SinPerfilDeDoctor = "Tu usuario no tiene un perfil de doctor asociado.";
+
+    // El administrador cambia el horario de cualquier doctor. El doctor, solo
+    // el suyo: su IdDoctor sale del token y se compara con el de la ruta. El
+    // permiso se decide antes de validar, así un horario ajeno contesta lo
+    // mismo exista o no ese doctor.
+    public async Task<(bool ok, string? error, IReadOnlyList<TurnoEnConflictoDto> conflictos, bool reintentar, bool prohibido)> Reemplazar(
         int idDoctor, HorarioSemanalDto dto, Solicitante solicitante)
     {
+        if (solicitante.EsDoctor)
+        {
+            var propio = await _doctorRepo.ObtenerPorIdUsuario(solicitante.IdUsuario);
+            if (propio == null)
+                return (false, SinPerfilDeDoctor, SinConflictos, false, false);
+
+            if (propio.Id != idDoctor)
+                return (false, "Solo podés cambiar tu propio horario.", SinConflictos, false, true);
+        }
+        else if (!solicitante.EsAdministrador)
+        {
+            return (false, "Tu rol no puede cambiar horarios.", SinConflictos, false, true);
+        }
+
         var (nuevos, error) = await Validar(idDoctor, dto);
         if (nuevos == null)
-            return (false, error, SinConflictos, false);
+            return (false, error, SinConflictos, false, false);
 
         IReadOnlyList<HorarioLaboral> anteriores;
         IReadOnlyList<Turno> frenan;
@@ -66,7 +84,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             return (false,
                 "No se pudo guardar el horario porque en ese instante se estaba registrando un turno del doctor. " +
                 "No se guardó nada: probá de nuevo.",
-                SinConflictos, true);
+                SinConflictos, true, false);
         }
 
         if (frenan.Count == 0)
@@ -78,7 +96,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
                 await _movimientos.Registrar(solicitante, AccionesMovimiento.HorarioCambiado, "horario", idDoctor, idDoctor, cambios);
             }
 
-            return (true, null, SinConflictos, false);
+            return (true, null, SinConflictos, false, false);
         }
 
         var conflictos = frenan
@@ -94,7 +112,7 @@ public class HorarioLaboralLogica : IHorarioLaboralLogica
             conflictos.Count == 1
                 ? "Hay 1 turno reservado que quedaría fuera del horario. No se guardó nada."
                 : $"Hay {conflictos.Count} turnos reservados que quedarían fuera del horario. No se guardó nada.",
-            conflictos, false);
+            conflictos, false, false);
     }
 
     // Orden de la semana para el resumen del historial: de lunes a domingo.
