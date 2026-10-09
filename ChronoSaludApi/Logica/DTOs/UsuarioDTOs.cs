@@ -26,11 +26,18 @@ public record UsuarioLoginDto(
     string Contrasena
 );
 
+// La contraseña ya no se cambia por acá: va por POST /usuarios/me/contrasena,
+// que pide la actual (CambioContrasenaDto).
 public record UsuarioUpdateDto(
     string? Nombre,
     string? Apellido,
-    string? Telefono,
-    string? Contrasena
+    string? Telefono
+);
+
+/// <summary>Cuerpo de POST /usuarios/me/contrasena.</summary>
+public record CambioContrasenaDto(
+    string ContrasenaActual,
+    string ContrasenaNueva
 );
 
 public record LoginResponseDto(

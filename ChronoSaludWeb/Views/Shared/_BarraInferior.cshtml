@@ -63,6 +63,16 @@
             </li>
         }
         <li>
+            <a asp-controller="MiPerfil" asp-action="Index"
+               aria-current="@(Model.MiPerfilActivo ? "page" : null)" class="@ClaseOpcion">
+                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    @Html.Raw(IconosLucide.Trazos("persona"))
+                </svg>
+                Mi perfil
+            </a>
+        </li>
+        <li>
             <a asp-controller="Ajustes" asp-action="Index"
                aria-current="@(Model.AjustesActivo ? "page" : null)" class="@ClaseOpcion">
                 <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"

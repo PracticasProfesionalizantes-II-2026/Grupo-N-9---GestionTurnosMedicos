@@ -45,6 +45,9 @@ public class MenuViewModel
     /// <summary>Ajustes no es un destino del menú principal, pero también se marca.</summary>
     public bool AjustesActivo { get; init; }
 
+    /// <summary>Mi perfil tampoco: va en el menú de la cuenta y en "Más".</summary>
+    public bool MiPerfilActivo { get; init; }
+
     public IEnumerable<ItemMenuViewModel> Barra => Items.Where(item => item.EnBarra);
 
     public IEnumerable<ItemMenuViewModel> Resto => Items.Where(item => !item.EnBarra);
@@ -53,7 +56,7 @@ public class MenuViewModel
     /// La pantalla actual está detrás de "Más": se marca ese botón para que en
     /// el celular igual se vea dónde está uno parado.
     /// </summary>
-    public bool MasActivo => AjustesActivo || Resto.Any(item => item.Activo);
+    public bool MasActivo => AjustesActivo || MiPerfilActivo || Resto.Any(item => item.Activo);
 
     /// <summary>
     /// Qué ve cada uno lo deciden las mismas banderas de <see cref="AuthService"/>
@@ -108,7 +111,8 @@ public class MenuViewModel
             Nombre = sesion.Nombre,
             Rol = sesion.Rol,
             Items = items,
-            AjustesActivo = ajustesActivo
+            AjustesActivo = ajustesActivo,
+            MiPerfilActivo = Es(controlador, "MiPerfil")
         };
     }
 

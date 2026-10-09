@@ -159,8 +159,9 @@ public class UsuariosIndexViewModel
 }
 
 /// <summary>
-/// Datos de la cuenta. Espeja lo que se usa de UsuarioUpdateDto: la contraseña
-/// queda afuera a propósito y el email la API no lo deja cambiar.
+/// Datos de la cuenta. Espeja UsuarioUpdateDto: el email la API no lo deja
+/// cambiar y la contraseña va por su lado (Mi perfil/Contraseña). Lo usan
+/// Usuarios/Editar y Mi perfil/Editar.
 /// </summary>
 public class CuentaEditarViewModel
 {
@@ -253,11 +254,43 @@ public class PacienteEditarViewModel
     [ValidateNever] public List<SelectListItem> Provincias => OpcionesPaciente.Opciones(OpcionesPaciente.Provincias, Provincia);
 
     /// <summary>
+    /// El formulario cargado con lo que hay guardado. Lo usan Usuarios/Editar
+    /// (la administración) y Mi perfil/Editar (el propio paciente).
+    /// </summary>
+    public static PacienteEditarViewModel Desde(PacienteDetalle paciente)
+    {
+        var modelo = new PacienteEditarViewModel();
+
+        modelo.TipoDocumento = paciente.TipoDocumento;
+        modelo.Dni = paciente.Dni;
+        modelo.Sexo = paciente.Sexo;
+        modelo.GrupoSanguineo = paciente.GrupoSanguineo;
+        modelo.Nacionalidad = paciente.Nacionalidad;
+        modelo.EstadoCivil = paciente.EstadoCivil;
+        modelo.Direccion = paciente.Direccion;
+        modelo.Provincia = paciente.Provincia;
+        modelo.Localidad = paciente.Localidad;
+        modelo.CodigoPostal = paciente.CodigoPostal;
+        modelo.ContactoEmergenciaNombre = paciente.ContactoEmergenciaNombre;
+        modelo.ContactoEmergenciaTelefono = paciente.ContactoEmergenciaTelefono;
+        modelo.Alergias = paciente.Alergias;
+        modelo.Condiciones = paciente.Condiciones;
+
+        if (paciente.FechaNacimiento != null)
+            modelo.FechaNacimiento = DateOnly.FromDateTime(paciente.FechaNacimiento.Value);
+
+        return modelo;
+    }
+
+    /// <summary>
     /// La ficha como la espera PUT /pacientes/{id}. Cada campo que quedó vacío
     /// va en la lista Borrar: así, vaciar un campo en el formulario borra el
     /// dato guardado (si ya estaba vacío, no pasa nada).
+    /// Con <paramref name="esPersonal"/> en false (el paciente edita su propia
+    /// ficha) el DNI vacío no se pide borrar: la API solo se lo permite a la
+    /// administración, y un DNI ya cargado no viaja en ese formulario.
     /// </summary>
-    public DatosFichaPaciente ArmarFicha()
+    public DatosFichaPaciente ArmarFicha(bool esPersonal = true)
     {
         var ficha = new DatosFichaPaciente();
 
@@ -282,7 +315,7 @@ public class PacienteEditarViewModel
         // Los nombres son los que entiende la API (FichaPaciente.BorrarCampos).
         var borrar = new List<string>();
         if (ficha.TipoDocumento == null) borrar.Add("tipoDocumento");
-        if (ficha.Dni == null) borrar.Add("dni");
+        if (ficha.Dni == null && esPersonal) borrar.Add("dni");
         if (ficha.FechaNacimiento == null) borrar.Add("fechaNacimiento");
         if (ficha.Sexo == null) borrar.Add("sexo");
         if (ficha.GrupoSanguineo == null) borrar.Add("grupoSanguineo");

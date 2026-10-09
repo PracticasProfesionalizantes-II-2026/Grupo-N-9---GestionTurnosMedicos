@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 7
+# Cambios en la API — Mejoras, pasos 2 a 8
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) y `feature/reprogramar-turnos` (paso 7)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7) y `feature/mi-perfil` (paso 8)
 
 Un apartado por cada paso.
 
@@ -292,3 +292,60 @@ Por cada día, cuántas franjas libres de 30 minutos tiene el doctor:
 |---|---|
 | `Logica/TurnoLogica.cs` | `Actualizar` avisa al paciente cuando cambia el horario |
 
+
+---
+
+## Paso 8 — Mi perfil, contraseña y límite de intentos
+
+**No hay migración.** No cambia ninguna tabla.
+
+### `POST /usuarios/me/contrasena` (nuevo)
+
+Cambia la contraseña de quien está logueado. El usuario sale del token, nunca de la URL, y hay que mandar la actual:
+
+```json
+{ "contrasenaActual": "Chrono2026!", "contrasenaNueva": "OtraClave2026" }
+```
+
+| Respuesta | Cuándo |
+|---|---|
+| `200` `{ "mensaje": "Contraseña actualizada." }` | Salió bien |
+| `400` *"La contraseña nueva debe tener al menos 8 caracteres."* | La nueva es corta |
+| `400` *"La contraseña actual no es correcta."* | La actual no coincide |
+| `400` *"La contraseña nueva tiene que ser distinta de la actual."* | Son iguales |
+| `404` | El usuario no existe o está dado de baja |
+| `429` *"Demasiados intentos. Esperá unos minutos y volvé a probar."* | Más de 5 pedidos en 15 minutos del mismo usuario |
+| `401` | Sin sesión |
+
+### `PUT /usuarios/{id}` ya no cambia la contraseña
+
+- `UsuarioUpdateDto` queda con `nombre`, `apellido` y `telefono`.
+- Si alguien manda `contrasena` (por ejemplo, desde Scalar), se ignora.
+- Antes cambiaba la contraseña sin pedir la actual. Ahora el único camino es `POST /usuarios/me/contrasena`.
+
+### Tope de intentos (`429`)
+
+| Pedido | Tope | Se cuenta por |
+|---|---|---|
+| `POST /usuarios/login` | 10 cada 15 minutos | email (sin importar mayúsculas ni espacios) |
+| `POST /usuarios/me/contrasena` | 5 cada 15 minutos | usuario |
+
+- **Por qué por email y no por IP:** a la API los pedidos le llegan desde el servidor de la Web, así que la IP es la misma para todos. Un tope por IP trabaría el login de todo el mundo. El tope por IP de cada persona ya lo pone la Web (`LimiteLogin`).
+- **Cuentan todos los intentos, no solo los fallidos.** El contador vive en memoria y vuelve a cero si se reinicia la API.
+- Cuando se pasa el tope, la API contesta sin revisar la contraseña.
+
+### A quién le pega
+
+- **La Web:** ya usa el pedido nuevo para "Cambiar contraseña" y nunca mandaba `contrasena` en el `PUT`.
+- **El seeder** (`tools/Seed`): entra una vez con cada cuenta que ya existe. Si se corre más de 10 veces en 15 minutos contra la misma API, el login del administrador de la demo queda frenado hasta que pase el rato (o hasta reiniciar la API).
+- **Quien pruebe desde Scalar:** para cambiar una contraseña hay que usar el pedido nuevo.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/LimiteIntentos.cs` *(nuevo)* | Los dos topes de intentos |
+| `Logica/UsuarioLogica.cs`, `Logica/IUsuarioLogica.cs` | `CambiarContrasena`. `Actualizar` ya no toca la contraseña |
+| `Logica/DTOs/UsuarioDTOs.cs` | `CambioContrasenaDto`. `UsuarioUpdateDto` sin `Contrasena` |
+| `Endpoints/UsuarioEndpoints.cs` | El pedido nuevo y el `429` en el login |
+| `Program.cs` | Registra `LimiteIntentos` como singleton (uno para toda la API) |

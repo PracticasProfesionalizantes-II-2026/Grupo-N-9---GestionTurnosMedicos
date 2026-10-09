@@ -71,6 +71,10 @@ builder.Services.AddScoped<IRegistroMovimientos,   RegistroMovimientos>();
 // La hora de Argentina. Uno solo para toda la aplicación: no guarda nada.
 builder.Services.AddSingleton<IReloj, RelojArgentina>();
 
+// Tope de intentos de login y de cambio de contraseña. Uno solo para toda la
+// aplicación: es el que guarda los contadores.
+builder.Services.AddSingleton<LimiteIntentos>();
+
 // ── 6. CORS (opcional para desarrollo) ────────────────────────────────────
 builder.Services.AddCors(options =>
 {

@@ -458,28 +458,7 @@ public class UsuariosController : ControladorBase
                 Apellido = usuario.Apellido,
                 Telefono = usuario.Telefono
             },
-            Paciente = paciente is null
-                ? null
-                : new PacienteEditarViewModel
-                {
-                    TipoDocumento = paciente.TipoDocumento,
-                    Dni = paciente.Dni,
-                    FechaNacimiento = paciente.FechaNacimiento is { } nacimiento
-                        ? DateOnly.FromDateTime(nacimiento)
-                        : null,
-                    Sexo = paciente.Sexo,
-                    GrupoSanguineo = paciente.GrupoSanguineo,
-                    Nacionalidad = paciente.Nacionalidad,
-                    EstadoCivil = paciente.EstadoCivil,
-                    Direccion = paciente.Direccion,
-                    Provincia = paciente.Provincia,
-                    Localidad = paciente.Localidad,
-                    CodigoPostal = paciente.CodigoPostal,
-                    ContactoEmergenciaNombre = paciente.ContactoEmergenciaNombre,
-                    ContactoEmergenciaTelefono = paciente.ContactoEmergenciaTelefono,
-                    Alergias = paciente.Alergias,
-                    Condiciones = paciente.Condiciones
-                },
+            Paciente = paciente is null ? null : PacienteEditarViewModel.Desde(paciente),
             IdDoctor = doctor?.IdDoctor,
             Matricula = doctor?.Matricula,
             TienePerfilDoctor = idDoctor is not null,

@@ -1,0 +1,139 @@
+@model MiPerfilViewModel
+@{
+    ViewData["Title"] = "Mi perfil";
+    const string claseSeccion = "text-base font-semibold text-ink";
+
+    // Un dato de la ficha, o "Sin datos" en gris si está vacío.
+    void Dato(string titulo, string? valor)
+    {
+        <div>
+            <dt class="text-sm text-muted">@titulo</dt>
+            @if (string.IsNullOrWhiteSpace(valor))
+            {
+                <dd class="mt-0.5 text-muted">Sin datos</dd>
+            }
+            else
+            {
+                <dd class="mt-0.5 whitespace-pre-line text-ink">@valor</dd>
+            }
+        </div>
+    }
+}
+
+<div class="flex items-center gap-4">
+    <partial name="_Avatar"
+             model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", Tamano = TamanoAvatar.Grande }' />
+    <div class="min-w-0">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Mi perfil</h1>
+        <p class="mt-0.5 text-sm text-muted">
+            <span>@Model.NombreCompleto</span>
+            <span aria-hidden="true"> · </span>
+            <span class="capitalize">@Model.Rol</span>
+        </p>
+    </div>
+</div>
+
+<div class="mt-6 grid gap-4 lg:grid-cols-3">
+    <div class="tarjeta p-6 lg:col-span-2">
+        <h2 class="@claseSeccion">Tu cuenta</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+            @{ Dato("Nombre", Model.Nombre); }
+            @{ Dato("Apellido", Model.Apellido); }
+            <div>
+                <dt class="text-sm text-muted">Email</dt>
+                <dd class="mt-0.5 break-all text-ink">@Model.Email</dd>
+            </div>
+            @{ Dato("Teléfono", Model.Telefono); }
+        </dl>
+        <div class="mt-6">
+            <a asp-action="Editar" class="boton boton-primario">Editar mis datos</a>
+        </div>
+    </div>
+
+    <div class="tarjeta p-6">
+        <h2 class="@claseSeccion">Contraseña</h2>
+        <p class="mt-4 text-sm text-muted">
+            Para cambiarla te vamos a pedir la que usás hoy.
+        </p>
+        <div class="mt-6">
+            <a asp-action="Contrasena" class="boton boton-secundario">Cambiar contraseña</a>
+        </div>
+    </div>
+</div>
+
+@if (Model.FaltaFicha)
+{
+    <div class="mt-4 tarjeta p-6">
+        <h2 class="@claseSeccion">Tu ficha</h2>
+        <p class="mt-4 text-sm text-muted">
+            Tu usuario todavía no tiene un perfil de paciente asociado. Pedile a la administración que lo cree.
+        </p>
+    </div>
+}
+
+@if (Model.Ficha is { } ficha)
+{
+    <div class="mt-4 tarjeta p-6">
+        <h2 class="@claseSeccion">Tu ficha</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+                <dt class="text-sm text-muted">Fecha de nacimiento</dt>
+                <dd class="mt-0.5 text-ink">
+                    @if (ficha.FechaNacimientoLarga is not null)
+                    {
+                        <span>@ficha.FechaNacimientoLarga</span>
+                        @if (ficha.Edad is not null)
+                        {
+                            <span class="text-muted"> · @ficha.Edad años</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted">Sin datos</span>
+                    }
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm text-muted">Sexo</dt>
+                <dd class="mt-0.5 capitalize text-ink">
+                    @(string.IsNullOrWhiteSpace(ficha.Sexo) ? "Sin datos" : ficha.Sexo)
+                </dd>
+            </div>
+            @{ Dato("Documento", ficha.Documento); }
+            @{ Dato("Nacionalidad", ficha.Nacionalidad); }
+            @{ Dato("Estado civil", ficha.EstadoCivil); }
+            @{ Dato("Grupo sanguíneo", ficha.GrupoSanguineo); }
+            @{ Dato("Dirección", ficha.DireccionCompleta); }
+            @{ Dato("Contacto de emergencia", ficha.ContactoEmergencia); }
+            @{ Dato("Alergias", ficha.Alergias); }
+            @{ Dato("Condiciones preexistentes", ficha.Condiciones); }
+        </dl>
+        <div class="mt-6">
+            <a asp-action="Editar" class="boton boton-secundario">Editar mi ficha</a>
+        </div>
+    </div>
+}
+
+@if (Model.IdDoctor is { } idDoctor)
+{
+    <div class="mt-4 tarjeta p-6">
+        <h2 class="@claseSeccion">Datos profesionales</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
+            @{ Dato("Especialidad", Model.Especialidad); }
+            <div>
+                <dt class="text-sm text-muted">Matrícula</dt>
+                <dd class="mt-0.5 tabular-nums text-ink">@(string.IsNullOrWhiteSpace(Model.Matricula) ? "Sin datos" : Model.Matricula)</dd>
+            </div>
+            @{ Dato("Consultorio", Model.Consultorio); }
+        </dl>
+        <p class="mt-4 text-xs text-muted">Si hay que corregir alguno de estos datos, pedíselo a la administración.</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+            <a asp-controller="Doctores" asp-action="Horario" asp-route-id="@idDoctor" class="boton boton-secundario">
+                Mi horario de atención
+            </a>
+            <a asp-controller="Actividad" asp-action="Mia" class="boton boton-secundario">
+                Mi actividad
+            </a>
+        </div>
+    </div>
+}

@@ -124,7 +124,7 @@ public class HomeController : Controller
                 ? new EnlaceViewModel
                 {
                     Controlador = "MiPerfil",
-                    Accion = "CompletarPaciente",
+                    Accion = "Editar",
                     Descripcion = "Completar mi perfil"
                 }
                 : null,
