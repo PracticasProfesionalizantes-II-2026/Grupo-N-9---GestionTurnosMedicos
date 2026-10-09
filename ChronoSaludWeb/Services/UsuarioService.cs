@@ -92,14 +92,23 @@ public class UsuarioService
     }
 
     /// <summary>
-    /// PUT /usuarios/{id} con nombre, apellido y teléfono. La contraseña no se
-    /// manda nunca desde acá y el email la API no lo deja cambiar.
+    /// PUT /usuarios/{id} con nombre, apellido y teléfono. El email la API no
+    /// lo deja cambiar, y la contraseña tiene su propio pedido
+    /// (<see cref="CambiarContrasenaAsync"/>).
     /// Ojo: la API ignora los campos vacíos, así que un teléfono en blanco no
-    /// borra el que ya estaba. Tampoco revisa quién hace el pedido: que sea un
-    /// administrador lo exige UsuariosController, no este endpoint.
+    /// borra el que ya estaba. La API solo acepta el pedido del propio usuario
+    /// o de un administrador (403 al resto).
     /// </summary>
     public Task ActualizarAsync(int id, string nombre, string apellido, string? telefono)
         => _api.PutAsync($"/usuarios/{id}", new { nombre, apellido, telefono });
+
+    /// <summary>
+    /// POST /usuarios/me/contrasena: cambia la contraseña de quien está
+    /// logueado (la API lo saca del token). Contesta 400 con el motivo si la
+    /// actual no coincide o la nueva no sirve, y 429 si se pasaron los intentos.
+    /// </summary>
+    public Task CambiarContrasenaAsync(string actual, string nueva)
+        => _api.PostAsync("/usuarios/me/contrasena", new { contrasenaActual = actual, contrasenaNueva = nueva });
 
     /// <summary>
     /// GET /usuarios: busca "contiene" en nombre, apellido o email entre los

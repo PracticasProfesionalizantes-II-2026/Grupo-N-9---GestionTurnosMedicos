@@ -515,3 +515,19 @@ recibir los doctores y una ruta base, así la usan las dos pantallas. La
 API avisa al paciente cuando se le mueve el turno. Probado contra una API
 de mentira, incluido el 409 de un horario que se ocupó.
 **Ojo:** sin migración. El turno reprogramado conserva su estado.
+
+## 2026-10-09 — mejoras, paso 8: Mi perfil, contraseña y límite de intentos
+**Hecho:** "Mi perfil" en el menú de la cuenta y en el "Más" del celular,
+para los tres roles. Muestra la cuenta y, según el rol, la ficha del
+paciente o los datos profesionales del doctor (con enlaces a su horario y
+a su actividad). En Editar cada uno corrige su nombre, apellido y
+teléfono, y el paciente su ficha: el DNI ya cargado se ve pero no se
+cambia (lo corrige la administración). "Cambiar contraseña" pide la
+actual. En la API: POST /usuarios/me/contrasena, el PUT /usuarios/{id} ya
+no cambia la contraseña, y un tope de intentos (429) para el login (10
+cada 15 minutos por email) y para el cambio de contraseña (5 por
+usuario). La vieja `MiPerfil/CompletarPaciente` redirige a Editar.
+Probado contra una API de mentira como paciente, doctor, administrador y
+paciente sin ficha.
+**Ojo:** sin migración. Si se corre el seeder más de 10 veces seguidas,
+el login del administrador de la demo queda frenado 15 minutos.

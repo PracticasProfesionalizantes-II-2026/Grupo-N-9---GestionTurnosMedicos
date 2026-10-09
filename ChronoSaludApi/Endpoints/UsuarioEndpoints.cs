@@ -38,10 +38,15 @@ public static class UsuarioEndpoints
         .AllowAnonymous();
 
         // POST /usuarios/login
-        grupo.MapPost("/login", async (UsuarioLoginDto dto, IUsuarioLogica logica) =>
+        grupo.MapPost("/login", async (UsuarioLoginDto dto, IUsuarioLogica logica, LimiteIntentos limite) =>
         {
             if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Contrasena))
                 return Results.BadRequest(new { error = "Email y contraseña son requeridos." });
+
+            // Tope de intentos por email: frena a quien prueba contraseñas
+            // contra una misma cuenta.
+            if (!limite.PermiteLogin(dto.Email))
+                return Results.Json(new { error = LimiteIntentos.Mensaje }, statusCode: StatusCodes.Status429TooManyRequests);
 
             var (resultado, error) = await logica.Login(dto);
             if (error != null)
@@ -51,6 +56,29 @@ public static class UsuarioEndpoints
         })
         .WithSummary("Autenticar usuario")
         .AllowAnonymous();
+
+        // POST /usuarios/me/contrasena
+        // La contraseña de quien está logueado: el usuario sale del token,
+        // nunca de la URL. Pide la actual.
+        grupo.MapPost("/me/contrasena", async (CambioContrasenaDto dto, HttpContext ctx, IUsuarioLogica logica, LimiteIntentos limite) =>
+        {
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            if (!limite.PermiteCambioDeContrasena(idUsuario))
+                return Results.Json(new { error = LimiteIntentos.Mensaje }, statusCode: StatusCodes.Status429TooManyRequests);
+
+            var (ok, error) = await logica.CambiarContrasena(idUsuario, dto);
+            if (!ok)
+                return error!.Contains("no encontrado")
+                    ? Results.NotFound(new { error })
+                    : Results.BadRequest(new { error });
+
+            return Results.Ok(new { mensaje = "Contraseña actualizada." });
+        })
+        .WithSummary("Cambiar la contraseña propia (pide la actual)")
+        .RequireAuthorization();
 
         // GET /usuarios/{id}
         grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, IUsuarioLogica logica) =>

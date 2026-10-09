@@ -126,9 +126,33 @@ public class UsuarioLogica : IUsuarioLogica
         if (!string.IsNullOrEmpty(dto.Nombre))    usuario.Nombre    = dto.Nombre;
         if (!string.IsNullOrEmpty(dto.Apellido))  usuario.Apellido  = dto.Apellido;
         if (!string.IsNullOrEmpty(dto.Telefono))  usuario.Telefono  = dto.Telefono;
-        if (!string.IsNullOrEmpty(dto.Contrasena))
-            usuario.Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.Contrasena);
 
+        await _repo.Actualizar(usuario);
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Cambia la contraseña de un usuario pidiendo la actual. La nueva tiene
+    /// que tener al menos 8 caracteres y ser distinta de la actual.
+    /// </summary>
+    public async Task<(bool ok, string? error)> CambiarContrasena(int idUsuario, CambioContrasenaDto dto)
+    {
+        var usuario = await _repo.ObtenerPorId(idUsuario);
+        if (usuario == null || !usuario.Activo)
+            return (false, "Usuario no encontrado.");
+
+        if (string.IsNullOrEmpty(dto.ContrasenaNueva) || dto.ContrasenaNueva.Length < 8)
+            return (false, "La contraseña nueva debe tener al menos 8 caracteres.");
+
+        // Verify compara la contraseña escrita con el hash guardado.
+        if (string.IsNullOrEmpty(dto.ContrasenaActual) ||
+            !BCrypt.Net.BCrypt.Verify(dto.ContrasenaActual, usuario.Contrasena))
+            return (false, "La contraseña actual no es correcta.");
+
+        if (dto.ContrasenaNueva == dto.ContrasenaActual)
+            return (false, "La contraseña nueva tiene que ser distinta de la actual.");
+
+        usuario.Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.ContrasenaNueva);
         await _repo.Actualizar(usuario);
         return (true, null);
     }

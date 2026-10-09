@@ -94,8 +94,9 @@ public class CuentaController : Controller
         }
 
         // El registro ya deja la sesión abierta: de acá se va a completar la
-        // ficha clínica, que queda vacía apenas se crea el perfil de paciente.
-        return RedirectToAction("CompletarPaciente", "MiPerfil");
+        // ficha, que queda vacía apenas se crea el perfil de paciente.
+        TempData["Exito"] = "Tu cuenta está lista. Si querés, completá ahora tu ficha; también podés hacerlo más tarde desde Mi perfil.";
+        return RedirectToAction("Editar", "MiPerfil");
     }
 
     [HttpPost]
