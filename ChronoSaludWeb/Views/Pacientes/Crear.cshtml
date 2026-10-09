@@ -30,7 +30,7 @@
     <div class="mt-6 tarjeta p-8">
         @if (erroresGenerales is { Count: > 0 })
         {
-            <div class="mb-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+            <div role="alert" class="mb-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
                 @foreach (var error in erroresGenerales)
                 {
                     <p>@error.ErrorMessage</p>
@@ -105,24 +105,24 @@
                     </div>
                 </div>
 
-                @* El input de archivo queda oculto y el label for="Foto" funciona
-                   como botón: abrir el selector no necesita JavaScript. El foco
-                   del teclado cae en ese input que no se ve, así que el
-                   contorno se dibuja en este contenedor. *@
-                <div class="rounded-card has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary">
-                    <div class="flex size-50 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-control bg-field p-4 text-center">
-                        <svg class="h-10 w-10 text-primary-line" viewBox="0 0 24 24" fill="none"
+                @* La foto es opcional. El campo de archivo queda a la vista: sin
+                   JavaScript es la única forma de ver qué archivo se eligió, y
+                   así se usa con el teclado como cualquier otro campo. Acepta
+                   los mismos formatos que revisa ValidadorDeImagen. *@
+                <div class="self-start rounded-card border-2 border-dashed border-control bg-field p-4 lg:w-64">
+                    <div class="flex items-center gap-3">
+                        <svg class="size-10 shrink-0 text-primary-line" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="8" r="5" />
                             <path d="M20 21a8 8 0 0 0-16 0" />
                         </svg>
-                        <span class="text-sm text-muted">Foto del paciente</span>
-                        <label for="Foto"
-                               class="boton boton-secundario">
-                            Seleccionar foto
-                        </label>
+                        <label asp-for="Foto" class="@claseEtiqueta">Foto del paciente (opcional)</label>
                     </div>
-                    <input asp-for="Foto" type="file" accept="image/*" class="sr-only" />
+                    <input asp-for="Foto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="ayuda-foto"
+                           class="mt-3 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft" />
+                    <p id="ayuda-foto" class="mt-2 text-xs text-muted">
+                        JPG, PNG o WebP, hasta 2 MB. Si el formulario vuelve con un error, elegí la foto de nuevo.
+                    </p>
                     <span asp-validation-for="Foto" class="@claseError"></span>
                 </div>
             </div>
