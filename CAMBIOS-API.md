@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 12
+# Cambios en la API — Mejoras, pasos 2 a 13
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) y `feature/pacientes-notificaciones-accesibilidad` (paso 12)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) y `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13)
 
 Un apartado por cada paso.
 
@@ -587,3 +587,44 @@ GET /pacientes?buscar=lucia%20gomez&limite=20
 | `Repositorios/PacienteRepository.cs`, `IPacienteRepository.cs` | `Buscar` filtra palabra por palabra, sin distinguir mayúsculas ni acentos |
 | `Repositorios/PalabrasDeBusqueda.cs` *(nuevo)* | Separa el texto en palabras (hasta 5) |
 | `Endpoints/ReporteEndpoints.cs` | La llamada a `Buscar` suma el parámetro nuevo |
+
+---
+
+## Paso 13 — Notificaciones visibles
+
+**No hay migración.**
+
+### `GET /usuarios/{id}/notificaciones/no-leidas`
+
+- Devuelve cuántas notificaciones tiene el usuario sin leer: `{ "noLeidas": 3 }`.
+- **Permiso:** el mismo que el listado. Las ve el propio usuario o un administrador; cualquier otro recibe **403**.
+
+```
+GET /usuarios/6/notificaciones/no-leidas
+→ { "noLeidas": 3 }
+```
+
+### `PATCH /notificaciones/leer-todas`
+
+- Marca como leídas **todas las del usuario del token** y devuelve cuántas marcó: `{ "marcadas": 3 }`.
+- No recibe id: nadie marca las de otro, igual que `PATCH /notificaciones/{id}/leer`.
+- Si no había ninguna sin leer, devuelve `{ "marcadas": 0 }`.
+- Es un solo `UPDATE` en la base, no una consulta por notificación.
+
+### A quién le pega
+
+- **La Web:** los pacientes ven una **campana** en el encabezado, con la cantidad sin leer, y la pantalla **Notificaciones**:
+  - pestañas "Todas" y "Sin leer";
+  - "Marcar como leída" en cada una y "Marcar todas como leídas";
+  - "Ver mis turnos" en las de turnos.
+
+  La Web guarda la cantidad en la sesión por un minuto, así no le pregunta a la API en cada página.
+- **Quien use la API desde Scalar o Postman:** los dos endpoints son nuevos; lo de antes no cambia.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Endpoints/NotificacionEndpoints.cs` | Los dos endpoints nuevos |
+| `Logica/NotificacionLogica.cs`, `INotificacionLogica.cs` | `ContarNoLeidas` y `MarcarTodasLeidas` |
+| `Repositorios/NotificacionRepository.cs`, `INotificacionRepository.cs` | Contar las sin leer y marcarlas todas con `ExecuteUpdateAsync` |

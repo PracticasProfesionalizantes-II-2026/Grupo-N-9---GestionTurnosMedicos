@@ -1,4 +1,5 @@
 @inject AuthService Auth
+@inject NotificacionService Notificaciones
 @functions {
     // Enlace del encabezado. Lo seleccionado va relleno en teal y en negrita,
     // para que no dependa solo del color; el hover es un teal claro.
@@ -75,7 +76,20 @@
                     </ul>
                 </nav>
 
-                <partial name="_MenuCuenta" model="menu" />
+                @* La campana (solo pacientes) y el menú de la cuenta van juntos a
+                   la derecha, también en el celular. *@
+                <div class="flex shrink-0 items-center gap-2">
+                    @if (Auth.VeNotificaciones)
+                    {
+                        var campana = new CampanaViewModel
+                        {
+                            NoLeidas = await Notificaciones.NoLeidasParaLaCampanaAsync(),
+                            Activa = string.Equals(controlador, "Notificaciones", StringComparison.OrdinalIgnoreCase)
+                        };
+                        <partial name="_Campana" model="campana" />
+                    }
+                    <partial name="_MenuCuenta" model="menu" />
+                </div>
             }
             else
             {

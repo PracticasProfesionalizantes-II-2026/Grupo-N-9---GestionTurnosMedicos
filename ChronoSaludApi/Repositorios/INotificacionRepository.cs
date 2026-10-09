@@ -8,4 +8,6 @@ public interface INotificacionRepository
     Task<Notificacion?> ObtenerPorId(int id);
     Task Agregar(Notificacion notificacion);
     Task Actualizar(Notificacion notificacion);
+    Task<int> ContarNoLeidas(int usuarioId);
+    Task<int> MarcarTodasLeidas(int usuarioId);
 }

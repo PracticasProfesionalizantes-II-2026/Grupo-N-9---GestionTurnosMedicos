@@ -33,4 +33,12 @@ public class NotificacionLogica : INotificacionLogica
         await _repo.Actualizar(notif);
         return (true, null, false);
     }
+
+    public async Task<int> ContarNoLeidas(int usuarioId) => await _repo.ContarNoLeidas(usuarioId);
+
+    /// <summary>
+    /// Marca como leídas todas las del usuario que pregunta (sale del token):
+    /// como en MarcarLeida, nadie marca las de otro. Devuelve cuántas marcó.
+    /// </summary>
+    public async Task<int> MarcarTodasLeidas(int idUsuarioCaller) => await _repo.MarcarTodasLeidas(idUsuarioCaller);
 }

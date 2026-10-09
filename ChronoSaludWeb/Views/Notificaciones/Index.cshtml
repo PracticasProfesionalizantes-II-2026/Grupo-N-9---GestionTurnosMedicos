@@ -1,0 +1,118 @@
+@model NotificacionesIndexViewModel
+@{
+    ViewData["Title"] = "Notificaciones";
+}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Notificaciones</h1>
+        <p class="mt-1 text-sm text-muted">Los avisos de tus turnos y de tus estudios, de los más nuevos a los más viejos.</p>
+    </div>
+    @* Solo aparece si hay algo para marcar. *@
+    @if (!Model.HuboError && Model.NoLeidas > 0)
+    {
+        <form method="post" asp-action="MarcarTodas">
+            @if (Model.SoloNoLeidas)
+            {
+                <input type="hidden" name="ver" value="sin-leer" />
+            }
+            <button type="submit" class="boton boton-secundario">Marcar todas como leídas</button>
+        </form>
+    }
+</div>
+
+@* Todas o solo las sin leer: dos enlaces. La pestaña elegida va rellena y
+   con aria-current. *@
+<nav aria-label="Qué notificaciones ver" class="mt-6 flex flex-wrap gap-2">
+    <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(false)"
+       aria-current="@(Model.SoloNoLeidas ? null : "page")"
+       class="boton @(Model.SoloNoLeidas ? "boton-secundario" : "boton-primario")">
+        Todas
+    </a>
+    <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(true)"
+       aria-current="@(Model.SoloNoLeidas ? "page" : null)"
+       class="boton @(Model.SoloNoLeidas ? "boton-primario" : "boton-secundario")">
+        @(!Model.HuboError && Model.NoLeidas > 0 ? $"Sin leer ({Model.NoLeidas})" : "Sin leer")
+    </a>
+</nav>
+
+@if (Model.HuboError)
+{
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudieron cargar las notificaciones", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Notificaciones", Accion = "Index", Ruta = NotificacionesIndexViewModel.RutaPestana(Model.SoloNoLeidas), Descripcion = "Reintentar" } }' />
+    </div>
+}
+else if (Model.Notificaciones.Count == 0)
+{
+    <div class="tarjeta mt-6">
+        @if (Model.SoloNoLeidas)
+        {
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "campana", Nivel = 2, Titulo = "No tenés notificaciones sin leer", Ayuda = "Ya leíste todas. Las de antes siguen en la pestaña «Todas».", Accion = new EnlaceViewModel { Controlador = "Notificaciones", Accion = "Index", Descripcion = "Ver todas" } }' />
+        }
+        else
+        {
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "campana", Nivel = 2, Titulo = "Todavía no tenés notificaciones", Ayuda = "Cuando se confirme, se cambie o se cancele un turno tuyo, o cuando esté el resultado de un estudio, te avisamos acá." }' />
+        }
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden tarjeta">
+        <ul aria-label="Notificaciones">
+            @foreach (var notificacion in Model.Notificaciones)
+            {
+                @* Las sin leer llevan fondo teal claro y el chip "Nueva": el
+                   estado no depende solo del color. *@
+                <li class="flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 @(notificacion.Leida ? null : "bg-primary-soft/40")">
+                    <span class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full circulo-icono">
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            @Html.Raw(IconosLucide.Trazos(notificacion.Icono))
+                        </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-ink @(notificacion.Leida ? null : "font-semibold")">@notificacion.Mensaje</p>
+                        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                            <time datetime="@notificacion.Fecha.ToString("yyyy-MM-ddTHH:mm")" class="tabular-nums">@notificacion.FechaTexto</time>
+                            @if (!notificacion.Leida)
+                            {
+                                <partial name="_Chip" model='new ChipViewModel { Texto = "Nueva", Tono = TonoChip.Aviso }' />
+                            }
+                        </p>
+                        @if (notificacion.EsDeTurno || !notificacion.Leida)
+                        {
+                            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                @if (notificacion.EsDeTurno)
+                                {
+                                    <a asp-controller="Turnos" asp-action="Index" class="boton-texto">Ver mis turnos</a>
+                                }
+                                @if (!notificacion.Leida)
+                                {
+                                    <form method="post" asp-action="MarcarLeida" asp-route-id="@notificacion.Id">
+                                        @if (Model.SoloNoLeidas)
+                                        {
+                                            <input type="hidden" name="ver" value="sin-leer" />
+                                        }
+                                        @if (Model.Pagina > 1)
+                                        {
+                                            <input type="hidden" name="pagina" value="@Model.Pagina" />
+                                        }
+                                        @* El sr-only dice cuál: con varias, "Marcar como leída" solo no alcanza. *@
+                                        <button type="submit" class="boton-texto">
+                                            Marcar como leída<span class="sr-only">: @notificacion.Mensaje</span>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <partial name="_Paginador" model="Model.Paginador" />
+}

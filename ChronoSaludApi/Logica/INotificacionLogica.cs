@@ -6,4 +6,6 @@ public interface INotificacionLogica
 {
     Task<(int total, IEnumerable<NotificacionDto> notificaciones)> ObtenerDeUsuario(int usuarioId, bool? leida, string? tipo, int pagina);
     Task<(bool ok, string? error, bool prohibido)> MarcarLeida(int id, int idUsuarioCaller);
+    Task<int> ContarNoLeidas(int usuarioId);
+    Task<int> MarcarTodasLeidas(int idUsuarioCaller);
 }

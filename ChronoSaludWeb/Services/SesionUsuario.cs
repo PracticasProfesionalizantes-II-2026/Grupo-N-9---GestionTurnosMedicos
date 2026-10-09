@@ -45,6 +45,7 @@ public static class SesionExtensiones
     {
         sesion.Remove(Clave);
         sesion.Remove(ClavePerfil);
+        ContadorDeNoLeidas.Borrar(sesion);
     }
 
     /// <summary>

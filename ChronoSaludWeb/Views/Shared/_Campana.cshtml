@@ -1,0 +1,22 @@
+@model CampanaViewModel
+
+@* La campana del encabezado: un enlace a Notificaciones con el número de las
+   sin leer en un globito rojo. El globito es solo visual (aria-hidden); el
+   lector de pantalla lee el texto completo del sr-only. Usa el mismo rojo y
+   texto que el botón de peligro, que pasan el contraste en los dos temas.
+   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+<a asp-controller="Notificaciones" asp-action="Index" aria-current="@(Model.Activa ? "page" : null)"
+   class="boton boton-secundario relative shrink-0 px-2.5 py-1 aria-[current=page]:border-primary aria-[current=page]:bg-primary-soft aria-[current=page]:text-primary-hover">
+    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        @Html.Raw(IconosLucide.Trazos("campana"))
+    </svg>
+    <span class="sr-only">@Model.TextoAccesible</span>
+    @if (Model.Globito is { } globito)
+    {
+        <span aria-hidden="true"
+              class="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-status-cancelado px-1 text-xs font-bold tabular-nums text-on-primary">
+            @globito
+        </span>
+    }
+</a>

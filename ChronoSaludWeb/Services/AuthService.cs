@@ -73,6 +73,13 @@ public class AuthService
     public bool PuedeElegirPaciente => SesionActual?.Rol is "doctor" or "administrador";
 
     /// <summary>
+    /// La campana y la pantalla de notificaciones. Por ahora solo los
+    /// pacientes reciben notificaciones (avisos de sus turnos y estudios):
+    /// el día que se notifique algo al personal, se suma su rol acá.
+    /// </summary>
+    public bool VeNotificaciones => SesionActual?.Rol is "paciente";
+
+    /// <summary>
     /// DELETE /turnos/{id} lo acepta la API del administrador sobre cualquier
     /// turno, del doctor sobre los de su agenda y del paciente sobre los
     /// suyos. La Web espeja esa regla: los tres roles pueden cancelar, y que

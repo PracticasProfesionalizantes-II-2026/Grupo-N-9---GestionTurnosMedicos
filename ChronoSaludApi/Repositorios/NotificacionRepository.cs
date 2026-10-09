@@ -45,4 +45,14 @@ public class NotificacionRepository : INotificacionRepository
         _db.Notificaciones.Update(notificacion);
         await _db.SaveChangesAsync();
     }
+
+    // Un COUNT en la base: no viaja ninguna fila.
+    public async Task<int> ContarNoLeidas(int usuarioId)
+        => await _db.Notificaciones.CountAsync(n => n.IdUsuario == usuarioId && !n.Leida);
+
+    // Un solo UPDATE en la base, sin traer las filas. Devuelve cuántas marcó.
+    public async Task<int> MarcarTodasLeidas(int usuarioId)
+        => await _db.Notificaciones
+            .Where(n => n.IdUsuario == usuarioId && !n.Leida)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.Leida, true));
 }

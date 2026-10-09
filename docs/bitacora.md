@@ -596,3 +596,15 @@ con la API y la Web reales: 42 chequeos.
 - **Probado** contra SQL Server 2022 con la API y la Web reales, con 30 pacientes, homónimos y nombres con acento.
 
 **Ojo:** sin migración y sin nada que correr en Azure.
+
+## 2026-10-09 — mejoras, paso 13: notificaciones visibles
+**Hecho:**
+- **API:** `GET /usuarios/{id}/notificaciones/no-leidas` cuenta las sin leer (el propio usuario o un administrador) y `PATCH /notificaciones/leer-todas` marca todas las del usuario del token con un solo `UPDATE`.
+- **Web, solo para pacientes:**
+  - una campana en el encabezado, al lado del menú de la cuenta, también en el celular. Muestra la cantidad sin leer ("9+" si son más de 9) y el lector de pantalla lee el número completo;
+  - la cantidad se guarda un minuto en la sesión y se borra al marcar o al salir;
+  - la pantalla Notificaciones: pestañas "Todas" y "Sin leer", de a 20 con el paginador, "Marcar como leída", "Marcar todas como leídas" y "Ver mis turnos";
+  - abrir la pantalla no marca nada sola.
+- **Probado** contra SQL Server 2022 con la API y la Web reales: 37 chequeos, incluidos los permisos (otro paciente o un doctor no cuentan ni marcan las ajenas).
+
+**Ojo:** sin migración y sin nada que correr en Azure.
