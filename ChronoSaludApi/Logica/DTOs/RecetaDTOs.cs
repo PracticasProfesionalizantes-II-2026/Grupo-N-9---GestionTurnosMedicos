@@ -6,7 +6,8 @@ public record RecetaDto(
     DateTime Vigencia,
     string? Detalles,
     List<MedicamentoRecetadoDto> Medicamentos,
-    ProfesionalDto? Doctor = null
+    ProfesionalDto? Doctor = null,
+    int? IdTurno = null
 );
 
 public record RecetaCreateDto(

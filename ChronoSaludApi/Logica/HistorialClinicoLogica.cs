@@ -9,12 +9,18 @@ public class HistorialClinicoLogica : IHistorialClinicoLogica
     private readonly IHistorialClinicoRepository _repo;
     private readonly IDoctorRepository _doctorRepo;
     private readonly IPacienteRepository _pacienteRepo;
+    private readonly ITurnoRepository _turnoRepo;
 
-    public HistorialClinicoLogica(IHistorialClinicoRepository repo, IDoctorRepository doctorRepo, IPacienteRepository pacienteRepo)
+    public HistorialClinicoLogica(
+        IHistorialClinicoRepository repo,
+        IDoctorRepository doctorRepo,
+        IPacienteRepository pacienteRepo,
+        ITurnoRepository turnoRepo)
     {
         _repo = repo;
         _doctorRepo = doctorRepo;
         _pacienteRepo = pacienteRepo;
+        _turnoRepo = turnoRepo;
     }
 
     public async Task<(int idPaciente, IEnumerable<HistorialClinicoDto> historiales, string? error, bool prohibido)> ObtenerDePaciente(
@@ -50,6 +56,11 @@ public class HistorialClinicoLogica : IHistorialClinicoLogica
         if (doctor == null)
             return (false, "El usuario autenticado no tiene perfil de doctor.");
 
+        // Si viene un turno, tiene que ser de este paciente con este doctor.
+        var errorTurno = await TurnoVinculado.Revisar(_turnoRepo, dto.IdTurno, pacienteId, doctor.Id);
+        if (errorTurno != null)
+            return (false, errorTurno);
+
         var historial = new HistorialClinico
         {
             IdPaciente  = pacienteId,
@@ -81,6 +92,10 @@ public class HistorialClinicoLogica : IHistorialClinicoLogica
             return (false, "Tu usuario no tiene un perfil de doctor asociado.", true);
         if (doctor.Id != historial.IdDoctor)
             return (false, "Registro de historial clinico no encontrado.", false);
+
+        var errorTurno = await TurnoVinculado.Revisar(_turnoRepo, dto.IdTurno, historial.IdPaciente, historial.IdDoctor);
+        if (errorTurno != null)
+            return (false, errorTurno, false);
 
         historial.Fecha       = dto.Fecha;
         historial.Descripcion = dto.Descripcion;

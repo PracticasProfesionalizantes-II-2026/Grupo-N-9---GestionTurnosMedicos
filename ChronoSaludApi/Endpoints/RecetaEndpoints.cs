@@ -75,9 +75,11 @@ public static class RecetaEndpoints
 
             var callerEsDoctor = ctx.User.IsInRole("doctor");
 
+            // "no encontrad" cubre la receta (no encontrada), y el medicamento
+            // y el turno (no encontrado).
             var (ok, error, sinPerfilDoctor) = await logica.Actualizar(id, dto, idUsuario, callerEsDoctor);
             if (!ok)
-                return sinPerfilDoctor || error!.Contains("no encontrada")
+                return sinPerfilDoctor || error!.Contains("no encontrad")
                     ? Results.NotFound(new { error })
                     : Results.BadRequest(new { error });
 

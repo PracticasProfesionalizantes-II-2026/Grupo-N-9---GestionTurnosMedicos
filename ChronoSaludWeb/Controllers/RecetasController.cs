@@ -16,6 +16,7 @@ public class RecetasController : ControladorBase
     private readonly RecetaService _recetas;
     private readonly MedicamentoService _medicamentos;
     private readonly PacienteService _pacientes;
+    private readonly TurnoService _turnos;
     private readonly AuthService _auth;
     private readonly PerfilService _perfil;
 
@@ -23,12 +24,14 @@ public class RecetasController : ControladorBase
         RecetaService recetas,
         MedicamentoService medicamentos,
         PacienteService pacientes,
+        TurnoService turnos,
         AuthService auth,
         PerfilService perfil)
     {
         _recetas = recetas;
         _medicamentos = medicamentos;
         _pacientes = pacientes;
+        _turnos = turnos;
         _auth = auth;
         _perfil = perfil;
     }
@@ -94,11 +97,18 @@ public class RecetasController : ControladorBase
             if (idPaciente is null || receta is null)
                 return NoEncontrado(id, "Receta no encontrada", "receta");
 
+            var fila = RecetaFilaViewModel.Desde(receta);
+            var idDoctorPropio = await IdDoctorPropioAsync();
+            var esSuya = idDoctorPropio is not null && fila.Firma?.IdDoctor == idDoctorPropio;
+
             return View(new RecetaDetalleViewModel
             {
-                Receta = RecetaFilaViewModel.Desde(receta),
+                Receta = fila,
                 IdPaciente = idPaciente.Value,
-                NombrePaciente = await NombreDePacienteAsync(idPaciente.Value)
+                NombrePaciente = await NombreDePacienteAsync(idPaciente.Value),
+                PuedeEditar = esSuya,
+                // El paciente y la administración ven el turno; un doctor, solo los de su agenda.
+                EnlaceAlTurno = !_auth.EsDoctor || esSuya
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -142,11 +152,15 @@ public class RecetasController : ControladorBase
         }
     }
 
+    /// <summary>
+    /// Nueva receta. Con <paramref name="turno"/> es la receta de ese turno:
+    /// el paciente sale del turno y la receta queda vinculada.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Crear(int? paciente)
+    public async Task<IActionResult> Crear(int? paciente, int? turno)
     {
         if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(Crear), new { paciente }));
+            return AlLogin(Url.Action(nameof(Crear), new { paciente, turno }));
 
         if (!_auth.PuedeEmitirRecetas)
             return SinPermisoDeEmision();
@@ -157,6 +171,31 @@ public class RecetasController : ControladorBase
             Fecha = FechaArgentina.Hoy(),
             Vigencia = FechaArgentina.Hoy().AddDays(30)
         };
+
+        if (turno is not null)
+        {
+            try
+            {
+                var atendido = await TurnoParaAtenderAsync(turno.Value);
+                if (atendido is null)
+                    return NoEncontrado(turno.Value, "Turno no encontrado", "turno");
+
+                if (!atendido.SePuedeAtender)
+                {
+                    TempData["Error"] = $"El turno #{atendido.IdTurno} está {atendido.Estado}: no se le puede emitir una receta.";
+                    return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = atendido.IdTurno });
+                }
+
+                modelo.IdTurno = atendido.IdTurno;
+                modelo.IdPaciente = atendido.IdPaciente;
+                modelo.Turno = atendido;
+            }
+            catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+            {
+                TempData["Error"] = error.Message;
+                return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = turno });
+            }
+        }
 
         await CargarFormularioAsync(modelo);
         return View(modelo);
@@ -192,43 +231,40 @@ public class RecetasController : ControladorBase
 
         try
         {
-            // "Otro..." viaja como RecetaCrearViewModel.IdOtro; la API necesita
-            // el id del medicamento marcador.
-            int? idMarcador = null;
-            if (modelo.MedicamentosCargados.Any(m => m.EsOtro))
+            // Desde un turno, el paciente sale del turno y no del formulario.
+            TurnoAtendidoViewModel? atendido = null;
+            if (modelo.IdTurno is not null)
             {
-                idMarcador = await _medicamentos.ObtenerIdMarcadorOtroAsync();
-                if (idMarcador is null)
-                {
-                    ModelState.AddModelError(string.Empty,
-                        "La opción \"Otro...\" no está disponible todavía: falta una configuración del sistema. Avisale a administración.");
-                    await CargarFormularioAsync(modelo);
-                    return View(modelo);
-                }
+                atendido = await TurnoParaAtenderAsync(modelo.IdTurno.Value);
+                if (atendido is null)
+                    return NoEncontrado(modelo.IdTurno.Value, "Turno no encontrado", "turno");
+
+                modelo.IdPaciente = atendido.IdPaciente;
+            }
+
+            var medicamentos = await ArmarMedicamentosAsync(modelo);
+            if (medicamentos is null)
+            {
+                await CargarFormularioAsync(modelo);
+                return View(modelo);
             }
 
             var creada = await _recetas.CrearAsync(new RecetaNueva(
                 modelo.IdPaciente!.Value,
                 idDoctor.Value,
-                // La API acepta vincular la receta a un turno; todavía no lo pedimos.
-                IdTurno: null,
+                modelo.IdTurno,
                 modelo.Fecha!.Value,
                 modelo.Vigencia!.Value,
                 string.IsNullOrWhiteSpace(modelo.Detalles) ? null : modelo.Detalles.Trim(),
-                modelo.MedicamentosCargados
-                    .Select(m => new Services.RecetaMedicamento(
-                        m.EsOtro ? idMarcador!.Value : m.IdMedicamento!.Value,
-                        m.Dosis!.Trim(),
-                        m.Frecuencia!.Trim(),
-                        string.IsNullOrWhiteSpace(m.Duracion) ? null : m.Duracion.Trim(),
-                        m.EsOtro
-                            ? IndicacionesDeOtro.Componer(m.NombreOtro, m.Indicaciones)
-                            : string.IsNullOrWhiteSpace(m.Indicaciones) ? null : m.Indicaciones.Trim()))
-                    .ToList()));
+                medicamentos));
 
             TempData["Exito"] = creada is null
                 ? "Receta emitida correctamente."
                 : $"Receta #{creada.IdReceta} emitida correctamente.";
+
+            // Desde un turno se vuelve al turno.
+            if (atendido is not null)
+                return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = atendido.IdTurno });
 
             return RedirectToAction(nameof(Index), new { paciente = modelo.IdPaciente });
         }
@@ -238,6 +274,123 @@ public class RecetasController : ControladorBase
             await CargarFormularioAsync(modelo);
             return View(modelo);
         }
+    }
+
+    /// <summary>
+    /// Editar una receta. Solo la ve el doctor que la firmó: para cualquier
+    /// otro, la receta "no existe".
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Editar(int id, int paciente)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Editar), new { id, paciente }));
+
+        if (!_auth.PuedeEmitirRecetas)
+            return SinPermisoDeEmision();
+
+        try
+        {
+            var receta = await BuscarRecetaPropiaAsync(id, paciente);
+            if (receta is null)
+                return NoEncontrado(id, "Receta no encontrada", "receta");
+
+            var modelo = RecetaCrearViewModel.DesdeReceta(receta, paciente);
+            await CargarFormularioAsync(modelo);
+            return View(nameof(Crear), modelo);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Index), new { paciente });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Editar(RecetaCrearViewModel modelo)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Index)));
+
+        if (!_auth.PuedeEmitirRecetas)
+            return SinPermisoDeEmision();
+
+        if (modelo.IdReceta is null || modelo.IdPaciente is null)
+            return RedirectToAction(nameof(Index));
+
+        if (!ModelState.IsValid)
+        {
+            await CargarFormularioAsync(modelo);
+            return View(nameof(Crear), modelo);
+        }
+
+        try
+        {
+            // Se vuelve a revisar que sea suya: el formulario se puede armar a mano.
+            var receta = await BuscarRecetaPropiaAsync(modelo.IdReceta.Value, modelo.IdPaciente.Value);
+            if (receta is null)
+                return NoEncontrado(modelo.IdReceta.Value, "Receta no encontrada", "receta");
+
+            var medicamentos = await ArmarMedicamentosAsync(modelo);
+            if (medicamentos is null)
+            {
+                await CargarFormularioAsync(modelo);
+                return View(nameof(Crear), modelo);
+            }
+
+            // El paciente, el doctor y el turno no cambian al editar: van los
+            // que ya tenía la receta.
+            await _recetas.ActualizarAsync(receta.IdReceta, new RecetaNueva(
+                modelo.IdPaciente.Value,
+                receta.Doctor!.IdDoctor,
+                receta.IdTurno,
+                modelo.Fecha!.Value,
+                modelo.Vigencia!.Value,
+                string.IsNullOrWhiteSpace(modelo.Detalles) ? null : modelo.Detalles.Trim(),
+                medicamentos));
+
+            TempData["Exito"] = $"Receta #{receta.IdReceta} actualizada.";
+            return RedirectToAction(nameof(Detalle), new { id = receta.IdReceta, paciente = modelo.IdPaciente });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(string.Empty, error.Message);
+            await CargarFormularioAsync(modelo);
+            return View(nameof(Crear), modelo);
+        }
+    }
+
+    /// <summary>
+    /// Los medicamentos de las filas cargadas, como los espera la API. "Otro..."
+    /// viaja como RecetaCrearViewModel.IdOtro y la API necesita el id del
+    /// medicamento marcador. Devuelve null si falta el marcador (el error ya
+    /// quedó en el formulario).
+    /// </summary>
+    private async Task<List<Services.RecetaMedicamento>?> ArmarMedicamentosAsync(RecetaCrearViewModel modelo)
+    {
+        int? idMarcador = null;
+        if (modelo.MedicamentosCargados.Any(m => m.EsOtro))
+        {
+            idMarcador = await _medicamentos.ObtenerIdMarcadorOtroAsync();
+            if (idMarcador is null)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "La opción \"Otro...\" no está disponible todavía: falta una configuración del sistema. Avisale a administración.");
+                return null;
+            }
+        }
+
+        return modelo.MedicamentosCargados
+            .Select(m => new Services.RecetaMedicamento(
+                m.EsOtro ? idMarcador!.Value : m.IdMedicamento!.Value,
+                m.Dosis!.Trim(),
+                m.Frecuencia!.Trim(),
+                string.IsNullOrWhiteSpace(m.Duracion) ? null : m.Duracion.Trim(),
+                m.EsOtro
+                    ? IndicacionesDeOtro.Componer(m.NombreOtro, m.Indicaciones)
+                    : string.IsNullOrWhiteSpace(m.Indicaciones) ? null : m.Indicaciones.Trim()))
+            .ToList();
     }
 
     /// <summary>
@@ -362,6 +515,37 @@ public class RecetasController : ControladorBase
         }
     }
 
+    /// <summary>
+    /// Una receta del paciente firmada por el doctor que pregunta. Null si no
+    /// existe, si es de otro paciente o si la firmó otro doctor.
+    /// </summary>
+    private async Task<Receta?> BuscarRecetaPropiaAsync(int id, int paciente)
+    {
+        var idDoctorPropio = await IdDoctorPropioAsync();
+        if (idDoctorPropio is null)
+            return null;
+
+        var (_, receta) = await BuscarRecetaAsync(id, paciente);
+        if (receta?.Doctor is null || receta.Doctor.IdDoctor != idDoctorPropio)
+            return null;
+
+        return receta;
+    }
+
+    /// <summary>El perfil de doctor de quien está logueado, o null si no es doctor.</summary>
+    private async Task<int?> IdDoctorPropioAsync() =>
+        _auth.EsDoctor ? await _perfil.IdPerfilAsync(esDoctor: true) : null;
+
+    /// <summary>
+    /// El turno, si quien pregunta lo puede ver. Para un doctor, la API solo
+    /// devuelve los de su agenda: uno ajeno llega como null.
+    /// </summary>
+    private async Task<TurnoAtendidoViewModel?> TurnoParaAtenderAsync(int idTurno)
+    {
+        var turno = await _turnos.ObtenerPorIdAsync(idTurno);
+        return turno is null ? null : TurnoAtendidoViewModel.Desde(turno);
+    }
+
     private async Task<IReadOnlyList<SelectListItem>> OpcionesDePacienteAsync(int? seleccionado)
     {
         var pacientes = await _pacientes.ObtenerTodosAsync();
@@ -387,7 +571,15 @@ public class RecetasController : ControladorBase
 
         try
         {
-            modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
+            // Si el paciente ya está decidido (desde un turno o al editar) se
+            // muestra su nombre en vez de la lista.
+            if (!modelo.PacienteFijo)
+                modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
+            else if (modelo.IdPaciente is not null)
+                modelo.NombrePaciente = await NombreDePacienteAsync(modelo.IdPaciente.Value);
+
+            if (modelo.IdTurno is not null && modelo.Turno is null)
+                modelo.Turno = await TurnoParaAtenderAsync(modelo.IdTurno.Value);
 
             // El marcador de "Otro..." no es un medicamento elegible: sale de la
             // lista y, si existe, habilita la opción propia del desplegable.

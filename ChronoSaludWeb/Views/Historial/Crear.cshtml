@@ -1,26 +1,68 @@
 @model EntradaHistorialCrearViewModel
 @{
-    ViewData["Title"] = "Nueva entrada";
+    // El mismo formulario sirve para una entrada nueva, para la consulta de un
+    // turno y para editar una que ya existe.
+    var titulo = Model.EsEdicion ? "Editar entrada" : Model.IdTurno is not null ? "Registrar consulta" : "Nueva entrada";
+    ViewData["Title"] = titulo;
     var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
     const string claseCampo = "campo mt-1.5";
     const string claseError = "mt-1 block text-xs text-status-cancelado";
+
+    // Desde un turno se vuelve al turno; si no, a la historia clínica.
+    var vuelveAlTurno = !Model.EsEdicion && Model.IdTurno is not null;
 }
 
-<a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
-    Volver a la historia clínica
-</a>
+@if (vuelveAlTurno)
+{
+    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
+       class="boton-texto text-muted hover:text-primary">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+        </svg>
+        Volver al turno
+    </a>
+}
+else
+{
+    <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+       class="boton-texto text-muted hover:text-primary">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+        </svg>
+        Volver a la historia clínica
+    </a>
+}
 
 <div class="mt-6 max-w-2xl">
-    <h1 class="text-2xl font-bold tracking-tight text-ink">Nueva entrada</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-ink">@titulo</h1>
     <p class="mt-1 text-sm text-muted">
-        Queda registrada en la historia clínica del paciente. No se puede editar ni borrar desde acá.
+        @if (Model.EsEdicion)
+        {
+            <text>Solo la puede editar quien la escribió. Lo que guardes reemplaza a lo que había.</text>
+        }
+        else
+        {
+            <text>Queda registrada en la historia clínica del paciente. Después la podés editar, pero no borrar.</text>
+        }
     </p>
+
+    @if (Model.Turno is not null)
+    {
+        <p class="mt-4 flex items-start gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-ink">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 2v4" />
+                <path d="M16 2v4" />
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <path d="M3 10h18" />
+            </svg>
+            <span>Consulta del <span class="font-medium tabular-nums">@Model.Turno.Descripcion</span>. Queda vinculada a ese turno.</span>
+        </p>
+    }
 
     <div class="mt-6 tarjeta p-8">
         @if (erroresGenerales is { Count: > 0 })
@@ -41,15 +83,30 @@
             </div>
         }
 
-        <form asp-action="Crear" method="post" novalidate>
+        <form asp-action="@(Model.EsEdicion ? "Editar" : "Crear")" method="post" novalidate>
+            <input type="hidden" asp-for="IdHistorial" />
+            <input type="hidden" asp-for="IdTurno" />
+
             <div class="grid gap-5 sm:grid-cols-2">
-                <div>
-                    <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                    <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                        <option value="">Elegí un paciente</option>
-                    </select>
-                    <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                </div>
+                @if (Model.PacienteFijo)
+                {
+                    @* El paciente ya está decidido: va oculto y se muestra el nombre. *@
+                    <div>
+                        <input type="hidden" asp-for="IdPaciente" />
+                        <p class="block text-sm font-medium text-ink">Paciente</p>
+                        <p class="mt-1.5 py-2 text-ink">@(Model.NombrePaciente ?? $"Paciente #{Model.IdPaciente}")</p>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
+                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
+                            <option value="">Elegí un paciente</option>
+                        </select>
+                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
+                    </div>
+                }
 
                 <div>
                     <label asp-for="Fecha" class="block text-sm font-medium text-ink"></label>
@@ -69,17 +126,40 @@
                               placeholder="Motivo de consulta, evolución, indicaciones..." class="@claseCampo"></textarea>
                     <span asp-validation-for="Descripcion" class="@claseError"></span>
                 </div>
+
+                @if (Model.MostrarCompletarTurno)
+                {
+                    <div class="sm:col-span-2">
+                        <label class="flex items-start gap-3 text-sm">
+                            <input asp-for="CompletarTurno" class="mt-0.5 size-4 shrink-0 accent-primary" />
+                            <span>
+                                <span class="block font-medium text-ink">Marcar el turno como completado</span>
+                                <span class="block text-muted">Se marca al guardar la consulta.</span>
+                            </span>
+                        </label>
+                    </div>
+                }
             </div>
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
                 <button type="submit"
                         class="boton boton-primario">
-                    Guardar entrada
+                    @(Model.EsEdicion ? "Guardar cambios" : Model.IdTurno is not null ? "Guardar consulta" : "Guardar entrada")
                 </button>
-                <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-                   class="boton boton-secundario">
-                    Cancelar
-                </a>
+                @if (vuelveAlTurno)
+                {
+                    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
+                       class="boton boton-secundario">
+                        Cancelar
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                       class="boton boton-secundario">
+                        Cancelar
+                    </a>
+                }
             </div>
         </form>
     </div>

@@ -8,6 +8,7 @@ namespace ChronoSaludWeb.Models;
 /// </summary>
 public class FirmaViewModel
 {
+    public int IdDoctor { get; init; }
     public string NombreCompleto { get; init; } = string.Empty;
     public string? Especialidad { get; init; }
     public string? Matricula { get; init; }
@@ -45,6 +46,7 @@ public class FirmaViewModel
 
         return new FirmaViewModel
         {
+            IdDoctor = doctor.IdDoctor,
             NombreCompleto = nombre,
             Especialidad = doctor.Especialidad,
             Matricula = doctor.Matricula

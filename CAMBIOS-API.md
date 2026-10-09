@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 10
+# Cambios en la API — Mejoras, pasos 2 a 11
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) y `feature/recetas-e-historia` (paso 10)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) y `feature/recetas-e-historia` (pasos 10 y 11)
 
 Un apartado por cada paso.
 
@@ -493,3 +493,54 @@ En el historial, el `idDoctor` que ya venía sigue igual.
 | `Repositorios/RecetaRepository.cs`, `HistorialClinicoRepository.cs` | Cargan el doctor y su cuenta |
 | `Repositorios/MedicamentoRepository.cs`, `IMedicamentoRepository.cs` | `EstaEnAlgunaReceta` |
 | `Migrations/…_CopiarMedicamentoEnReceta.cs` | La migración, con el `UPDATE` que llena las recetas existentes |
+
+---
+
+## Paso 11 — El doctor atiende desde el turno
+
+**No hay migración.** `Recetas.IdTurno` e `HistorialesClinicos.IdTurno` ya existían.
+
+### El turno vinculado tiene que ser de ese paciente con ese doctor
+
+**Dónde se revisa:** si una receta o una entrada de la historia clínica viene con `idTurno`, ese turno tiene que ser del mismo paciente y del mismo doctor. Vale en estos cuatro:
+- `POST /recetas`;
+- `PUT /recetas/{id}`;
+- `POST /pacientes/{id}/historiales-clinicos`;
+- `PUT /pacientes/{id}/historiales-clinicos/{idHistorial}`.
+
+**Antes**, se aceptaba cualquier número.
+
+**Contra qué se compara:**
+- en un alta, contra el paciente del pedido y el doctor que firma;
+- al modificar, contra el paciente y el doctor que ya tenía.
+
+**Si no cumple**, la respuesta es `404` *"Turno no encontrado: tiene que ser un turno de este paciente con este doctor."* Un turno de otro paciente o de otro doctor se contesta como inexistente, igual que en el resto de la API.
+
+**Sin `idTurno`**, todo sigue como antes.
+
+### `RecetaDto` suma `idTurno`
+
+Al final del objeto, en `GET /pacientes/{id}/recetas`: `"idTurno": 6`, o `null` si la receta no está vinculada a un turno. Sirve para editar una receta sin perder el vínculo.
+
+### `PUT /recetas/{id}`: "no encontrado" es `404`
+
+Un medicamento que no existe, o un turno que no corresponde, contestaba `400`, porque el endpoint solo buscaba "no encontrada". Ahora contesta `404`, igual que `POST /recetas`.
+
+### A quién le pega
+
+- **La Web:**
+  - "Registrar consulta" y "Emitir receta" desde el detalle del turno, ya vinculadas;
+  - la casilla "Marcar el turno como completado". Usa el `PUT /turnos/{id}` de siempre, después de guardar la consulta;
+  - editar recetas y entradas de la historia clínica.
+- **Quien pruebe desde Scalar:** mandar un `idTurno` que no es de ese paciente con ese doctor ahora da `404`.
+- **Sin cambios:** el administrador puede seguir modificando cualquier receta con `PUT /recetas/{id}`. La Web muestra "Editar" solo al doctor que la firmó.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/TurnoVinculado.cs` *(nuevo)* | El chequeo del turno vinculado |
+| `Logica/RecetaLogica.cs` | Suma `ITurnoRepository`. Revisa el turno al emitir y al modificar. El DTO suma `IdTurno` |
+| `Logica/HistorialClinicoLogica.cs` | Suma `ITurnoRepository`. Revisa el turno al crear y al modificar |
+| `Logica/DTOs/RecetaDTOs.cs` | `RecetaDto` suma `IdTurno` |
+| `Endpoints/RecetaEndpoints.cs` | `PUT`: "no encontrado" también da `404` |

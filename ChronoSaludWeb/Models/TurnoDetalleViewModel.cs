@@ -95,4 +95,10 @@ public class TurnoDetalleViewModel
     public bool PuedeCompletarse => EstaEnPie && YaEmpezo;
 
     public bool PuedeMarcarAusente => EstaEnPie && YaEmpezo;
+
+    /// <summary>
+    /// Se le puede registrar una consulta o emitir una receta: no está
+    /// cancelado ni ausente (ahí no hubo atención).
+    /// </summary>
+    public bool SePuedeAtender => !EstadoEs("cancelado") && !EstadoEs("ausente");
 }

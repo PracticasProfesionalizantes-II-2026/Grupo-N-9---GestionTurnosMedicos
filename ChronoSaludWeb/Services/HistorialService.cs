@@ -58,4 +58,11 @@ public class HistorialService
     /// </summary>
     public Task CrearAsync(int idPaciente, EntradaHistorialNueva entrada)
         => _api.PostAsync($"/pacientes/{idPaciente}/historiales-clinicos", entrada);
+
+    /// <summary>
+    /// PUT /pacientes/{id}/historiales-clinicos/{idHistorial}. La API solo
+    /// deja que la modifique el doctor que la escribió.
+    /// </summary>
+    public Task ActualizarAsync(int idPaciente, int idHistorial, EntradaHistorialNueva entrada)
+        => _api.PutAsync($"/pacientes/{idPaciente}/historiales-clinicos/{idHistorial}", entrada);
 }

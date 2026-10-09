@@ -19,13 +19,14 @@ public class RecetaLogicaTests
     private readonly MedicamentoRepositoryFalso _medicamentos = new MedicamentoRepositoryFalso();
     private readonly PacienteRepositoryFalso _pacientes = new PacienteRepositoryFalso();
     private readonly DoctorRepositoryFalso _doctores = new DoctorRepositoryFalso();
+    private readonly TurnoRepositoryFalso _turnos = new TurnoRepositoryFalso();
     private readonly RecetaLogica _logica;
 
     private readonly Medicamento _ibuprofeno;
 
     public RecetaLogicaTests()
     {
-        _logica = new RecetaLogica(_recetas, _medicamentos, _pacientes, _doctores);
+        _logica = new RecetaLogica(_recetas, _medicamentos, _pacientes, _doctores, _turnos);
 
         var cuenta = new Usuario { Id = IdUsuarioDoctora, Nombre = "Laura", Apellido = "Méndez", Rol = "doctor" };
         _doctores.Doctores.Add(new Doctor

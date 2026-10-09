@@ -107,6 +107,40 @@ else
         }
     </div>
 
+    @* Atención: el doctor del turno registra la consulta o emite una receta,
+       ya vinculadas a este turno. Solo doctores (la Web y la API los
+       reservan a ese rol), y el detalle de un doctor ya muestra solo turnos
+       de su agenda. Un turno cancelado o ausente no tuvo atención. *@
+    @if (Auth.PuedeEscribirHistorial && Auth.PuedeEmitirRecetas && Model.SePuedeAtender)
+    {
+        <div class="mt-4 tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">Atención</h2>
+            <p class="mt-1 text-sm text-muted">Lo que registres desde acá queda vinculado a este turno.</p>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <a asp-controller="Historial" asp-action="Crear" asp-route-turno="@Model.IdTurno"
+                   class="boton boton-primario">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                        <path d="M9 15h6" />
+                        <path d="M12 18v-6" />
+                    </svg>
+                    Registrar consulta
+                </a>
+                <a asp-controller="Recetas" asp-action="Crear" asp-route-turno="@Model.IdTurno"
+                   class="boton boton-secundario">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+                        <path d="m8.5 8.5 7 7" />
+                    </svg>
+                    Emitir receta
+                </a>
+            </div>
+        </div>
+    }
+
     @* Acciones sobre el turno. Confirmar, completar, marcar ausente y
        reprogramar son del personal (cada doctor en su agenda y la
        administración en cualquiera);

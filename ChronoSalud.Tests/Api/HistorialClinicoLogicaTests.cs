@@ -33,7 +33,8 @@ public class HistorialClinicoLogicaTests
             Diagnostico = "Sano"
         });
 
-        var logica = new HistorialClinicoLogica(entradas, new DoctorRepositoryFalso(), new PacienteRepositoryFalso());
+        var logica = new HistorialClinicoLogica(
+            entradas, new DoctorRepositoryFalso(), new PacienteRepositoryFalso(), new TurnoRepositoryFalso());
 
         // Ejecutar: la mira un doctor (personal).
         var (_, historiales, error, _) = await logica.ObtenerDePaciente(10, null, null, 3, callerEsStaff: true);

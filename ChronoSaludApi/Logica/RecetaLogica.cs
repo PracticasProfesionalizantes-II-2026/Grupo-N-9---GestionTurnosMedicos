@@ -10,17 +10,20 @@ public class RecetaLogica : IRecetaLogica
     private readonly IMedicamentoRepository _medRepo;
     private readonly IPacienteRepository _pacienteRepo;
     private readonly IDoctorRepository _doctorRepo;
+    private readonly ITurnoRepository _turnoRepo;
 
     public RecetaLogica(
         IRecetaRepository repo,
         IMedicamentoRepository medRepo,
         IPacienteRepository pacienteRepo,
-        IDoctorRepository doctorRepo)
+        IDoctorRepository doctorRepo,
+        ITurnoRepository turnoRepo)
     {
         _repo    = repo;
         _medRepo = medRepo;
         _pacienteRepo = pacienteRepo;
         _doctorRepo = doctorRepo;
+        _turnoRepo = turnoRepo;
     }
 
     public async Task<(IEnumerable<RecetaDto> recetas, string? error, bool prohibido)> ObtenerDePaciente(
@@ -89,6 +92,11 @@ public class RecetaLogica : IRecetaLogica
                 return (null, $"Doctor con id {idDoctor} no encontrado.", false);
         }
 
+        // Si viene un turno, tiene que ser de este paciente con este doctor.
+        var errorTurno = await TurnoVinculado.Revisar(_turnoRepo, dto.IdTurno, dto.IdPaciente, idDoctor);
+        if (errorTurno != null)
+            return (null, errorTurno, false);
+
         // Cada medicamento tiene que existir. Cada renglón guarda una copia de
         // sus datos, así la receta no cambia si después se edita el medicamento.
         var renglones = new List<RecetaMedicamento>();
@@ -135,6 +143,11 @@ public class RecetaLogica : IRecetaLogica
 
         if (dto.Medicamentos == null || !dto.Medicamentos.Any())
             return (false, "Debe especificar al menos un medicamento.", false);
+
+        // El paciente y el doctor son los de la receta, no los del cuerpo.
+        var errorTurno = await TurnoVinculado.Revisar(_turnoRepo, dto.IdTurno, receta.IdPaciente, receta.IdDoctor);
+        if (errorTurno != null)
+            return (false, errorTurno, false);
 
         // Los renglones se reemplazan y toman los datos que tiene cada
         // medicamento ahora: el doctor vuelve a firmar la receta.
@@ -183,7 +196,8 @@ public class RecetaLogica : IRecetaLogica
         r.Vigencia,
         r.Detalles,
         r.RecetaMedicamentos.Select(MapearRenglon).ToList(),
-        Profesional.Armar(r.Doctor)
+        Profesional.Armar(r.Doctor),
+        r.IdTurno
     );
 
     private static MedicamentoRecetadoDto MapearRenglon(RecetaMedicamento rm)

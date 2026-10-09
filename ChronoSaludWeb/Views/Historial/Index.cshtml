@@ -160,14 +160,36 @@ else
                             }
                         </p>
                     }
-                    <p class="@(entrada.Firma is null ? null : "mt-1") text-xs text-muted">
-                        Entrada #@entrada.IdHistorial
-                        @if (entrada.IdTurno is not null)
+                    <div class="@(entrada.Firma is null ? null : "mt-1") flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        <p class="text-xs text-muted">
+                            Entrada #@entrada.IdHistorial
+                            @if (entrada.IdTurno is not null)
+                            {
+                                <span aria-hidden="true"> · </span>
+                                @if (entrada.EnlaceAlTurno)
+                                {
+                                    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@entrada.IdTurno"
+                                       class="underline hover:text-primary">consulta del turno #@entrada.IdTurno</a>
+                                }
+                                else
+                                {
+                                    <span>consulta del turno #@entrada.IdTurno</span>
+                                }
+                            }
+                        </p>
+                        @if (entrada.PuedeEditar)
                         {
-                            <span aria-hidden="true"> · </span>
-                            <span>vinculada al turno #@entrada.IdTurno</span>
+                            <a asp-action="Editar" asp-route-id="@entrada.IdHistorial" asp-route-paciente="@Model.IdPaciente"
+                               class="boton-texto text-sm text-primary">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                                    <path d="m15 5 4 4" />
+                                </svg>
+                                Editar<span class="sr-only"> la entrada #@entrada.IdHistorial</span>
+                            </a>
                         }
-                    </p>
+                    </div>
                 </div>
             </li>
         }

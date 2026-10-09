@@ -14,6 +14,15 @@ public class EntradaHistorialViewModel
     /// <summary>Quién escribió la entrada. Null si la API no lo mandó.</summary>
     public FirmaViewModel? Firma { get; init; }
 
+    /// <summary>La puede editar quien la mira: es el doctor que la escribió.</summary>
+    public bool PuedeEditar { get; init; }
+
+    /// <summary>
+    /// El turno vinculado se muestra como enlace solo si quien mira puede
+    /// abrirlo; si no, va como texto.
+    /// </summary>
+    public bool EnlaceAlTurno { get; init; }
+
     public string FechaLarga => Fecha.ToString("D", TurnosIndexViewModel.Cultura);
     public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
 
@@ -61,8 +70,22 @@ public class HistorialIndexViewModel
     public bool SinResultados => Entradas.Count == 0 && Filtros.HayAlguno;
 }
 
+/// <summary>
+/// El formulario de una entrada: nueva, nueva desde un turno o para editar
+/// una que ya existe.
+/// </summary>
 public class EntradaHistorialCrearViewModel
 {
+    /// <summary>La entrada que se edita. Null si es una nueva.</summary>
+    public int? IdHistorial { get; set; }
+
+    /// <summary>El turno al que queda vinculada. Null si no tiene.</summary>
+    public int? IdTurno { get; set; }
+
+    /// <summary>Marcar el turno como completado al guardar la consulta.</summary>
+    [Display(Name = "Marcar el turno como completado")]
+    public bool CompletarTurno { get; set; }
+
     [Required(ErrorMessage = "Elegí un paciente.")]
     [Display(Name = "Paciente")]
     public int? IdPaciente { get; set; }
@@ -84,4 +107,19 @@ public class EntradaHistorialCrearViewModel
 
     // Opciones del select. No se postea: el controlador la recarga.
     public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
+
+    // Para mostrar. No se postean: el controlador los recarga.
+    public string? NombrePaciente { get; set; }
+    public TurnoAtendidoViewModel? Turno { get; set; }
+
+    public bool EsEdicion => IdHistorial is not null;
+
+    /// <summary>
+    /// Desde un turno o al editar, el paciente ya está decidido: no se
+    /// muestra el desplegable.
+    /// </summary>
+    public bool PacienteFijo => EsEdicion || IdTurno is not null;
+
+    /// <summary>La casilla se muestra en una consulta nueva desde un turno que ya empezó.</summary>
+    public bool MostrarCompletarTurno => !EsEdicion && Turno is { PuedeCompletarse: true };
 }

@@ -31,7 +31,8 @@ public record MedicamentoRecetado(
 
 /// <summary>
 /// Espeja RecetaDto. No trae IdPaciente: el paciente se conoce por el
-/// endpoint que se consultó. Doctor es quien la firmó.
+/// endpoint que se consultó. Doctor es quien la firmó, e IdTurno el turno
+/// al que está vinculada (si tiene).
 /// </summary>
 public record Receta(
     int IdReceta,
@@ -39,7 +40,8 @@ public record Receta(
     DateTime Vigencia,
     string? Detalles,
     IReadOnlyList<MedicamentoRecetado> Medicamentos,
-    Profesional? Doctor = null);
+    Profesional? Doctor = null,
+    int? IdTurno = null);
 
 /// <summary>
 /// Respuesta de GET /pacientes/{id}/recetas: { recetas }.
@@ -86,4 +88,11 @@ public class RecetaService
     /// </summary>
     public Task<RecetaCreada?> CrearAsync(RecetaNueva receta)
         => _api.PostAsync<RecetaCreada>("/recetas", receta);
+
+    /// <summary>
+    /// PUT /recetas/{id}. La API solo deja que el doctor modifique las que
+    /// firmó él. Los renglones se reemplazan por los que se mandan.
+    /// </summary>
+    public Task ActualizarAsync(int id, RecetaNueva receta)
+        => _api.PutAsync($"/recetas/{id}", receta);
 }

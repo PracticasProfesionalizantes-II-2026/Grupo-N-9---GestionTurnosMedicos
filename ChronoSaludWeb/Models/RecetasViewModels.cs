@@ -156,6 +156,9 @@ public class RecetaFilaViewModel
     /// <summary>Quién la firmó. Null si la API no lo mandó.</summary>
     public FirmaViewModel? Firma { get; init; }
 
+    /// <summary>El turno al que está vinculada, si tiene.</summary>
+    public int? IdTurno { get; init; }
+
     public bool Vigente => Vigencia.Date >= FechaArgentina.Hoy();
 
     public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
@@ -172,7 +175,8 @@ public class RecetaFilaViewModel
         Vigencia = receta.Vigencia,
         Detalles = receta.Detalles,
         Medicamentos = receta.Medicamentos.Select(RecetaMedicamentoViewModel.Desde).ToList(),
-        Firma = FirmaViewModel.Desde(receta.Doctor)
+        Firma = FirmaViewModel.Desde(receta.Doctor),
+        IdTurno = receta.IdTurno
     };
 }
 
@@ -206,6 +210,15 @@ public class RecetaDetalleViewModel
     public RecetaFilaViewModel? Receta { get; init; }
     public int IdPaciente { get; init; }
     public string? NombrePaciente { get; init; }
+
+    /// <summary>La puede editar quien la mira: es el doctor que la firmó.</summary>
+    public bool PuedeEditar { get; init; }
+
+    /// <summary>
+    /// El turno vinculado se muestra como enlace solo si quien mira puede
+    /// abrirlo; si no, va como texto.
+    /// </summary>
+    public bool EnlaceAlTurno { get; init; }
 
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
@@ -283,6 +296,10 @@ public class RecetaMedicamentoCampoViewModel
         string.IsNullOrWhiteSpace(Indicaciones);
 }
 
+/// <summary>
+/// El formulario de una receta: nueva, nueva desde un turno o para editar
+/// una que ya existe.
+/// </summary>
 public class RecetaCrearViewModel : IValidatableObject
 {
     /// <summary>El formulario arranca con una fila; se agregan y quitan con "+" y "-".</summary>
@@ -294,6 +311,12 @@ public class RecetaCrearViewModel : IValidatableObject
     /// el controlador lo cambia por el del medicamento marcador al emitir.
     /// </summary>
     public const int IdOtro = -1;
+
+    /// <summary>La receta que se edita. Null si es una nueva.</summary>
+    public int? IdReceta { get; set; }
+
+    /// <summary>El turno al que queda vinculada. Null si no tiene.</summary>
+    public int? IdTurno { get; set; }
 
     [Required(ErrorMessage = "Elegí un paciente.")]
     [Display(Name = "Paciente")]
@@ -321,6 +344,61 @@ public class RecetaCrearViewModel : IValidatableObject
 
     /// <summary>El marcador existe en la API: se puede ofrecer "Otro...".</summary>
     public bool OtroDisponible { get; set; }
+
+    // Para mostrar. No se postean: el controlador los recarga.
+    public string? NombrePaciente { get; set; }
+    public TurnoAtendidoViewModel? Turno { get; set; }
+
+    public bool EsEdicion => IdReceta is not null;
+
+    /// <summary>
+    /// Desde un turno o al editar, el paciente ya está decidido: no se
+    /// muestra el desplegable.
+    /// </summary>
+    public bool PacienteFijo => EsEdicion || IdTurno is not null;
+
+    /// <summary>
+    /// El formulario cargado con una receta que ya existe, para editarla. Las
+    /// filas "Otro..." vuelven a separar el nombre escrito a mano de las
+    /// indicaciones.
+    /// </summary>
+    public static RecetaCrearViewModel DesdeReceta(Receta receta, int idPaciente)
+    {
+        var filas = new List<RecetaMedicamentoCampoViewModel>();
+
+        foreach (var medicamento in receta.Medicamentos)
+        {
+            var fila = new RecetaMedicamentoCampoViewModel
+            {
+                IdMedicamento = medicamento.IdMedicamento,
+                Dosis = medicamento.Dosis,
+                Frecuencia = medicamento.Frecuencia,
+                Duracion = medicamento.Duracion,
+                Indicaciones = medicamento.Indicaciones
+            };
+
+            if (MedicamentoService.EsMarcadorOtro(medicamento.Nombre, medicamento.NombreGenerico))
+            {
+                var (nombre, indicaciones) = IndicacionesDeOtro.Separar(medicamento.Indicaciones);
+                fila.IdMedicamento = IdOtro;
+                fila.NombreOtro = nombre;
+                fila.Indicaciones = indicaciones;
+            }
+
+            filas.Add(fila);
+        }
+
+        return new RecetaCrearViewModel
+        {
+            IdReceta = receta.IdReceta,
+            IdTurno = receta.IdTurno,
+            IdPaciente = idPaciente,
+            Fecha = receta.Fecha.Date,
+            Vigencia = receta.Vigencia.Date,
+            Detalles = receta.Detalles,
+            Medicamentos = filas
+        };
+    }
 
     /// <summary>Filas efectivamente cargadas, en el orden del formulario.</summary>
     public IEnumerable<RecetaMedicamentoCampoViewModel> MedicamentosCargados =>

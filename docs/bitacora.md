@@ -567,3 +567,19 @@ después se probaron la API y la Web nuevas, con la hoja impresa a PDF.
 `UPDATE` dentro de `EXEC` que llena las recetas existentes. Sin el `EXEC`,
 el script idempotente falla con "nombre de columna no válido". El script
 se corre en Azure antes del merge.
+
+## 2026-10-09 — mejoras, paso 11: el doctor atiende desde el turno
+**Hecho:** el detalle del turno tiene una tarjeta "Atención" con
+"Registrar consulta" y "Emitir receta". Solo la ve el doctor del turno, y
+no aparece en uno cancelado o ausente. Los dos formularios llegan con el
+paciente fijo y el turno vinculado, y al guardar vuelven al turno. La
+consulta trae la casilla "Marcar el turno como completado", tildada,
+cuando el turno está en pie y ya empezó. Si no se puede marcar, la
+consulta queda guardada igual y se avisa por qué. "Editar" en las recetas y en las
+entradas de la historia clínica, solo para el doctor que las escribió
+(`Recetas/Editar` y `Historial/Editar`). Reusan los mismos formularios, y
+la receta vuelve a separar las filas "Otro…". En la API, el `IdTurno` de
+una receta o de una consulta tiene que ser de ese paciente con ese doctor
+(404 si no), y `RecetaDto` suma `IdTurno`. Probado contra SQL Server 2022
+con la API y la Web reales: 42 chequeos.
+**Ojo:** sin migración y sin nada que correr en Azure.

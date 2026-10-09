@@ -13,17 +13,20 @@ public class HistorialController : ControladorBase
 
     private readonly HistorialService _historial;
     private readonly PacienteService _pacientes;
+    private readonly TurnoService _turnos;
     private readonly AuthService _auth;
     private readonly PerfilService _perfil;
 
     public HistorialController(
         HistorialService historial,
         PacienteService pacientes,
+        TurnoService turnos,
         AuthService auth,
         PerfilService perfil)
     {
         _historial = historial;
         _pacientes = pacientes;
+        _turnos = turnos;
         _auth = auth;
         _perfil = perfil;
     }
@@ -55,6 +58,7 @@ public class HistorialController : ControladorBase
             }
 
             var entradas = await _historial.ObtenerDePacienteAsync(idPaciente.Value, desde, hasta);
+            var idDoctorPropio = await IdDoctorPropioAsync();
 
             return View(new HistorialIndexViewModel
             {
@@ -67,7 +71,7 @@ public class HistorialController : ControladorBase
                     : Array.Empty<SelectListItem>(),
                 PuedeEscribir = _auth.PuedeEscribirHistorial,
                 Entradas = entradas
-                    .Select(Mapear)
+                    .Select(e => Mapear(e, idDoctorPropio))
                     .OrderByDescending(e => e.Fecha)
                     .ToList()
             });
@@ -78,11 +82,15 @@ public class HistorialController : ControladorBase
         }
     }
 
+    /// <summary>
+    /// Nueva entrada. Con <paramref name="turno"/> es la consulta de ese turno:
+    /// el paciente y la fecha salen del turno y la entrada queda vinculada.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Crear(int? paciente)
+    public async Task<IActionResult> Crear(int? paciente, int? turno)
     {
         if (!_auth.HaySesion)
-            return AlLogin(Url.Action(nameof(Crear), new { paciente }));
+            return AlLogin(Url.Action(nameof(Crear), new { paciente, turno }));
 
         if (!_auth.PuedeEscribirHistorial)
             return SinPermisoDeEscritura();
@@ -92,6 +100,33 @@ public class HistorialController : ControladorBase
             IdPaciente = paciente,
             Fecha = FechaArgentina.Hoy()
         };
+
+        if (turno is not null)
+        {
+            try
+            {
+                var atendido = await TurnoParaAtenderAsync(turno.Value);
+                if (atendido is null)
+                    return NoEncontrado(turno.Value, "Turno no encontrado", "turno");
+
+                if (!atendido.SePuedeAtender)
+                {
+                    TempData["Error"] = $"El turno #{atendido.IdTurno} está {atendido.Estado}: no se le puede registrar una consulta.";
+                    return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = atendido.IdTurno });
+                }
+
+                modelo.IdTurno = atendido.IdTurno;
+                modelo.IdPaciente = atendido.IdPaciente;
+                modelo.Fecha = atendido.FechaInicio.Date;
+                modelo.CompletarTurno = atendido.PuedeCompletarse;
+                modelo.Turno = atendido;
+            }
+            catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+            {
+                TempData["Error"] = error.Message;
+                return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = turno });
+            }
+        }
 
         await CargarListaAsync(modelo);
         return View(modelo);
@@ -113,23 +148,127 @@ public class HistorialController : ControladorBase
             return View(modelo);
         }
 
+        TurnoAtendidoViewModel? atendido = null;
+
         try
         {
+            // Desde un turno, el paciente sale del turno y no del formulario.
+            if (modelo.IdTurno is not null)
+            {
+                atendido = await TurnoParaAtenderAsync(modelo.IdTurno.Value);
+                if (atendido is null)
+                    return NoEncontrado(modelo.IdTurno.Value, "Turno no encontrado", "turno");
+
+                modelo.IdPaciente = atendido.IdPaciente;
+            }
+
             await _historial.CrearAsync(modelo.IdPaciente!.Value, new EntradaHistorialNueva(
                 modelo.Fecha!.Value,
                 modelo.Descripcion.Trim(),
                 modelo.Diagnostico.Trim(),
-                // La API acepta vincular la entrada a un turno; todavía no lo pedimos.
-                IdTurno: null));
-
-            TempData["Exito"] = "Entrada agregada a la historia clínica.";
-            return RedirectToAction(nameof(Index), new { paciente = modelo.IdPaciente });
+                modelo.IdTurno));
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             ModelState.AddModelError(string.Empty, error.Message);
             await CargarListaAsync(modelo);
             return View(modelo);
+        }
+
+        if (atendido is null)
+        {
+            TempData["Exito"] = "Entrada agregada a la historia clínica.";
+            return RedirectToAction(nameof(Index), new { paciente = modelo.IdPaciente });
+        }
+
+        // Desde un turno se vuelve al turno.
+        TempData["Exito"] = "Consulta registrada en la historia clínica.";
+        if (modelo.CompletarTurno)
+            await CompletarTurnoAsync(atendido.IdTurno);
+
+        return RedirectToAction(nameof(TurnosController.Detalle), "Turnos", new { id = atendido.IdTurno });
+    }
+
+    /// <summary>
+    /// Editar una entrada. Solo la ve el doctor que la escribió: para
+    /// cualquier otro, la entrada "no existe".
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Editar(int id, int paciente)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Editar), new { id, paciente }));
+
+        if (!_auth.PuedeEscribirHistorial)
+            return SinPermisoDeEscritura();
+
+        try
+        {
+            var entrada = await BuscarEntradaPropiaAsync(id, paciente);
+            if (entrada is null)
+                return NoEncontrado(id, "Entrada no encontrada", "registro de la historia clínica");
+
+            var modelo = new EntradaHistorialCrearViewModel
+            {
+                IdHistorial = entrada.IdHistorial,
+                IdPaciente = paciente,
+                IdTurno = entrada.IdTurno,
+                Fecha = entrada.Fecha.Date,
+                Diagnostico = entrada.Diagnostico,
+                Descripcion = entrada.Descripcion
+            };
+
+            await CargarListaAsync(modelo);
+            return View(nameof(Crear), modelo);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Index), new { paciente });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Editar(EntradaHistorialCrearViewModel modelo)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Index)));
+
+        if (!_auth.PuedeEscribirHistorial)
+            return SinPermisoDeEscritura();
+
+        if (modelo.IdHistorial is null || modelo.IdPaciente is null)
+            return RedirectToAction(nameof(Index));
+
+        if (!ModelState.IsValid)
+        {
+            await CargarListaAsync(modelo);
+            return View(nameof(Crear), modelo);
+        }
+
+        try
+        {
+            // Se vuelve a revisar que sea suya: el formulario se puede armar a mano.
+            var entrada = await BuscarEntradaPropiaAsync(modelo.IdHistorial.Value, modelo.IdPaciente.Value);
+            if (entrada is null)
+                return NoEncontrado(modelo.IdHistorial.Value, "Entrada no encontrada", "registro de la historia clínica");
+
+            // El turno vinculado no cambia al editar: va el que ya tenía.
+            await _historial.ActualizarAsync(modelo.IdPaciente.Value, modelo.IdHistorial.Value, new EntradaHistorialNueva(
+                modelo.Fecha!.Value,
+                modelo.Descripcion.Trim(),
+                modelo.Diagnostico.Trim(),
+                entrada.IdTurno));
+
+            TempData["Exito"] = "Entrada actualizada.";
+            return RedirectToAction(nameof(Index), new { paciente = modelo.IdPaciente });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            ModelState.AddModelError(string.Empty, error.Message);
+            await CargarListaAsync(modelo);
+            return View(nameof(Crear), modelo);
         }
     }
 
@@ -172,30 +311,99 @@ public class HistorialController : ControladorBase
             .ToList();
     }
 
+    /// <summary>
+    /// Lo que el formulario muestra y no se postea: la lista de pacientes o,
+    /// si el paciente ya está decidido, su nombre; y el turno, si tiene.
+    /// </summary>
     private async Task CargarListaAsync(EntradaHistorialCrearViewModel modelo)
     {
         try
         {
-            modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
+            if (!modelo.PacienteFijo)
+                modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
+            else if (modelo.IdPaciente is not null)
+                modelo.NombrePaciente = await NombreDePacienteAsync(modelo.IdPaciente.Value);
+
+            if (modelo.IdTurno is not null && modelo.Turno is null)
+                modelo.Turno = await TurnoParaAtenderAsync(modelo.IdTurno.Value);
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            // La lista queda vacía, pero no se pierde lo que el doctor escribió.
-            ModelState.AddModelError(string.Empty, $"No se pudo cargar la lista de pacientes: {error.Message}");
+            // Falta algún dato para mostrar, pero no se pierde lo que el doctor escribió.
+            ModelState.AddModelError(string.Empty, $"No se pudieron cargar todos los datos: {error.Message}");
         }
     }
+
+    /// <summary>
+    /// El turno, si quien pregunta lo puede ver. Para un doctor, la API solo
+    /// devuelve los de su agenda: uno ajeno llega como null.
+    /// </summary>
+    private async Task<TurnoAtendidoViewModel?> TurnoParaAtenderAsync(int idTurno)
+    {
+        var turno = await _turnos.ObtenerPorIdAsync(idTurno);
+        return turno is null ? null : TurnoAtendidoViewModel.Desde(turno);
+    }
+
+    /// <summary>
+    /// Marca el turno como completado. La consulta ya quedó guardada: si la API
+    /// no lo permite (por ejemplo, el turno todavía no empezó), solo se avisa.
+    /// </summary>
+    private async Task CompletarTurnoAsync(int idTurno)
+    {
+        try
+        {
+            await _turnos.CambiarEstadoAsync(idTurno, "completado");
+            TempData["Exito"] = $"Consulta registrada y turno #{idTurno} marcado como completado.";
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = $"El turno #{idTurno} no se pudo marcar como completado: {error.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Una entrada del paciente escrita por el doctor que pregunta. Null si no
+    /// existe, si es de otro paciente o si la escribió otro doctor.
+    /// </summary>
+    private async Task<EntradaHistorial?> BuscarEntradaPropiaAsync(int id, int paciente)
+    {
+        var idDoctorPropio = await IdDoctorPropioAsync();
+        if (idDoctorPropio is null || paciente <= 0)
+            return null;
+
+        var entrada = (await _historial.ObtenerDePacienteAsync(paciente))
+            .FirstOrDefault(e => e.IdHistorial == id);
+
+        if (entrada?.Doctor is null || entrada.Doctor.IdDoctor != idDoctorPropio)
+            return null;
+
+        return entrada;
+    }
+
+    /// <summary>El perfil de doctor de quien está logueado, o null si no es doctor.</summary>
+    private async Task<int?> IdDoctorPropioAsync() =>
+        _auth.EsDoctor ? await _perfil.IdPerfilAsync(esDoctor: true) : null;
 
     private IActionResult SinPermisoDeEscritura() => SinPermiso(
         "No podés escribir en la historia clínica con tu rol",
         "Solo los doctores pueden cargar entradas en la historia clínica.");
 
-    private static EntradaHistorialViewModel Mapear(EntradaHistorial entrada) => new()
+    private EntradaHistorialViewModel Mapear(EntradaHistorial entrada, int? idDoctorPropio)
     {
-        IdHistorial = entrada.IdHistorial,
-        Fecha = entrada.Fecha,
-        Descripcion = entrada.Descripcion,
-        Diagnostico = entrada.Diagnostico,
-        IdTurno = entrada.IdTurno,
-        Firma = FirmaViewModel.Desde(entrada.Doctor)
-    };
+        var firma = FirmaViewModel.Desde(entrada.Doctor);
+        var esSuya = idDoctorPropio is not null && firma?.IdDoctor == idDoctorPropio;
+
+        return new EntradaHistorialViewModel
+        {
+            IdHistorial = entrada.IdHistorial,
+            Fecha = entrada.Fecha,
+            Descripcion = entrada.Descripcion,
+            Diagnostico = entrada.Diagnostico,
+            IdTurno = entrada.IdTurno,
+            Firma = firma,
+            PuedeEditar = esSuya,
+            // El paciente y la administración ven el turno; un doctor, solo los de su agenda.
+            EnlaceAlTurno = !_auth.EsDoctor || esSuya
+        };
+    }
 }
