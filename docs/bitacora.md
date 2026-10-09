@@ -608,3 +608,17 @@ con la API y la Web reales: 42 chequeos.
 - **Probado** contra SQL Server 2022 con la API y la Web reales: 37 chequeos, incluidos los permisos (otro paciente o un doctor no cuentan ni marcan las ajenas).
 
 **Ojo:** sin migración y sin nada que correr en Azure.
+
+## 2026-10-09 — mejoras, paso 14: accesibilidad
+**Hecho (solo Web, sin JavaScript nuevo):**
+- **Avisos:** el de éxito después de guardar se anuncia con `role="status"` y los de error con `role="alert"`, en el layout y en los formularios que no lo tenían (Turnos, Recetas, Historia clínica, Admin y Pacientes).
+- **Campos con error:** dos tag helpers nuevos (`TagHelpers/`).
+  - Si un campo vuelve con error del servidor, queda con `aria-invalid="true"` y su `aria-describedby` suma el mensaje, sin perder la ayuda que ya tenía.
+  - El primer campo con error recibe el foco (`autofocus`); si la vista ya traía uno (Login, Registro) y hay errores de campo, se saca, para que nunca queden dos.
+  - El mensaje de error recibe el id `error-Campo`, con prefijo para no chocar con el `Campo-error` que arma jQuery Validation en el navegador.
+- **Foto en "Nuevo paciente":** el campo de archivo quedó a la vista, con su etiqueta, la ayuda de formatos y tamaño, y `accept` con los mismos formatos que revisa el validador.
+- **Probado** contra SQL Server 2022 con la API y la Web reales: 26 chequeos sobre el HTML y 17 en Chromium, mirando el árbol de accesibilidad (nombre, descripción e invalid de cada campo) y el foco.
+
+**Ojo:**
+- Sin migración, sin nada que correr en Azure y sin cambios en la API.
+- En los formularios con validación del navegador, jQuery Validation une el mensaje al campo al enviar, pero pone `aria-invalid` recién cuando el usuario sale del campo. Cambiarlo pide JavaScript propio y se dejó así.

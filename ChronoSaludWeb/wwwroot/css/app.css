@@ -536,9 +536,9 @@
    anular una que se cuele más adelante; gana igual que el bloque del tema
    oscuro de más arriba. El :where() deja la especificidad en 0.
    Por eso en las vistas no hace falta ninguna clase de foco. La única
-   excepción son los controles ocultos con sr-only (un radio o un archivo
-   detrás de su etiqueta): ahí el contorno se le pone al contenedor con
-   has-[:focus-visible]:outline-*. */
+   excepción sería un control oculto con sr-only detrás de su etiqueta: ahí
+   el contorno se le pone al contenedor con has-[:focus-visible]:outline-*.
+   Hoy no queda ninguno (el archivo de la foto quedó a la vista en el paso 14). */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

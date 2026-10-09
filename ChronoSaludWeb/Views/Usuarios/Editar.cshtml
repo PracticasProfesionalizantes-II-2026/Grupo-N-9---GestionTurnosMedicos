@@ -15,7 +15,8 @@
     {
         if (ErrorDe(clave) is { } mensaje)
         {
-            <p class="mt-1 flex items-start gap-1 text-xs text-status-cancelado">
+            @* El id une el mensaje con su campo (ver TagHelpers/CampoConErrorTagHelper). *@
+            <p id="@IdDeError.Para(clave)" class="mt-1 flex items-start gap-1 text-xs text-status-cancelado">
                 <svg class="mt-px h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" />
@@ -168,8 +169,11 @@
           method="post" enctype="multipart/form-data">
         <div class="mt-4">
             <label for="archivo" class="@claseEtiqueta">@(Model.TieneFoto ? "Reemplazar la foto" : "Elegir una foto")</label>
+            @* No usa asp-for (el archivo no es parte del modelo): el error se une a mano. *@
+            @{ var errorFoto = ErrorDe("Foto") is not null; }
             <input id="archivo" name="archivo" type="file" accept="image/jpeg,image/png,image/webp"
-                   aria-describedby="ayuda-foto"
+                   aria-describedby="@(errorFoto ? $"ayuda-foto {IdDeError.Para("Foto")}" : "ayuda-foto")"
+                   aria-invalid="@(errorFoto ? "true" : null)" autofocus="@(errorFoto ? "autofocus" : null)"
                    class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft" />
             <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
             @{ ErrorCampo("Foto"); }
