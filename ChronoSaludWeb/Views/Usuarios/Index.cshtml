@@ -8,6 +8,11 @@
     var filtros = new Dictionary<string, string>();
     if (!string.IsNullOrEmpty(Model.Buscar)) filtros["buscar"] = Model.Buscar;
     if (!string.IsNullOrEmpty(Model.Rol)) filtros["rol"] = Model.Rol;
+    if (Model.VerBajas) filtros["estado"] = "bajas";
+
+    // "Limpiar búsqueda" se queda en la misma pestaña.
+    var soloPestana = new Dictionary<string, string>();
+    if (Model.VerBajas) soloPestana["estado"] = "bajas";
 }
 
 <a asp-controller="Admin" asp-action="Index"
@@ -23,7 +28,11 @@
 <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold tracking-tight text-ink">Usuarios</h1>
-        <p class="mt-1 text-sm text-muted">Pacientes, doctores y administradores con la cuenta activa.</p>
+        <p class="mt-1 text-sm text-muted">
+            @(Model.VerBajas
+                ? "Cuentas dadas de baja: no pueden entrar. Desde cada una la podés reactivar."
+                : "Pacientes, doctores y administradores con la cuenta activa.")
+        </p>
     </div>
     @if (!Model.HuboError)
     {
@@ -34,10 +43,30 @@
     }
 </div>
 
+@* Activas o dadas de baja: dos enlaces que conservan la búsqueda. La
+   pestaña elegida va rellena y con aria-current. *@
+<nav aria-label="Estado de las cuentas" class="mt-6 flex flex-wrap gap-2">
+    <a asp-action="Index" asp-all-route-data="Model.RutaPestana(false)"
+       aria-current="@(Model.VerBajas ? null : "page")"
+       class="boton @(Model.VerBajas ? "boton-secundario" : "boton-primario")">
+        Activas
+    </a>
+    <a asp-action="Index" asp-all-route-data="Model.RutaPestana(true)"
+       aria-current="@(Model.VerBajas ? "page" : null)"
+       class="boton @(Model.VerBajas ? "boton-primario" : "boton-secundario")">
+        Dadas de baja
+    </a>
+</nav>
+
 @* Buscador por GET: la API resuelve el texto como "contiene" sobre nombre,
-   apellido o email. Buscar siempre vuelve a la primera página. *@
+   apellido o email. Buscar siempre vuelve a la primera página, en la misma
+   pestaña. *@
 <form method="get" asp-action="Index"
-      class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
+      class="mt-4 flex flex-wrap items-end gap-4 tarjeta p-5">
+    @if (Model.VerBajas)
+    {
+        <input type="hidden" name="estado" value="bajas" />
+    }
     <div class="w-full flex-1 sm:min-w-64">
         <label for="buscar" class="block text-sm font-medium text-ink">Buscar por nombre, apellido o email</label>
         <input id="buscar" name="buscar" type="search" value="@Model.Buscar" placeholder="Por ejemplo: Gomez o @@gmail"
@@ -58,7 +87,7 @@
         </button>
         @if (Model.HayFiltro)
         {
-            <a asp-action="Index"
+            <a asp-action="Index" asp-route-estado="@(Model.VerBajas ? "bajas" : null)"
                class="boton boton-secundario">
                 Limpiar
             </a>
@@ -79,7 +108,12 @@ else if (Model.Usuarios.Count == 0)
         @if (Model.SinResultados)
         {
             <partial name="_EstadoVacio"
-                     model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Ningún usuario coincide con la búsqueda", Ayuda = "Probá con otro nombre o email, con una parte más corta o con otro rol.", Accion = new EnlaceViewModel { Controlador = "Usuarios", Accion = "Index", Descripcion = "Limpiar búsqueda" } }' />
+                     model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Ningún usuario coincide con la búsqueda", Ayuda = "Probá con otro nombre o email, con una parte más corta o con otro rol.", Accion = new EnlaceViewModel { Controlador = "Usuarios", Accion = "Index", Ruta = soloPestana, Descripcion = "Limpiar búsqueda" } }' />
+        }
+        else if (Model.VerBajas)
+        {
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "No hay cuentas dadas de baja", Ayuda = "Cuando des de baja una cuenta desde su perfil, va a aparecer acá." }' />
         }
         else
         {
@@ -107,6 +141,10 @@ else
                         </a>
                         <span class="block truncate text-sm text-muted">@usuario.Email</span>
                     </span>
+                    @if (Model.VerBajas)
+                    {
+                        <partial name="_Chip" model='new ChipViewModel { Texto = "Dada de baja", Tono = TonoChip.Peligro }' />
+                    }
                     <partial name="_Chip" model="new ChipViewModel { Texto = usuario.Rol, Capitalizar = true }" />
                 </li>
             }

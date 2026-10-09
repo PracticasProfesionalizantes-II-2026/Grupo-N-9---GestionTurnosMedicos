@@ -33,6 +33,13 @@ public class UsuarioRepositoryFalso : IUsuarioRepository
         return Task.FromResult(usuario);
     }
 
+    // En la prueba, el Doctor ya viene cargado en el usuario si hace falta.
+    public Task<Usuario?> ObtenerConDoctor(int id)
+    {
+        var usuario = Usuarios.FirstOrDefault(u => u.Id == id);
+        return Task.FromResult(usuario);
+    }
+
     public Task<Usuario?> ObtenerPorEmail(string email)
     {
         var usuario = Usuarios.FirstOrDefault(u => u.Email == email);
@@ -43,6 +50,18 @@ public class UsuarioRepositoryFalso : IUsuarioRepository
     {
         var hay = Usuarios.Any(u => u.Rol == "administrador" && u.Activo);
         return Task.FromResult(hay);
+    }
+
+    public Task<int> ContarAdministradoresActivos()
+    {
+        var cuantos = Usuarios.Count(u => u.Rol == "administrador" && u.Activo);
+        return Task.FromResult(cuantos);
+    }
+
+    public Task<bool> EstaActivo(int id)
+    {
+        var activo = Usuarios.Any(u => u.Id == id && u.Activo);
+        return Task.FromResult(activo);
     }
 
     public Task Agregar(Usuario usuario)
@@ -65,9 +84,11 @@ public class UsuarioRepositoryFalso : IUsuarioRepository
 
     public Task Actualizar(Usuario usuario) => Task.CompletedTask;
 
-    public Task Eliminar(Usuario usuario) => Task.CompletedTask;
+    // Los cambios ya quedaron en el objeto de la lista: no hay nada que guardar.
+    public Task GuardarActivo(Usuario usuario) => Task.CompletedTask;
 
-    public Task<(int total, IEnumerable<Usuario> usuarios)> Buscar(string? buscar, string? rol, int pagina, int limite)
+    public Task<(int total, IEnumerable<Usuario> usuarios)> Buscar(
+        string? buscar, string? rol, int pagina, int limite, bool bajas = false)
     {
         IEnumerable<Usuario> todos = Usuarios;
         return Task.FromResult((Usuarios.Count, todos));

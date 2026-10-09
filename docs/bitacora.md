@@ -531,3 +531,19 @@ Probado contra una API de mentira como paciente, doctor, administrador y
 paciente sin ficha.
 **Ojo:** sin migración. Si se corre el seeder más de 10 veces seguidas,
 el login del administrador de la demo queda frenado 15 minutos.
+
+## 2026-10-09 — mejoras, paso 9: baja y reactivación de cuentas
+**Hecho:** DELETE /usuarios/{id} frena con 409 la baja de la propia cuenta,
+del último administrador y de una cuenta con turnos pendientes o
+confirmados desde hoy (no cancela nada solo). La baja de un doctor también
+apaga su perfil, así deja de aparecer en Doctores. POST
+/usuarios/{id}/reactivar los vuelve a encender. GET /usuarios?bajas=true
+lista las bajas y GET /pacientes ya no las muestra. En cada pedido con
+token la API revisa que la cuenta siga activa: una cuenta dada de baja
+sale al login en el próximo clic, sin esperar las 8 horas del token. En la
+Web: pestañas "Activas" y "Dadas de baja" en Usuarios, y en Editar las
+tarjetas "Dar de baja" y "Reactivar", cada una con su confirmación (la de
+la baja lista los turnos que la frenan). Probado contra una API de
+mentira.
+**Ojo:** sin migración. No dar de baja cuentas de la demo: el seeder no
+puede entrar con ellas (si pasa, reactivarlas).

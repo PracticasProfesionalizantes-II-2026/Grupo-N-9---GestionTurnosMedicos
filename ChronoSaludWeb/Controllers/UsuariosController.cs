@@ -31,21 +31,30 @@ public class UsuariosController : ControladorBase
 
     private static readonly string[] TiposDeFoto = { "image/jpeg", "image/png", "image/webp" };
 
+    // Cuántos de los turnos que frenan una baja se listan en la confirmación.
+    private const int TurnosQueFrenanMostrados = 10;
+
     private readonly UsuarioService _usuarios;
     private readonly PacienteService _pacientes;
     private readonly DoctorService _doctores;
+    private readonly TurnoService _turnos;
     private readonly AuthService _auth;
 
     public UsuariosController(
-        UsuarioService usuarios, PacienteService pacientes, DoctorService doctores, AuthService auth)
+        UsuarioService usuarios, PacienteService pacientes, DoctorService doctores, TurnoService turnos, AuthService auth)
     {
         _usuarios = usuarios;
         _pacientes = pacientes;
         _doctores = doctores;
+        _turnos = turnos;
         _auth = auth;
     }
 
-    public async Task<IActionResult> Index(string? buscar, string? rol, int pagina = 1)
+    /// <summary>
+    /// El buscador. Con estado=bajas muestra la pestaña "Dadas de baja"; con
+    /// cualquier otro valor (o sin él), las cuentas activas.
+    /// </summary>
+    public async Task<IActionResult> Index(string? buscar, string? rol, string? estado, int pagina = 1)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index)));
@@ -58,24 +67,28 @@ public class UsuariosController : ControladorBase
         // menor a 1 es la primera.
         var texto = string.IsNullOrWhiteSpace(buscar) ? null : buscar.Trim();
         var filtroRol = UsuariosIndexViewModel.RolesFiltrables.Contains(rol) ? rol : null;
+        var verBajas = estado == "bajas";
         pagina = Math.Max(pagina, 1);
 
         try
         {
-            var resultado = await _usuarios.BuscarAsync(texto, filtroRol, pagina, UsuariosIndexViewModel.PorPagina);
+            var resultado = await _usuarios.BuscarAsync(
+                texto, filtroRol, pagina, UsuariosIndexViewModel.PorPagina, bajas: verBajas);
 
             // Una página más allá de la última (por la URL, o porque dieron de
             // baja usuarios mientras se navegaba) vuelve a la última que existe.
             if (resultado.Usuarios.Count == 0 && resultado.Total > 0)
             {
                 var ultima = (int)Math.Ceiling(resultado.Total / (double)UsuariosIndexViewModel.PorPagina);
-                return RedirectToAction(nameof(Index), new { buscar = texto, rol = filtroRol, pagina = ultima });
+                return RedirectToAction(nameof(Index),
+                    new { buscar = texto, rol = filtroRol, estado = verBajas ? "bajas" : null, pagina = ultima });
             }
 
             return View(new UsuariosIndexViewModel
             {
                 Buscar = texto,
                 Rol = filtroRol,
+                VerBajas = verBajas,
                 Pagina = pagina,
                 Total = resultado.Total,
                 Usuarios = resultado.Usuarios
@@ -93,7 +106,7 @@ public class UsuariosController : ControladorBase
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            return View(new UsuariosIndexViewModel { Buscar = texto, Rol = filtroRol, Error = MensajeDe(error) });
+            return View(new UsuariosIndexViewModel { Buscar = texto, Rol = filtroRol, VerBajas = verBajas, Error = MensajeDe(error) });
         }
     }
 
@@ -367,6 +380,96 @@ public class UsuariosController : ControladorBase
     }
 
     /// <summary>
+    /// Confirmación de la baja: qué va a pasar y, si los hay, los turnos en
+    /// pie que la frenan (en ese caso no se ofrece el botón).
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Baja(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Baja), new { id }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        var (modelo, salida) = await CargarCambioDeEstadoAsync(id, paraBaja: true);
+        return salida ?? View(modelo);
+    }
+
+    [HttpPost]
+    [ActionName(nameof(Baja))]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BajaConfirmada(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Baja), new { id }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        try
+        {
+            // La API vuelve a revisar todo: propia cuenta, último
+            // administrador y turnos en pie.
+            await _usuarios.DarDeBajaAsync(id);
+        }
+        catch (ApiException error) when (error.Status == StatusCodes.Status409Conflict)
+        {
+            // Se vuelve a la confirmación, que muestra el motivo actualizado
+            // (por ejemplo, un turno que se sacó mientras tanto).
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Baja), new { id });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = MensajeDe(error);
+            return RedirectToAction(nameof(Editar), new { id });
+        }
+
+        TempData["Exito"] = "La cuenta quedó dada de baja: ya no puede entrar. La podés reactivar cuando quieras.";
+        return RedirectToAction(nameof(Editar), new { id });
+    }
+
+    /// <summary>Confirmación de la reactivación de una cuenta dada de baja.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Reactivar(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Reactivar), new { id }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        var (modelo, salida) = await CargarCambioDeEstadoAsync(id, paraBaja: false);
+        return salida ?? View(modelo);
+    }
+
+    [HttpPost]
+    [ActionName(nameof(Reactivar))]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReactivarConfirmado(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Reactivar), new { id }));
+
+        if (!_auth.EsAdministrador)
+            return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
+
+        try
+        {
+            await _usuarios.ReactivarAsync(id);
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = MensajeDe(error);
+            return RedirectToAction(nameof(Editar), new { id });
+        }
+
+        TempData["Exito"] = "La cuenta volvió a estar activa: ya puede entrar de nuevo.";
+        return RedirectToAction(nameof(Editar), new { id });
+    }
+
+    /// <summary>
     /// Sirve la foto al navegador. Hace falta porque el token de la API vive en
     /// la sesión del servidor: un &lt;img&gt; no puede apuntar directo a la API.
     /// Al ser el destino de un &lt;img&gt;, los rechazos van como código de
@@ -452,6 +555,8 @@ public class UsuariosController : ControladorBase
             Email = usuario.Email,
             Rol = usuario.Rol,
             TieneFoto = fila?.TieneFoto ?? false,
+            Activo = usuario.Activo,
+            EsLaPropia = _auth.SesionActual?.IdUsuario == usuario.IdUsuario,
             Cuenta = new CuentaEditarViewModel
             {
                 Nombre = usuario.Nombre,
@@ -472,6 +577,78 @@ public class UsuariosController : ControladorBase
                     Especialidad = doctor.Especialidad,
                     Consultorio = doctor.Consultorio
                 }
+        };
+
+        return (modelo, null);
+    }
+
+    /// <summary>
+    /// Arma la confirmación de la baja o de la reactivación. Si no corresponde
+    /// (la propia cuenta, ya dada de baja, ya activa) vuelve a Editar con el
+    /// motivo, sin mostrar la confirmación.
+    /// </summary>
+    private async Task<(CambioDeEstadoCuentaViewModel? modelo, IActionResult? salida)> CargarCambioDeEstadoAsync(
+        int id, bool paraBaja)
+    {
+        var usuario = await _usuarios.ObtenerPorIdAsync(id);
+        if (usuario is null)
+            return (null, NoEncontrado(id, "Usuario no encontrado", "usuario"));
+
+        string? motivo = null;
+        if (paraBaja && !usuario.Activo)
+            motivo = "La cuenta ya está dada de baja.";
+        else if (paraBaja && _auth.SesionActual?.IdUsuario == id)
+            motivo = "No podés dar de baja tu propia cuenta.";
+        else if (!paraBaja && usuario.Activo)
+            motivo = "La cuenta ya está activa.";
+
+        if (motivo is not null)
+        {
+            TempData["Error"] = motivo;
+            return (null, RedirectToAction(nameof(Editar), new { id }));
+        }
+
+        // De la fila salen la foto y los ids de paciente y de doctor.
+        var fila = await _usuarios.ObtenerFilaAsync(usuario);
+
+        var turnos = new List<TurnoLista>();
+        var total = 0;
+
+        if (paraBaja)
+        {
+            // Los mismos turnos que frenan la baja en la API: pendientes o
+            // confirmados desde hoy, como paciente o como doctor.
+            var hoy = FechaArgentina.Hoy();
+
+            if (fila?.IdPaciente is { } idPaciente)
+            {
+                var deLaPaciente = await _turnos.ObtenerAsync(
+                    pacienteId: idPaciente, estados: "pendiente,confirmado", desde: hoy,
+                    orden: "fecha", limite: TurnosQueFrenanMostrados);
+                total += deLaPaciente.Total;
+                turnos.AddRange(deLaPaciente.Turnos);
+            }
+
+            if (fila?.IdDoctor is { } idDoctor)
+            {
+                var delDoctor = await _turnos.ObtenerAsync(
+                    doctorId: idDoctor, estados: "pendiente,confirmado", desde: hoy,
+                    orden: "fecha", limite: TurnosQueFrenanMostrados);
+                total += delDoctor.Total;
+                turnos.AddRange(delDoctor.Turnos);
+            }
+        }
+
+        var modelo = new CambioDeEstadoCuentaViewModel
+        {
+            IdUsuario = usuario.IdUsuario,
+            NombreCompleto = $"{usuario.Nombre} {usuario.Apellido}".Trim(),
+            Email = usuario.Email,
+            Rol = usuario.Rol,
+            TieneFoto = fila?.TieneFoto ?? false,
+            TienePerfilDoctor = fila?.IdDoctor is not null,
+            TurnosQueFrenan = turnos,
+            TotalQueFrenan = total
         };
 
         return (modelo, null);

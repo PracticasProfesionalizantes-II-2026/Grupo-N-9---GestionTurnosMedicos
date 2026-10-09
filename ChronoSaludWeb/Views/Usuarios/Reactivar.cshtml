@@ -1,0 +1,52 @@
+@model CambioDeEstadoCuentaViewModel
+@{
+    ViewData["Title"] = $"Reactivar a {Model.NombreCompleto}";
+}
+
+<a asp-action="Editar" asp-route-id="@Model.IdUsuario"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al usuario
+</a>
+
+<div class="mt-6 max-w-xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">¿Reactivar la cuenta de @Model.NombreCompleto?</h1>
+    <p class="mt-1 text-sm text-muted">
+        Vuelve a poder entrar con su email y la contraseña que tenía.
+    </p>
+
+    <div class="mt-6 tarjeta p-6">
+        <div class="flex items-center gap-3">
+            <partial name="_Avatar"
+                     model='new AvatarViewModel { Nombre = Model.NombreCompleto, FotoUrl = Model.TieneFoto ? Url.Action("Foto", new { id = Model.IdUsuario }) : null, Tamano = TamanoAvatar.Mediano }' />
+            <span class="min-w-0">
+                <span class="block font-medium text-ink">@Model.NombreCompleto</span>
+                <span class="block text-sm text-muted">
+                    <span class="break-all">@Model.Email</span>
+                    <span aria-hidden="true"> · </span>
+                    <span class="capitalize">@Model.Rol</span>
+                </span>
+            </span>
+        </div>
+
+        @if (Model.TienePerfilDoctor)
+        {
+            <p class="mt-5 border-t border-border pt-5 text-sm text-muted">
+                Como es doctor, vuelve a aparecer en Doctores con el mismo horario de atención que tenía.
+            </p>
+        }
+
+        <form asp-action="Reactivar" asp-route-id="@Model.IdUsuario" method="post" class="mt-7 flex flex-wrap items-center gap-3">
+            <button type="submit" class="boton boton-primario">
+                Sí, reactivar
+            </button>
+            <a asp-action="Editar" asp-route-id="@Model.IdUsuario" class="boton boton-secundario">
+                No, volver al usuario
+            </a>
+        </form>
+    </div>
+</div>

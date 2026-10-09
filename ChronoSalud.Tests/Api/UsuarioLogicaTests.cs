@@ -30,7 +30,7 @@ public class UsuarioLogicaTests
         };
         var configuracion = new ConfigurationBuilder().AddInMemoryCollection(valores).Build();
 
-        _logica = new UsuarioLogica(_usuarios, _pacientes, configuracion);
+        _logica = new UsuarioLogica(_usuarios, _pacientes, new TurnoRepositoryFalso(), new RelojFijo(), configuracion);
     }
 
     [Fact]

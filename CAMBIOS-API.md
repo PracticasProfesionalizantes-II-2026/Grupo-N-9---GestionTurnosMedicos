@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 8
+# Cambios en la API — Mejoras, pasos 2 a 9
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7) y `feature/mi-perfil` (paso 8)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7) y `feature/cuentas` (pasos 8 y 9)
 
 Un apartado por cada paso.
 
@@ -349,3 +349,71 @@ Cambia la contraseña de quien está logueado. El usuario sale del token, nunca 
 | `Logica/DTOs/UsuarioDTOs.cs` | `CambioContrasenaDto`. `UsuarioUpdateDto` sin `Contrasena` |
 | `Endpoints/UsuarioEndpoints.cs` | El pedido nuevo y el `429` en el login |
 | `Program.cs` | Registra `LimiteIntentos` como singleton (uno para toda la API) |
+
+---
+
+## Paso 9 — Baja y reactivación de cuentas
+
+**No hay migración.** `Usuarios.Activo` y `Doctores.Activo` ya existían.
+
+### `DELETE /usuarios/{id}` (solo administrador)
+
+Baja lógica: no se borra nada. La cuenta deja de poder entrar y, si tiene perfil de doctor, el doctor también queda inactivo (deja de aparecer en `GET /doctores` y no se le pueden dar turnos). Las dos cosas se guardan juntas.
+
+| Respuesta | Cuándo |
+|---|---|
+| `204` | Salió bien |
+| `404` *"Usuario no encontrado."* | No existe |
+| `409` *"La cuenta ya está dada de baja."* | Ya estaba de baja |
+| `409` *"No podés dar de baja tu propia cuenta."* | Es la cuenta de quien lo pide (sale del token) |
+| `409` *"Es el único administrador activo…"* | Dejaría el sistema sin administradores |
+| `409` *"La cuenta tiene N turnos pendientes o confirmados desde hoy…"* | Tiene turnos en pie desde hoy, como paciente o como doctor. No se cancela nada solo: hay que cancelarlos o reprogramarlos primero |
+
+**Antes**, el único error posible era `404` (el resto salía como `403`), y no había ningún freno.
+
+### `POST /usuarios/{id}/reactivar` (nuevo, solo administrador)
+
+Vuelve a activar la cuenta y, si tiene, su perfil de doctor, con el mismo horario de atención que tenía.
+
+- `200` `{ "mensaje": "Cuenta reactivada." }`;
+- `404` si no existe;
+- `409` *"La cuenta ya está activa."*
+
+### `GET /usuarios?bajas=true`
+
+Lista solo las cuentas dadas de baja. Sin `bajas` (o con `false`), solo las activas, como hasta ahora.
+
+### `GET /usuarios/{id}` suma `activo`
+
+Al final del objeto: `"activo": true` o `false`.
+
+### Un token de una cuenta dada de baja deja de valer
+
+- El token dura 8 horas. Antes, quien ya estaba adentro seguía trabajando hasta que venciera.
+- Ahora, en cada pedido con token, la API revisa que la cuenta siga activa (una consulta chica). Si no, contesta `401`.
+- La Web ya cierra la sesión ante un `401` y manda al login.
+- El login de una cuenta dada de baja sigue dando el mismo `401` que una contraseña mal, para no revelar que el email existe.
+
+### `GET /pacientes` sin las bajas
+
+- El listado trae solo pacientes con la cuenta activa.
+- `GET /pacientes/{id}` sigue trayendo la ficha de un paciente dado de baja, para no perder su historia clínica.
+
+### A quién le pega
+
+- **La Web:** usa todo esto en Usuarios (pestañas, Dar de baja y Reactivar).
+- **El seeder** (`tools/Seed`): entra con cada cuenta de la demo. **No des de baja una cuenta de la demo**: el seeder no la puede usar y avisa *"ya existe pero su contrasena no es…"*, que confunde. Si pasa, reactivala.
+- **Quien pruebe desde Scalar:** `DELETE /usuarios/{id}` ahora puede contestar `409` con el motivo.
+- **Límite conocido:** si dos administradores se dan de baja uno al otro en el mismo segundo, el sistema podría quedar sin administradores. Darse de baja a uno mismo ya está frenado, así que hacen falta dos personas a la vez.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/UsuarioLogica.cs`, `Logica/IUsuarioLogica.cs` | `DarDeBaja` (con los frenos) y `Reactivar` reemplazan a `EliminarLogico`. `Buscar` con `bajas`. El constructor suma `ITurnoRepository` e `IReloj` |
+| `Logica/CuentaActiva.cs` *(nuevo)* | Revisa que la cuenta del token siga activa |
+| `Program.cs` | `OnTokenValidated` usa `CuentaActiva` |
+| `Endpoints/UsuarioEndpoints.cs` | `DELETE` con `409`, `POST /{id}/reactivar` y `bajas` en `GET /usuarios` |
+| `Repositorios/UsuarioRepository.cs`, `IUsuarioRepository.cs` | `ObtenerConDoctor`, `ContarAdministradoresActivos`, `EstaActivo`, `GuardarActivo` (reemplaza a `Eliminar`) y `Buscar` con `bajas` |
+| `Repositorios/PacienteRepository.cs` | El listado, solo con cuentas activas |
+| `Logica/DTOs/UsuarioDTOs.cs` | `UsuarioDto` suma `Activo` |
