@@ -60,15 +60,15 @@ public class AtenderDesdeElTurnoTests
     }
 
     [Fact]
-    public void Desde_un_turno_o_al_editar_el_paciente_queda_fijo()
+    public void Desde_un_turno_o_al_editar_el_paciente_no_se_cambia()
     {
-        Assert.False(new EntradaHistorialCrearViewModel().PacienteFijo);
-        Assert.True(new EntradaHistorialCrearViewModel { IdTurno = 12 }.PacienteFijo);
-        Assert.True(new EntradaHistorialCrearViewModel { IdHistorial = 5 }.PacienteFijo);
+        Assert.True(new EntradaHistorialCrearViewModel().PuedeCambiarPaciente);
+        Assert.False(new EntradaHistorialCrearViewModel { IdTurno = 12 }.PuedeCambiarPaciente);
+        Assert.False(new EntradaHistorialCrearViewModel { IdHistorial = 5 }.PuedeCambiarPaciente);
 
-        Assert.False(new RecetaCrearViewModel().PacienteFijo);
-        Assert.True(new RecetaCrearViewModel { IdTurno = 12 }.PacienteFijo);
-        Assert.True(new RecetaCrearViewModel { IdReceta = 7 }.PacienteFijo);
+        Assert.True(new RecetaCrearViewModel().PuedeCambiarPaciente);
+        Assert.False(new RecetaCrearViewModel { IdTurno = 12 }.PuedeCambiarPaciente);
+        Assert.False(new RecetaCrearViewModel { IdReceta = 7 }.PuedeCambiarPaciente);
     }
 
     [Fact]

@@ -10,9 +10,9 @@ public class PacienteLogica : IPacienteLogica
     public PacienteLogica(IPacienteRepository repo) => _repo = repo;
 
     public async Task<(int total, IEnumerable<PacienteListaDto> pacientes)> ObtenerTodos(
-        string? nombre, string? dni, int? coberturaId, int pagina, int limite)
+        string? buscar, string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
-        var (total, pacientes) = await _repo.Buscar(nombre, dni, coberturaId, pagina, limite);
+        var (total, pacientes) = await _repo.Buscar(buscar, nombre, dni, coberturaId, pagina, limite);
         var resultado = pacientes
             .Select(p => new PacienteListaDto(
                 p.Id,

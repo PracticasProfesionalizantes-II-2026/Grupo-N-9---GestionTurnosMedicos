@@ -64,105 +64,119 @@ else
         </p>
     }
 
-    <div class="mt-6 tarjeta p-8">
-        @if (erroresGenerales is { Count: > 0 })
-        {
-            <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
-                <span>
-                    @foreach (var error in erroresGenerales)
-                    {
-                        <span class="block">@error.ErrorMessage</span>
-                    }
-                </span>
-            </div>
-        }
-
-        <form asp-action="@(Model.EsEdicion ? "Editar" : "Crear")" method="post" novalidate>
-            <input type="hidden" asp-for="IdHistorial" />
-            <input type="hidden" asp-for="IdTurno" />
-
-            <div class="grid gap-5 sm:grid-cols-2">
-                @if (Model.PacienteFijo)
-                {
-                    @* El paciente ya está decidido: va oculto y se muestra el nombre. *@
-                    <div>
-                        <input type="hidden" asp-for="IdPaciente" />
-                        <p class="block text-sm font-medium text-ink">Paciente</p>
-                        <p class="mt-1.5 py-2 text-ink">@(Model.NombrePaciente ?? $"Paciente #{Model.IdPaciente}")</p>
-                    </div>
-                }
-                else
-                {
-                    <div>
-                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                            <option value="">Elegí un paciente</option>
-                        </select>
-                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                    </div>
-                }
-
-                <div>
-                    <label asp-for="Fecha" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Fecha" type="date" class="@claseCampo tabular-nums" />
-                    <span asp-validation-for="Fecha" class="@claseError"></span>
+    @if (Model.IdPaciente is null)
+    {
+        @* Paso 1: elegir el paciente. El formulario aparece recién con el
+           paciente elegido, así el buscador (que recarga la página) no pisa
+           nada de lo que se escribió. *@
+        <div class="mt-6 tarjeta p-8">
+            <p class="mb-5 text-sm text-muted">Primero elegí de quién es la consulta.</p>
+            @if (Model.ElegirPaciente is not null)
+            {
+                <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+            }
+            else
+            {
+                <p class="text-sm text-status-cancelado">No se pudo cargar el buscador de pacientes. Probá de nuevo en un rato.</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="mt-6 tarjeta p-8">
+            @if (erroresGenerales is { Count: > 0 })
+            {
+                <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                        <path d="M12 9v4" />
+                        <path d="M12 17h.01" />
+                    </svg>
+                    <span>
+                        @foreach (var error in erroresGenerales)
+                        {
+                            <span class="block">@error.ErrorMessage</span>
+                        }
+                    </span>
                 </div>
+            }
 
-                <div class="sm:col-span-2">
-                    <label asp-for="Diagnostico" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Diagnostico" placeholder="Por ejemplo: Hipertensión arterial" class="@claseCampo" />
-                    <span asp-validation-for="Diagnostico" class="@claseError"></span>
-                </div>
+            <form asp-action="@(Model.EsEdicion ? "Editar" : "Crear")" method="post" novalidate>
+                <input type="hidden" asp-for="IdHistorial" />
+                <input type="hidden" asp-for="IdTurno" />
 
-                <div class="sm:col-span-2">
-                    <label asp-for="Descripcion" class="block text-sm font-medium text-ink"></label>
-                    <textarea asp-for="Descripcion" rows="6"
-                              placeholder="Motivo de consulta, evolución, indicaciones..." class="@claseCampo"></textarea>
-                    <span asp-validation-for="Descripcion" class="@claseError"></span>
-                </div>
-
-                @if (Model.MostrarCompletarTurno)
-                {
+                <div class="grid gap-5 sm:grid-cols-2">
+                    @* El paciente ya está elegido: va oculto y se muestra con sus datos. *@
                     <div class="sm:col-span-2">
-                        <label class="flex items-start gap-3 text-sm">
-                            <input asp-for="CompletarTurno" class="mt-0.5 size-4 shrink-0 accent-primary" />
-                            <span>
-                                <span class="block font-medium text-ink">Marcar el turno como completado</span>
-                                <span class="block text-muted">Se marca al guardar la consulta.</span>
-                            </span>
-                        </label>
+                        <input type="hidden" asp-for="IdPaciente" />
+                        @if (Model.ElegirPaciente is not null)
+                        {
+                            <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+                        }
+                        else
+                        {
+                            <p class="block text-sm font-medium text-ink">Paciente</p>
+                            <p class="mt-0.5 text-ink">Paciente #@Model.IdPaciente</p>
+                        }
                     </div>
-                }
-            </div>
 
-            <div class="mt-7 flex flex-wrap items-center gap-3">
-                <button type="submit"
-                        class="boton boton-primario">
-                    @(Model.EsEdicion ? "Guardar cambios" : Model.IdTurno is not null ? "Guardar consulta" : "Guardar entrada")
-                </button>
-                @if (vuelveAlTurno)
-                {
-                    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
-                       class="boton boton-secundario">
-                        Cancelar
-                    </a>
-                }
-                else
-                {
-                    <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-                       class="boton boton-secundario">
-                        Cancelar
-                    </a>
-                }
-            </div>
-        </form>
-    </div>
+                    <div>
+                        <label asp-for="Fecha" class="block text-sm font-medium text-ink"></label>
+                        <input asp-for="Fecha" type="date" class="@claseCampo tabular-nums" />
+                        <span asp-validation-for="Fecha" class="@claseError"></span>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label asp-for="Diagnostico" class="block text-sm font-medium text-ink"></label>
+                        <input asp-for="Diagnostico" placeholder="Por ejemplo: Hipertensión arterial" class="@claseCampo" />
+                        <span asp-validation-for="Diagnostico" class="@claseError"></span>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label asp-for="Descripcion" class="block text-sm font-medium text-ink"></label>
+                        <textarea asp-for="Descripcion" rows="6"
+                                  placeholder="Motivo de consulta, evolución, indicaciones..." class="@claseCampo"></textarea>
+                        <span asp-validation-for="Descripcion" class="@claseError"></span>
+                    </div>
+
+                    @if (Model.MostrarCompletarTurno)
+                    {
+                        <div class="sm:col-span-2">
+                            <label class="flex items-start gap-3 text-sm">
+                                <input asp-for="CompletarTurno" class="mt-0.5 size-4 shrink-0 accent-primary" />
+                                <span>
+                                    <span class="block font-medium text-ink">Marcar el turno como completado</span>
+                                    <span class="block text-muted">Se marca al guardar la consulta.</span>
+                                </span>
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <div class="mt-7 flex flex-wrap items-center gap-3">
+                    <button type="submit"
+                            class="boton boton-primario">
+                        @(Model.EsEdicion ? "Guardar cambios" : Model.IdTurno is not null ? "Guardar consulta" : "Guardar entrada")
+                    </button>
+                    @if (vuelveAlTurno)
+                    {
+                        <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
+                           class="boton boton-secundario">
+                            Cancelar
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                           class="boton boton-secundario">
+                            Cancelar
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    }
 </div>
 
 @section Scripts {

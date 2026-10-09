@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
@@ -150,10 +149,39 @@ public class TurnoConfirmarViewModel : IValidatableObject
     public string? DoctorNombre { get; set; }
     public string? DoctorEspecialidad { get; set; }
     public string? Consultorio { get; set; }
-    public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
+    public ElegirPacienteViewModel? ElegirPaciente { get; set; }
 
-    /// <summary>El paciente no elige de una lista: el turno es siempre a su nombre.</summary>
+    /// <summary>El paciente no elige a nadie: el turno es siempre a su nombre.</summary>
     public bool MostrarSelectorPaciente => Rol != "paciente";
+
+    /// <summary>
+    /// Las observaciones y "Confirmar turno" aparecen recién cuando ya se
+    /// sabe para quién es el turno.
+    /// </summary>
+    public bool MostrarFormulario => !MostrarSelectorPaciente || IdPaciente is not null;
+
+    /// <summary>
+    /// Esta misma pantalla con el horario elegido: el buscador de pacientes
+    /// vuelve acá sin perderlo.
+    /// </summary>
+    public IDictionary<string, string> RutaConfirmar
+    {
+        get
+        {
+            var ruta = new Dictionary<string, string>
+            {
+                ["idDoctor"] = $"{IdDoctor}",
+                ["inicio"] = HoraInicio,
+                ["fin"] = HoraFin
+            };
+
+            if (FechaIso is not null) ruta["fecha"] = FechaIso;
+            if (!string.IsNullOrWhiteSpace(Especialidad)) ruta["especialidad"] = Especialidad;
+            if (DoctorElegido is { } doctor) ruta["elegido"] = $"{doctor}";
+
+            return ruta;
+        }
+    }
 
     public string DoctorMostrado =>
         string.IsNullOrWhiteSpace(DoctorNombre) ? $"Doctor #{IdDoctor}" : DoctorNombre.Trim();

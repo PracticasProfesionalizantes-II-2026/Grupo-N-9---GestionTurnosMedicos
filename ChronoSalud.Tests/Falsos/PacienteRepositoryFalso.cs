@@ -9,7 +9,7 @@ public class PacienteRepositoryFalso : IPacienteRepository
     public List<Paciente> Pacientes { get; } = new List<Paciente>();
 
     public Task<(int total, List<Paciente> pacientes)> Buscar(
-        string? nombre, string? dni, int? coberturaId, int pagina, int limite)
+        string? buscar, string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
         var deLaPagina = Pacientes.Skip((pagina - 1) * limite).Take(limite).ToList();
         return Task.FromResult((Pacientes.Count, deLaPagina));

@@ -11,19 +11,23 @@ public static class PacienteEndpoints
         var grupo = app.MapGroup("/pacientes").WithTags("Pacientes").RequireAuthorization();
 
         // GET /pacientes
+        // buscar: cada palabra tiene que aparecer en el nombre, el apellido, el
+        // email o el DNI, sin distinguir mayúsculas ni acentos. nombre y dni
+        // siguen andando como antes.
         grupo.MapGet("/", async (
             IPacienteLogica logica,
+            string? buscar,
             string? nombre,
             string? dni,
             int? cobertura_id,
             int pagina = 1,
             int limite = 20) =>
         {
-            // Tope de 200: lo que piden hoy los desplegables de la Web.
+            // Tope de 200 por página.
             pagina = Math.Max(pagina, 1);
             limite = Math.Clamp(limite, 1, 200);
 
-            var (total, pacientes) = await logica.ObtenerTodos(nombre, dni, cobertura_id, pagina, limite);
+            var (total, pacientes) = await logica.ObtenerTodos(buscar, nombre, dni, cobertura_id, pagina, limite);
             return Results.Ok(new { total, pagina, pacientes });
         })
         .WithSummary("Listar pacientes")

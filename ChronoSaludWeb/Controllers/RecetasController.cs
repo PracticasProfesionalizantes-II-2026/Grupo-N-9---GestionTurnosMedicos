@@ -36,7 +36,7 @@ public class RecetasController : ControladorBase
         _perfil = perfil;
     }
 
-    public async Task<IActionResult> Index(int? paciente)
+    public async Task<IActionResult> Index(int? paciente, string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index), new { paciente }));
@@ -48,13 +48,21 @@ public class RecetasController : ControladorBase
             if (aviso is not null)
                 return View(new RecetasIndexViewModel { Aviso = aviso, PuedeCrear = _auth.PuedeEmitirRecetas });
 
-            // Doctor y administrador todavía no eligieron a quién mirarle las recetas.
+            // Doctor y administrador eligen al paciente con el buscador.
+            ElegirPacienteViewModel? elegir = null;
+            if (_auth.PuedeElegirPaciente)
+            {
+                var seleccion = await _pacientes.ElegirAsync(idPaciente, buscar);
+                elegir = ElegirPacienteViewModel.Desde(seleccion, "Recetas", nameof(Index), buscar);
+                idPaciente = seleccion.Elegido?.IdPaciente;
+            }
+
+            // Todavía no eligieron a quién mirarle las recetas.
             if (idPaciente is null)
             {
                 return View(new RecetasIndexViewModel
                 {
-                    PuedeElegirPaciente = true,
-                    Pacientes = await OpcionesDePacienteAsync(null),
+                    ElegirPaciente = elegir,
                     PuedeCrear = _auth.PuedeEmitirRecetas
                 });
             }
@@ -64,11 +72,10 @@ public class RecetasController : ControladorBase
             return View(new RecetasIndexViewModel
             {
                 IdPaciente = idPaciente,
-                NombrePaciente = await NombreDePacienteAsync(idPaciente.Value),
-                PuedeElegirPaciente = _auth.PuedeElegirPaciente,
-                Pacientes = _auth.PuedeElegirPaciente
-                    ? await OpcionesDePacienteAsync(idPaciente)
-                    : Array.Empty<SelectListItem>(),
+                NombrePaciente = elegir?.Elegido is { } elegido
+                    ? ElegirPacienteViewModel.NombreDe(elegido)
+                    : await NombreDePacienteAsync(idPaciente.Value),
+                ElegirPaciente = elegir,
                 PuedeCrear = _auth.PuedeEmitirRecetas,
                 Recetas = recetas.Select(RecetaFilaViewModel.Desde)
                                  .OrderByDescending(r => r.Fecha)
@@ -157,7 +164,7 @@ public class RecetasController : ControladorBase
     /// el paciente sale del turno y la receta queda vinculada.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Crear(int? paciente, int? turno)
+    public async Task<IActionResult> Crear(int? paciente, int? turno, string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear), new { paciente, turno }));
@@ -197,7 +204,7 @@ public class RecetasController : ControladorBase
             }
         }
 
-        await CargarFormularioAsync(modelo);
+        await CargarFormularioAsync(modelo, buscar);
         return View(modelo);
     }
 
@@ -546,18 +553,12 @@ public class RecetasController : ControladorBase
         return turno is null ? null : TurnoAtendidoViewModel.Desde(turno);
     }
 
-    private async Task<IReadOnlyList<SelectListItem>> OpcionesDePacienteAsync(int? seleccionado)
-    {
-        var pacientes = await _pacientes.ObtenerTodosAsync();
-        return pacientes
-            .Select(p => new SelectListItem(
-                $"{p.Nombre} {p.Apellido}".Trim(),
-                p.IdPaciente.ToString(),
-                p.IdPaciente == seleccionado))
-            .ToList();
-    }
-
-    private async Task CargarFormularioAsync(RecetaCrearViewModel modelo)
+    /// <summary>
+    /// Lo que el formulario muestra y no se postea. Sin paciente todavía, solo
+    /// el buscador (<paramref name="buscar"/> es lo que se escribió ahí): el
+    /// formulario aparece recién con el paciente elegido.
+    /// </summary>
+    private async Task CargarFormularioAsync(RecetaCrearViewModel modelo, string? buscar = null)
     {
         while (modelo.Medicamentos.Count < RecetaCrearViewModel.MinimoDeFilas)
             modelo.Medicamentos.Add(new RecetaMedicamentoCampoViewModel());
@@ -571,12 +572,15 @@ public class RecetasController : ControladorBase
 
         try
         {
-            // Si el paciente ya está decidido (desde un turno o al editar) se
-            // muestra su nombre en vez de la lista.
-            if (!modelo.PacienteFijo)
-                modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
-            else if (modelo.IdPaciente is not null)
-                modelo.NombrePaciente = await NombreDePacienteAsync(modelo.IdPaciente.Value);
+            // El paciente: el elegido o, si todavía no hay uno, el buscador.
+            // Desde un turno o al editar no se puede cambiar.
+            var seleccion = await _pacientes.ElegirAsync(modelo.IdPaciente, buscar);
+            modelo.IdPaciente = seleccion.Elegido?.IdPaciente;
+            modelo.ElegirPaciente = ElegirPacienteViewModel.Desde(
+                seleccion, "Recetas", nameof(Crear), buscar, puedeCambiar: modelo.PuedeCambiarPaciente);
+
+            if (modelo.IdPaciente is null)
+                return;
 
             if (modelo.IdTurno is not null && modelo.Turno is null)
                 modelo.Turno = await TurnoParaAtenderAsync(modelo.IdTurno.Value);

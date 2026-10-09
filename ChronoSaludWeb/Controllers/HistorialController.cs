@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
@@ -31,7 +30,7 @@ public class HistorialController : ControladorBase
         _perfil = perfil;
     }
 
-    public async Task<IActionResult> Index(int? paciente, DateTime? desde, DateTime? hasta)
+    public async Task<IActionResult> Index(int? paciente, DateTime? desde, DateTime? hasta, string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index), new { paciente }));
@@ -45,14 +44,23 @@ public class HistorialController : ControladorBase
             if (aviso is not null)
                 return View(new HistorialIndexViewModel { Aviso = aviso, Filtros = filtros });
 
-            // Doctor y administrador todavía no eligieron de quién.
+            // Doctor y administrador eligen al paciente con el buscador. Las
+            // fechas del filtro siguen puestas si se cambia de paciente.
+            ElegirPacienteViewModel? elegir = null;
+            if (_auth.PuedeElegirPaciente)
+            {
+                var seleccion = await _pacientes.ElegirAsync(idPaciente, buscar);
+                elegir = ElegirPacienteViewModel.Desde(seleccion, "Historial", nameof(Index), buscar, filtros.Ruta);
+                idPaciente = seleccion.Elegido?.IdPaciente;
+            }
+
+            // Todavía no eligieron de quién.
             if (idPaciente is null)
             {
                 return View(new HistorialIndexViewModel
                 {
                     Filtros = filtros,
-                    PuedeElegirPaciente = true,
-                    Pacientes = await OpcionesDePacienteAsync(null),
+                    ElegirPaciente = elegir,
                     PuedeEscribir = _auth.PuedeEscribirHistorial
                 });
             }
@@ -63,12 +71,11 @@ public class HistorialController : ControladorBase
             return View(new HistorialIndexViewModel
             {
                 IdPaciente = idPaciente,
-                NombrePaciente = await NombreDePacienteAsync(idPaciente.Value),
+                NombrePaciente = elegir?.Elegido is { } elegido
+                    ? ElegirPacienteViewModel.NombreDe(elegido)
+                    : await NombreDePacienteAsync(idPaciente.Value),
                 Filtros = filtros,
-                PuedeElegirPaciente = _auth.PuedeElegirPaciente,
-                Pacientes = _auth.PuedeElegirPaciente
-                    ? await OpcionesDePacienteAsync(idPaciente)
-                    : Array.Empty<SelectListItem>(),
+                ElegirPaciente = elegir,
                 PuedeEscribir = _auth.PuedeEscribirHistorial,
                 Entradas = entradas
                     .Select(e => Mapear(e, idDoctorPropio))
@@ -87,7 +94,7 @@ public class HistorialController : ControladorBase
     /// el paciente y la fecha salen del turno y la entrada queda vinculada.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Crear(int? paciente, int? turno)
+    public async Task<IActionResult> Crear(int? paciente, int? turno, string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear), new { paciente, turno }));
@@ -128,7 +135,7 @@ public class HistorialController : ControladorBase
             }
         }
 
-        await CargarListaAsync(modelo);
+        await CargarListaAsync(modelo, buscar);
         return View(modelo);
     }
 
@@ -300,29 +307,20 @@ public class HistorialController : ControladorBase
         return paciente is null ? null : $"{paciente.Nombre} {paciente.Apellido}".Trim();
     }
 
-    private async Task<IReadOnlyList<SelectListItem>> OpcionesDePacienteAsync(int? seleccionado)
-    {
-        var pacientes = await _pacientes.ObtenerTodosAsync();
-        return pacientes
-            .Select(p => new SelectListItem(
-                $"{p.Nombre} {p.Apellido}".Trim(),
-                p.IdPaciente.ToString(),
-                p.IdPaciente == seleccionado))
-            .ToList();
-    }
-
     /// <summary>
-    /// Lo que el formulario muestra y no se postea: la lista de pacientes o,
-    /// si el paciente ya está decidido, su nombre; y el turno, si tiene.
+    /// Lo que el formulario muestra y no se postea: el paciente elegido o, si
+    /// todavía no hay uno, el buscador (<paramref name="buscar"/> es lo que se
+    /// escribió ahí); y el turno, si tiene.
     /// </summary>
-    private async Task CargarListaAsync(EntradaHistorialCrearViewModel modelo)
+    private async Task CargarListaAsync(EntradaHistorialCrearViewModel modelo, string? buscar = null)
     {
         try
         {
-            if (!modelo.PacienteFijo)
-                modelo.Pacientes = await OpcionesDePacienteAsync(modelo.IdPaciente);
-            else if (modelo.IdPaciente is not null)
-                modelo.NombrePaciente = await NombreDePacienteAsync(modelo.IdPaciente.Value);
+            // Desde un turno o al editar, el paciente no se puede cambiar.
+            var seleccion = await _pacientes.ElegirAsync(modelo.IdPaciente, buscar);
+            modelo.IdPaciente = seleccion.Elegido?.IdPaciente;
+            modelo.ElegirPaciente = ElegirPacienteViewModel.Desde(
+                seleccion, "Historial", nameof(Crear), buscar, puedeCambiar: modelo.PuedeCambiarPaciente);
 
             if (modelo.IdTurno is not null && modelo.Turno is null)
                 modelo.Turno = await TurnoParaAtenderAsync(modelo.IdTurno.Value);

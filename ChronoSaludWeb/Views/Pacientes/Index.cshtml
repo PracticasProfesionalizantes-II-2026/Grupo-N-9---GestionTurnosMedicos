@@ -34,13 +34,13 @@
     </div>
 </div>
 
-@* Buscador por GET: la API resuelve el nombre como "contiene", sobre el
-   nombre o el apellido. *@
+@* Buscador por GET: la API busca cada palabra en el nombre, el apellido,
+   el email o el DNI, sin distinguir mayúsculas ni acentos. *@
 <form method="get" asp-action="Index"
       class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
     <div class="w-full flex-1 sm:min-w-64">
-        <label for="nombre" class="block text-sm font-medium text-ink">Buscar por nombre o apellido</label>
-        <input id="nombre" name="nombre" type="search" value="@Model.Nombre" placeholder="Por ejemplo: Gomez"
+        <label for="buscar" class="block text-sm font-medium text-ink">Buscar por nombre, apellido, DNI o email</label>
+        <input id="buscar" name="buscar" type="search" value="@Model.Buscar" placeholder="Por ejemplo: Gómez o 30111222"
                class="campo mt-1.5" />
     </div>
 
@@ -72,7 +72,7 @@ else if (Model.Pacientes.Count == 0)
         @if (Model.SinResultados)
         {
             <partial name="_EstadoVacio"
-                     model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Ningún paciente coincide con la búsqueda", Ayuda = "Probá con otro nombre o apellido, o con una parte más corta.", Accion = new EnlaceViewModel { Controlador = "Pacientes", Accion = "Index", Descripcion = "Limpiar búsqueda" } }' />
+                     model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Ningún paciente coincide con la búsqueda", Ayuda = "Probá con otra parte del nombre, del DNI o del email.", Accion = new EnlaceViewModel { Controlador = "Pacientes", Accion = "Index", Descripcion = "Limpiar búsqueda" } }' />
         }
         else
         {
@@ -99,6 +99,10 @@ else
                             @paciente.NombreCompleto
                             <span class="sr-only">— ver ficha del paciente</span>
                         </a>
+                        @if (!string.IsNullOrWhiteSpace(paciente.Dni))
+                        {
+                            <span class="block text-sm tabular-nums text-muted">DNI @paciente.Dni</span>
+                        }
                     </span>
                     <span class="shrink-0 text-right text-sm text-muted">
                         <span class="block text-xs font-medium">Nº paciente</span>

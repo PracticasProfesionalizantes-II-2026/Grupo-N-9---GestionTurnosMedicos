@@ -1,0 +1,93 @@
+@model ElegirPacienteViewModel
+@*
+    Buscador de pacientes. Sin JavaScript: buscar es un formulario GET a la
+    misma pantalla (con sus otros datos ocultos) y cada resultado es un enlace
+    que vuelve a esa pantalla con ?paciente=N. Va adentro de la tarjeta de
+    quien lo usa.
+*@
+
+@if (Model.Elegido is not null)
+{
+    var datos = ElegirPacienteViewModel.DatosDe(Model.Elegido);
+
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p class="min-w-0">
+            <span class="block text-sm font-medium text-ink">Paciente</span>
+            <span class="mt-0.5 block text-ink">@ElegirPacienteViewModel.NombreDe(Model.Elegido)</span>
+            @if (datos is not null)
+            {
+                <span class="block text-sm tabular-nums text-muted">@datos</span>
+            }
+        </p>
+        @if (Model.PuedeCambiar)
+        {
+            <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.RutaSinPaciente"
+               class="boton boton-secundario">
+                Cambiar paciente
+            </a>
+        }
+    </div>
+}
+else
+{
+    <form method="get" action="@Url.Action(Model.Accion, Model.Controlador)" role="search"
+          class="flex flex-wrap items-end gap-3">
+        @foreach (var (clave, valor) in Model.Ruta)
+        {
+            <input type="hidden" name="@clave" value="@valor" />
+        }
+        @* En el celular el campo ocupa todo el ancho y el botón baja; desde sm van en la misma línea. *@
+        <div class="w-full sm:w-auto sm:min-w-64 sm:flex-1">
+            <label for="buscar-paciente" class="block text-sm font-medium text-ink">Buscar paciente</label>
+            <input id="buscar-paciente" name="buscar" type="search" value="@Model.Buscar"
+                   placeholder="Nombre, apellido, DNI o email" aria-describedby="buscar-paciente-ayuda"
+                   class="campo mt-1.5" />
+            <p id="buscar-paciente-ayuda" class="mt-1 text-xs text-muted">
+                Podés escribir nombre y apellido juntos, o una parte del DNI o del email.
+            </p>
+        </div>
+        <button type="submit" class="boton boton-primario sm:mb-5">Buscar</button>
+    </form>
+
+    @if (Model.Resultados.Count == 0)
+    {
+        <p class="mt-4 text-sm text-muted">
+            @if (Model.Buscar is not null)
+            {
+                <text>Ningún paciente coincide con «@Model.Buscar». Probá con otra parte del nombre, del DNI o del email.</text>
+            }
+            else
+            {
+                <text>Todavía no hay pacientes cargados.</text>
+            }
+        </p>
+    }
+    else
+    {
+        <ul class="mt-4 overflow-hidden rounded-input border border-border" aria-label="Pacientes para elegir">
+            @foreach (var paciente in Model.Resultados)
+            {
+                var datos = ElegirPacienteViewModel.DatosDe(paciente);
+
+                <li class="relative border-b border-border px-4 py-3 last:border-0 hover:bg-primary-soft/50">
+                    <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.RutaCon(paciente.IdPaciente)"
+                       class="block font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                        @ElegirPacienteViewModel.NombreDe(paciente)
+                        <span class="sr-only">— elegir</span>
+                    </a>
+                    @if (datos is not null)
+                    {
+                        <span class="block text-sm tabular-nums text-muted">@datos</span>
+                    }
+                </li>
+            }
+        </ul>
+
+        @if (Model.HayMas)
+        {
+            <p class="mt-2 text-xs text-muted">
+                Mostrando @Model.Resultados.Count de @Model.Total pacientes: escribí más para achicar la lista.
+            </p>
+        }
+    }
+}

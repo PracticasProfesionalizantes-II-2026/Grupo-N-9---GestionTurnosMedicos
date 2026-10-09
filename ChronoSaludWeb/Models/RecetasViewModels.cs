@@ -188,9 +188,11 @@ public class RecetasIndexViewModel
     public int? IdPaciente { get; init; }
     public string? NombrePaciente { get; init; }
 
-    /// <summary>Doctor y administrador eligen paciente; el paciente ve el suyo.</summary>
-    public bool PuedeElegirPaciente { get; init; }
-    public IReadOnlyList<SelectListItem> Pacientes { get; init; } = Array.Empty<SelectListItem>();
+    /// <summary>
+    /// El buscador de pacientes. Solo para doctor y administrador: el
+    /// paciente ve las suyas.
+    /// </summary>
+    public ElegirPacienteViewModel? ElegirPaciente { get; init; }
 
     public bool PuedeCrear { get; init; }
 
@@ -338,24 +340,23 @@ public class RecetaCrearViewModel : IValidatableObject
 
     public List<RecetaMedicamentoCampoViewModel> Medicamentos { get; set; } = new();
 
-    // Opciones de los selects. No se postean: el controlador las recarga.
-    public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
+    // Opciones del desplegable de medicamentos. No se postean: el controlador las recarga.
     public IReadOnlyList<SelectListItem> Vademecum { get; set; } = Array.Empty<SelectListItem>();
 
     /// <summary>El marcador existe en la API: se puede ofrecer "Otro...".</summary>
     public bool OtroDisponible { get; set; }
 
     // Para mostrar. No se postean: el controlador los recarga.
-    public string? NombrePaciente { get; set; }
+    public ElegirPacienteViewModel? ElegirPaciente { get; set; }
     public TurnoAtendidoViewModel? Turno { get; set; }
 
     public bool EsEdicion => IdReceta is not null;
 
     /// <summary>
-    /// Desde un turno o al editar, el paciente ya está decidido: no se
-    /// muestra el desplegable.
+    /// Desde un turno o al editar, el paciente ya está decidido y no se
+    /// cambia. En una receta nueva se elige con el buscador.
     /// </summary>
-    public bool PacienteFijo => EsEdicion || IdTurno is not null;
+    public bool PuedeCambiarPaciente => !EsEdicion && IdTurno is null;
 
     /// <summary>
     /// El formulario cargado con una receta que ya existe, para editarla. Las
