@@ -12,8 +12,12 @@ public class PacienteRepository : IPacienteRepository
 
     // Una página del listado. El total, el orden y la página los resuelve
     // SQL Server: de la base viajan solo los pacientes que se muestran.
+    // Collation de SQL Server que no distingue mayúsculas ni acentos: así
+    // "gomez" encuentra a "Gómez". La de la base sí distingue acentos.
+    private const string SinAcentos = "Latin1_General_CI_AI";
+
     public async Task<(int total, List<Paciente> pacientes)> Buscar(
-        string? nombre, string? dni, int? coberturaId, int pagina, int limite)
+        string? buscar, string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
         // Solo pacientes con la cuenta activa. La ficha por id sigue
         // accesible, para no perder la historia clínica de una baja.
@@ -21,6 +25,17 @@ public class PacienteRepository : IPacienteRepository
             .AsNoTracking()
             .Include(p => p.Usuario)
             .Where(p => p.Usuario!.Activo);
+
+        // Cada palabra tiene que aparecer en el nombre, el apellido, el email
+        // o el DNI: así "ana duarte" encuentra a Ana Duarte.
+        foreach (var palabra in PalabrasDeBusqueda.Separar(buscar))
+        {
+            query = query.Where(p =>
+                EF.Functions.Collate(p.Usuario!.Nombre, SinAcentos).Contains(palabra) ||
+                EF.Functions.Collate(p.Usuario!.Apellido, SinAcentos).Contains(palabra) ||
+                EF.Functions.Collate(p.Usuario!.Email, SinAcentos).Contains(palabra) ||
+                (p.Dni != null && p.Dni.Contains(palabra)));
+        }
 
         if (!string.IsNullOrEmpty(nombre))
             query = query.Where(p =>

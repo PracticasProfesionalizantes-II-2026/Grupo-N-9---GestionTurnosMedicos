@@ -53,9 +53,16 @@ public class DatosFichaPaciente
 }
 
 /// <summary>
-/// Una fila del listado. Espeja PacienteListaDto de la API.
+/// Una fila del listado. Espeja PacienteListaDto de la API (sin el teléfono).
+/// Email y DNI sirven para distinguir a dos pacientes con el mismo nombre.
 /// </summary>
-public record PacienteLista(int IdPaciente, string Nombre, string Apellido);
+public record PacienteLista(int IdPaciente, string Nombre, string Apellido, string? Email = null, string? Dni = null);
+
+/// <summary>
+/// Lo que muestra el buscador de pacientes: el paciente ya elegido o, si
+/// todavía no hay uno, los resultados de la búsqueda.
+/// </summary>
+public record SeleccionDePaciente(PacienteLista? Elegido, IReadOnlyList<PacienteLista> Resultados, int Total);
 
 /// <summary>
 /// Respuesta de GET /pacientes: { total, pagina, pacientes }.
@@ -84,17 +91,21 @@ public class PacienteService
         }
     }
 
+    /// <summary>Cuántos resultados muestra el buscador de pacientes.</summary>
+    public const int ResultadosDelBuscador = 20;
+
     /// <summary>
-    /// GET /pacientes con el filtro por nombre, que la API resuelve como
-    /// "contiene" sobre nombre o apellido.
+    /// GET /pacientes?buscar=: cada palabra tiene que aparecer en el nombre,
+    /// el apellido, el email o el DNI, sin distinguir mayúsculas ni acentos.
+    /// Sin texto trae los primeros por apellido.
     /// Solo lo permite a doctor y administrador: con otro rol responde 403
     /// con el cuerpo vacío.
     /// </summary>
-    public async Task<PacientesPagina> BuscarAsync(string? nombre = null, int limite = 100)
+    public async Task<PacientesPagina> BuscarAsync(string? buscar = null, int limite = 100)
     {
         var parametros = new Dictionary<string, object?>
         {
-            ["nombre"] = nombre,
+            ["buscar"] = string.IsNullOrWhiteSpace(buscar) ? null : buscar.Trim(),
             ["pagina"] = 1,
             ["limite"] = limite
         };
@@ -104,10 +115,25 @@ public class PacienteService
     }
 
     /// <summary>
-    /// Todos los pacientes, para llenar un select de una sola vez.
+    /// Lo que necesita el buscador de pacientes (_ElegirPaciente): si ya hay
+    /// un paciente elegido, sus datos; si no (o si ese id no existe), los
+    /// resultados de la búsqueda.
     /// </summary>
-    public async Task<IReadOnlyList<PacienteLista>> ObtenerTodosAsync(int limite = 200)
-        => (await BuscarAsync(limite: limite)).Pacientes;
+    public async Task<SeleccionDePaciente> ElegirAsync(int? elegido, string? buscar)
+    {
+        if (elegido is > 0)
+        {
+            var paciente = await ObtenerPorIdAsync(elegido.Value);
+            if (paciente is not null)
+            {
+                var dato = new PacienteLista(paciente.IdPaciente, paciente.Nombre, paciente.Apellido, paciente.Email, paciente.Dni);
+                return new SeleccionDePaciente(dato, Array.Empty<PacienteLista>(), 0);
+            }
+        }
+
+        var pagina = await BuscarAsync(buscar, ResultadosDelBuscador);
+        return new SeleccionDePaciente(null, pagina.Pacientes, pagina.Total);
+    }
 
     /// <summary>
     /// GET /pacientes/me: el perfil de paciente del usuario logueado.

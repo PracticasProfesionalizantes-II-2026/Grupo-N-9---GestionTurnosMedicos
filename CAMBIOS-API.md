@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 11
+# Cambios en la API — Mejoras, pasos 2 a 12
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) y `feature/recetas-e-historia` (pasos 10 y 11)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) y `feature/pacientes-notificaciones-accesibilidad` (paso 12)
 
 Un apartado por cada paso.
 
@@ -544,3 +544,46 @@ Un medicamento que no existe, o un turno que no corresponde, contestaba `400`, p
 | `Logica/HistorialClinicoLogica.cs` | Suma `ITurnoRepository`. Revisa el turno al crear y al modificar |
 | `Logica/DTOs/RecetaDTOs.cs` | `RecetaDto` suma `IdTurno` |
 | `Endpoints/RecetaEndpoints.cs` | `PUT`: "no encontrado" también da `404` |
+
+---
+
+## Paso 12 — Buscar pacientes
+
+**No hay migración.**
+
+### `GET /pacientes?buscar=texto`
+
+- **Cada palabra tiene que aparecer en algún campo:** nombre, apellido, email o DNI. Por ejemplo:
+  - "ana dua" encuentra a Ana Duarte;
+  - "30111" la encuentra por el DNI;
+  - "duarte@" la encuentra por el email.
+- **Mayúsculas y acentos no importan:** "gomez" encuentra a "Gómez" y "pena" a "Peña". La consulta compara con la collation `Latin1_General_CI_AI`, porque la de la base distingue acentos.
+- **Como mucho 5 palabras;** las que sobran se ignoran.
+- **Los comodines no rompen nada:** `%` y `_` se buscan como texto.
+- **Sin `buscar`,** el listado es como siempre: por apellido, solo cuentas activas y paginado.
+- **Los parámetros de antes** (`nombre`, `dni`, `cobertura_id`, `pagina` y `limite`) siguen andando igual.
+
+```
+GET /pacientes?buscar=lucia%20gomez&limite=20
+→ { "total": 2, "pagina": 1, "pacientes": [ { "idPaciente": 7, "nombre": "Lucía", "apellido": "Gómez",
+     "email": "lucia.gomez@mail.com", "dni": "30111222", ... }, ... ] }
+```
+
+### A quién le pega
+
+- **La Web:** los cinco desplegables de hasta 200 pacientes se reemplazan por un buscador:
+  - Recetas y Historia clínica, en el filtro y al cargar una nueva;
+  - `Turnos/Confirmar`, cuando el personal elige el paciente.
+
+  La pantalla de Pacientes también busca por DNI y email.
+- **Quien use la API desde Scalar o Postman:** sin cambios. `buscar` es opcional.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Endpoints/PacienteEndpoints.cs` | Parámetro `buscar` |
+| `Logica/PacienteLogica.cs`, `IPacienteLogica.cs` | `ObtenerTodos` recibe `buscar` |
+| `Repositorios/PacienteRepository.cs`, `IPacienteRepository.cs` | `Buscar` filtra palabra por palabra, sin distinguir mayúsculas ni acentos |
+| `Repositorios/PalabrasDeBusqueda.cs` *(nuevo)* | Separa el texto en palabras (hasta 5) |
+| `Endpoints/ReporteEndpoints.cs` | La llamada a `Buscar` suma el parámetro nuevo |

@@ -583,3 +583,16 @@ una receta o de una consulta tiene que ser de ese paciente con ese doctor
 (404 si no), y `RecetaDto` suma `IdTurno`. Probado contra SQL Server 2022
 con la API y la Web reales: 42 chequeos.
 **Ojo:** sin migración y sin nada que correr en Azure.
+
+## 2026-10-09 — mejoras, paso 12: buscar pacientes
+**Hecho:**
+- **API:** `GET /pacientes?buscar=` busca cada palabra en el nombre, el apellido, el email o el DNI, sin distinguir mayúsculas ni acentos ("gomez" encuentra a "Gómez").
+- **Web:** el partial `_ElegirPaciente`, sin JavaScript, reemplaza los cinco desplegables que cargaban hasta 200 pacientes (Recetas y Historia clínica, en el filtro y en el alta, y `Turnos/Confirmar` del personal).
+  - Es un buscador con hasta 20 resultados; cada uno muestra DNI y email, para distinguir homónimos.
+  - Con el paciente elegido, muestra "Paciente: …" y "Cambiar paciente".
+  - En una receta o consulta nueva, primero se elige el paciente y después aparece el formulario.
+  - `Turnos/Confirmar` conserva el horario mientras se busca.
+  - La pantalla de Pacientes también busca por DNI y email.
+- **Probado** contra SQL Server 2022 con la API y la Web reales, con 30 pacientes, homónimos y nombres con acento.
+
+**Ojo:** sin migración y sin nada que correr en Azure.

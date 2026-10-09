@@ -42,22 +42,12 @@
     </div>
 </div>
 
-@if (Model.PuedeElegirPaciente)
+@if (Model.ElegirPaciente is not null)
 {
-    <form method="get" asp-action="Index"
-          class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
-        <div class="w-full sm:w-auto sm:min-w-64">
-            <label for="paciente" class="block text-sm font-medium text-ink">Paciente</label>
-            <select id="paciente" name="paciente" asp-items="Model.Pacientes"
-                    class="campo mt-1.5">
-                <option value="">Elegí un paciente</option>
-            </select>
-        </div>
-        <button type="submit"
-                class="boton boton-primario">
-            Ver recetas
-        </button>
-    </form>
+    @* Doctor y administrador: el buscador de pacientes, o el elegido con "Cambiar paciente". *@
+    <div class="mt-6 tarjeta p-5">
+        <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+    </div>
 }
 
 @if (Model.Aviso is not null)
@@ -76,10 +66,7 @@ else if (Model.HuboError)
 }
 else if (Model.SinPacienteElegido)
 {
-    <div class="tarjeta mt-6">
-        <partial name="_EstadoVacio"
-                 model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Elegí un paciente", Ayuda = "Las recetas se guardan por paciente, así que primero elegí de quién querés verlas." }' />
-    </div>
+    @* Todavía no se eligió paciente: el buscador de arriba es el que lo pide. *@
 }
 else if (Model.Recetas.Count == 0)
 {

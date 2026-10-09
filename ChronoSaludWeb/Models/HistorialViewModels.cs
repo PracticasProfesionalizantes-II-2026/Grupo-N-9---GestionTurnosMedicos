@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ChronoSaludWeb.Models;
 
@@ -39,6 +38,18 @@ public class HistorialFiltroViewModel
 
     public bool HayAlguno => Desde is not null || Hasta is not null;
 
+    /// <summary>Las fechas como valores de la ruta, para no perderlas al cambiar de paciente.</summary>
+    public IDictionary<string, string> Ruta
+    {
+        get
+        {
+            var ruta = new Dictionary<string, string>();
+            if (Desde is { } desde) ruta["desde"] = desde.ToString("yyyy-MM-dd");
+            if (Hasta is { } hasta) ruta["hasta"] = hasta.ToString("yyyy-MM-dd");
+            return ruta;
+        }
+    }
+
     /// <summary>El rango está al revés y por eso no va a traer nada.</summary>
     public bool RangoInvertido => Desde is not null && Hasta is not null && Desde > Hasta;
 }
@@ -53,9 +64,11 @@ public class HistorialIndexViewModel
 
     public HistorialFiltroViewModel Filtros { get; init; } = new();
 
-    /// <summary>Doctor y administrador eligen paciente; el paciente ve el suyo.</summary>
-    public bool PuedeElegirPaciente { get; init; }
-    public IReadOnlyList<SelectListItem> Pacientes { get; init; } = Array.Empty<SelectListItem>();
+    /// <summary>
+    /// El buscador de pacientes. Solo para doctor y administrador: el
+    /// paciente ve la suya.
+    /// </summary>
+    public ElegirPacienteViewModel? ElegirPaciente { get; init; }
 
     public bool PuedeEscribir { get; init; }
 
@@ -105,20 +118,17 @@ public class EntradaHistorialCrearViewModel
     [Display(Name = "Descripción de la consulta")]
     public string Descripcion { get; set; } = string.Empty;
 
-    // Opciones del select. No se postea: el controlador la recarga.
-    public IReadOnlyList<SelectListItem> Pacientes { get; set; } = Array.Empty<SelectListItem>();
-
     // Para mostrar. No se postean: el controlador los recarga.
-    public string? NombrePaciente { get; set; }
+    public ElegirPacienteViewModel? ElegirPaciente { get; set; }
     public TurnoAtendidoViewModel? Turno { get; set; }
 
     public bool EsEdicion => IdHistorial is not null;
 
     /// <summary>
-    /// Desde un turno o al editar, el paciente ya está decidido: no se
-    /// muestra el desplegable.
+    /// Desde un turno o al editar, el paciente ya está decidido y no se
+    /// cambia. En una entrada nueva se elige con el buscador.
     /// </summary>
-    public bool PacienteFijo => EsEdicion || IdTurno is not null;
+    public bool PuedeCambiarPaciente => !EsEdicion && IdTurno is null;
 
     /// <summary>La casilla se muestra en una consulta nueva desde un turno que ya empezó.</summary>
     public bool MostrarCompletarTurno => !EsEdicion && Turno is { PuedeCompletarse: true };

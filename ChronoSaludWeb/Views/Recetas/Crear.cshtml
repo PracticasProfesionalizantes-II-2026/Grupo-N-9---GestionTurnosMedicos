@@ -79,185 +79,199 @@ else
         </p>
     }
 
-    <div class="mt-6 tarjeta p-8">
-        @if (erroresGenerales is { Count: > 0 })
-        {
-            <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
-                <span>
-                    @foreach (var error in erroresGenerales)
-                    {
-                        <span class="block">@error.ErrorMessage</span>
-                    }
-                </span>
-            </div>
-        }
+    @if (Model.IdPaciente is null)
+    {
+        @* Paso 1: elegir el paciente. El formulario aparece recién con el
+           paciente elegido, así el buscador (que recarga la página) no pisa
+           nada de lo que se escribió. *@
+        <div class="mt-6 tarjeta p-8">
+            <p class="mb-5 text-sm text-muted">Primero elegí a quién le emitís la receta.</p>
+            @if (Model.ElegirPaciente is not null)
+            {
+                <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+            }
+            else
+            {
+                <p class="text-sm text-status-cancelado">No se pudo cargar el buscador de pacientes. Probá de nuevo en un rato.</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="mt-6 tarjeta p-8">
+            @if (erroresGenerales is { Count: > 0 })
+            {
+                <div class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                        <path d="M12 9v4" />
+                        <path d="M12 17h.01" />
+                    </svg>
+                    <span>
+                        @foreach (var error in erroresGenerales)
+                        {
+                            <span class="block">@error.ErrorMessage</span>
+                        }
+                    </span>
+                </div>
+            }
 
-        <form asp-action="@(Model.EsEdicion ? "Editar" : "Crear")" method="post" novalidate>
-            @* Enter en un campo de texto dispara el primer submit del formulario:
-               sin este, sería el "+" de la primera fila en vez de emitir. *@
-            <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">@(Model.EsEdicion ? "Guardar cambios" : "Emitir receta")</button>
+            <form asp-action="@(Model.EsEdicion ? "Editar" : "Crear")" method="post" novalidate>
+                @* Enter en un campo de texto dispara el primer submit del formulario:
+                   sin este, sería el "+" de la primera fila en vez de emitir. *@
+                <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true">@(Model.EsEdicion ? "Guardar cambios" : "Emitir receta")</button>
 
-            @* Viajan con "+" y "−" también, así la pantalla sigue en el mismo modo. *@
-            <input type="hidden" asp-for="IdReceta" />
-            <input type="hidden" asp-for="IdTurno" />
+                @* Viajan con "+" y "−" también, así la pantalla sigue en el mismo modo. *@
+                <input type="hidden" asp-for="IdReceta" />
+                <input type="hidden" asp-for="IdTurno" />
 
-            <div class="grid gap-5 sm:grid-cols-3">
-                @if (Model.PacienteFijo)
-                {
-                    @* El paciente ya está decidido: va oculto y se muestra el nombre. *@
+                <div class="grid gap-5 sm:grid-cols-3">
+                    @* El paciente ya está elegido: va oculto y se muestra con sus datos. *@
                     <div class="sm:col-span-3">
                         <input type="hidden" asp-for="IdPaciente" />
-                        <p class="block text-sm font-medium text-ink">Paciente</p>
-                        <p class="mt-1.5 py-2 text-ink">@(Model.NombrePaciente ?? $"Paciente #{Model.IdPaciente}")</p>
+                        @if (Model.ElegirPaciente is not null)
+                        {
+                            <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+                        }
+                        else
+                        {
+                            <p class="block text-sm font-medium text-ink">Paciente</p>
+                            <p class="mt-0.5 text-ink">Paciente #@Model.IdPaciente</p>
+                        }
                     </div>
-                }
-                else
-                {
-                    <div class="sm:col-span-3">
-                        <label asp-for="IdPaciente" class="block text-sm font-medium text-ink"></label>
-                        <select asp-for="IdPaciente" asp-items="Model.Pacientes" class="@claseCampo">
-                            <option value="">Elegí un paciente</option>
-                        </select>
-                        <span asp-validation-for="IdPaciente" class="@claseError"></span>
-                    </div>
-                }
 
-                <div>
-                    <label asp-for="Fecha" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Fecha" type="date" class="@claseCampo tabular-nums" />
-                    <span asp-validation-for="Fecha" class="@claseError"></span>
+                    <div>
+                        <label asp-for="Fecha" class="block text-sm font-medium text-ink"></label>
+                        <input asp-for="Fecha" type="date" class="@claseCampo tabular-nums" />
+                        <span asp-validation-for="Fecha" class="@claseError"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Vigencia" class="block text-sm font-medium text-ink"></label>
+                        <input asp-for="Vigencia" type="date" class="@claseCampo tabular-nums" />
+                        <span asp-validation-for="Vigencia" class="@claseError"></span>
+                    </div>
                 </div>
 
-                <div>
-                    <label asp-for="Vigencia" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Vigencia" type="date" class="@claseCampo tabular-nums" />
-                    <span asp-validation-for="Vigencia" class="@claseError"></span>
-                </div>
-            </div>
+                <fieldset class="mt-8">
+                    <legend class="text-base font-semibold text-ink">Medicamentos</legend>
+                    <p class="mt-1 text-xs text-muted">
+                        Hace falta al menos uno. Con «+» agregás una fila debajo y con «−» la quitás
+                        (hasta @RecetaCrearViewModel.MaximoDeFilas); las que queden vacías se ignoran.
+                    </p>
 
-            <fieldset class="mt-8">
-                <legend class="text-base font-semibold text-ink">Medicamentos</legend>
-                <p class="mt-1 text-xs text-muted">
-                    Hace falta al menos uno. Con «+» agregás una fila debajo y con «−» la quitás
-                    (hasta @RecetaCrearViewModel.MaximoDeFilas); las que queden vacías se ignoran.
-                </p>
+                    @for (var i = 0; i < Model.Medicamentos.Count; i++)
+                    {
+                        <div id="fila-@i" class="group/fila mt-4 flex scroll-mt-6 items-start gap-3 rounded-input border border-border p-4">
+                            <div class="grid min-w-0 flex-1 gap-4 sm:grid-cols-3">
+                                <div class="sm:col-span-3">
+                                    <label asp-for="Medicamentos[i].IdMedicamento" class="block text-sm font-medium text-ink"></label>
+                                    <select asp-for="Medicamentos[i].IdMedicamento" asp-items="Model.Vademecum" class="@claseCampo">
+                                        <option value="">Ninguno</option>
+                                        @if (Model.OtroDisponible)
+                                        {
+                                            <option value="@RecetaCrearViewModel.IdOtro">Otro...</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Medicamentos[i].IdMedicamento" class="@claseError"></span>
 
-                @for (var i = 0; i < Model.Medicamentos.Count; i++)
-                {
-                    <div id="fila-@i" class="group/fila mt-4 flex scroll-mt-6 items-start gap-3 rounded-input border border-border p-4">
-                        <div class="grid min-w-0 flex-1 gap-4 sm:grid-cols-3">
-                            <div class="sm:col-span-3">
-                                <label asp-for="Medicamentos[i].IdMedicamento" class="block text-sm font-medium text-ink"></label>
-                                <select asp-for="Medicamentos[i].IdMedicamento" asp-items="Model.Vademecum" class="@claseCampo">
-                                    <option value="">Ninguno</option>
                                     @if (Model.OtroDisponible)
                                     {
-                                        <option value="@RecetaCrearViewModel.IdOtro">Otro...</option>
+                                        @* Sin JavaScript: el cuadro aparece mientras la opción
+                                           "Otro..." (value -1) esté elegida en esta fila. *@
+                                        <div class="mt-3 hidden group-has-[option[value='-1']:checked]/fila:block">
+                                            <label asp-for="Medicamentos[i].NombreOtro" class="block text-sm font-medium text-ink"></label>
+                                            <input asp-for="Medicamentos[i].NombreOtro" maxlength="150"
+                                                   placeholder="Nombre, concentración y presentación" class="@claseCampo" />
+                                            <span asp-validation-for="Medicamentos[i].NombreOtro" class="@claseError"></span>
+                                        </div>
                                     }
-                                </select>
-                                <span asp-validation-for="Medicamentos[i].IdMedicamento" class="@claseError"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="Medicamentos[i].Dosis" class="block text-sm font-medium text-ink"></label>
+                                    <input asp-for="Medicamentos[i].Dosis" placeholder="500 mg" class="@claseCampo" />
+                                    <span asp-validation-for="Medicamentos[i].Dosis" class="@claseError"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="Medicamentos[i].Frecuencia" class="block text-sm font-medium text-ink"></label>
+                                    <input asp-for="Medicamentos[i].Frecuencia" placeholder="Cada 8 horas" class="@claseCampo" />
+                                    <span asp-validation-for="Medicamentos[i].Frecuencia" class="@claseError"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="Medicamentos[i].Duracion" class="block text-sm font-medium text-ink"></label>
+                                    <input asp-for="Medicamentos[i].Duracion" placeholder="7 días" class="@claseCampo" />
+                                    <span asp-validation-for="Medicamentos[i].Duracion" class="@claseError"></span>
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label asp-for="Medicamentos[i].Indicaciones" class="block text-sm font-medium text-ink"></label>
+                                    <input asp-for="Medicamentos[i].Indicaciones" placeholder="Opcional" class="@claseCampo" />
+                                    <span asp-validation-for="Medicamentos[i].Indicaciones" class="@claseError"></span>
+                                </div>
+                            </div>
 
-                                @if (Model.OtroDisponible)
+                            @* Cada botón postea el formulario entero a su acción y vuelve
+                               a esta pantalla, anclado en la fila que resulta. *@
+                            <div class="flex shrink-0 flex-col gap-2">
+                                @if (Model.Medicamentos.Count < RecetaCrearViewModel.MaximoDeFilas)
                                 {
-                                    @* Sin JavaScript: el cuadro aparece mientras la opción
-                                       "Otro..." (value -1) esté elegida en esta fila. *@
-                                    <div class="mt-3 hidden group-has-[option[value='-1']:checked]/fila:block">
-                                        <label asp-for="Medicamentos[i].NombreOtro" class="block text-sm font-medium text-ink"></label>
-                                        <input asp-for="Medicamentos[i].NombreOtro" maxlength="150"
-                                               placeholder="Nombre, concentración y presentación" class="@claseCampo" />
-                                        <span asp-validation-for="Medicamentos[i].NombreOtro" class="@claseError"></span>
-                                    </div>
+                                    <button type="submit" formnovalidate
+                                            asp-action="AgregarFila" asp-route-indice="@i" asp-fragment="fila-@(i + 1)"
+                                            title="Agregar una fila debajo" aria-label="Agregar una fila debajo de la fila @(i + 1)"
+                                            class="@claseBotonFila">
+                                        +
+                                    </button>
+                                }
+                                @if (Model.Medicamentos.Count > RecetaCrearViewModel.MinimoDeFilas)
+                                {
+                                    <button type="submit" formnovalidate
+                                            asp-action="QuitarFila" asp-route-indice="@i" asp-fragment="fila-@(Math.Max(i - 1, 0))"
+                                            title="Quitar esta fila" aria-label="Quitar la fila @(i + 1)"
+                                            class="@claseBotonFila">
+                                        −
+                                    </button>
                                 }
                             </div>
-                            <div>
-                                <label asp-for="Medicamentos[i].Dosis" class="block text-sm font-medium text-ink"></label>
-                                <input asp-for="Medicamentos[i].Dosis" placeholder="500 mg" class="@claseCampo" />
-                                <span asp-validation-for="Medicamentos[i].Dosis" class="@claseError"></span>
-                            </div>
-                            <div>
-                                <label asp-for="Medicamentos[i].Frecuencia" class="block text-sm font-medium text-ink"></label>
-                                <input asp-for="Medicamentos[i].Frecuencia" placeholder="Cada 8 horas" class="@claseCampo" />
-                                <span asp-validation-for="Medicamentos[i].Frecuencia" class="@claseError"></span>
-                            </div>
-                            <div>
-                                <label asp-for="Medicamentos[i].Duracion" class="block text-sm font-medium text-ink"></label>
-                                <input asp-for="Medicamentos[i].Duracion" placeholder="7 días" class="@claseCampo" />
-                                <span asp-validation-for="Medicamentos[i].Duracion" class="@claseError"></span>
-                            </div>
-                            <div class="sm:col-span-3">
-                                <label asp-for="Medicamentos[i].Indicaciones" class="block text-sm font-medium text-ink"></label>
-                                <input asp-for="Medicamentos[i].Indicaciones" placeholder="Opcional" class="@claseCampo" />
-                                <span asp-validation-for="Medicamentos[i].Indicaciones" class="@claseError"></span>
-                            </div>
                         </div>
+                    }
+                </fieldset>
 
-                        @* Cada botón postea el formulario entero a su acción y vuelve
-                           a esta pantalla, anclado en la fila que resulta. *@
-                        <div class="flex shrink-0 flex-col gap-2">
-                            @if (Model.Medicamentos.Count < RecetaCrearViewModel.MaximoDeFilas)
-                            {
-                                <button type="submit" formnovalidate
-                                        asp-action="AgregarFila" asp-route-indice="@i" asp-fragment="fila-@(i + 1)"
-                                        title="Agregar una fila debajo" aria-label="Agregar una fila debajo de la fila @(i + 1)"
-                                        class="@claseBotonFila">
-                                    +
-                                </button>
-                            }
-                            @if (Model.Medicamentos.Count > RecetaCrearViewModel.MinimoDeFilas)
-                            {
-                                <button type="submit" formnovalidate
-                                        asp-action="QuitarFila" asp-route-indice="@i" asp-fragment="fila-@(Math.Max(i - 1, 0))"
-                                        title="Quitar esta fila" aria-label="Quitar la fila @(i + 1)"
-                                        class="@claseBotonFila">
-                                    −
-                                </button>
-                            }
-                        </div>
-                    </div>
-                }
-            </fieldset>
+                <div class="mt-6">
+                    <label asp-for="Detalles" class="block text-sm font-medium text-ink"></label>
+                    <textarea asp-for="Detalles" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                    <span asp-validation-for="Detalles" class="@claseError"></span>
+                </div>
 
-            <div class="mt-6">
-                <label asp-for="Detalles" class="block text-sm font-medium text-ink"></label>
-                <textarea asp-for="Detalles" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
-                <span asp-validation-for="Detalles" class="@claseError"></span>
-            </div>
-
-            <div class="mt-7 flex flex-wrap items-center gap-3">
-                <button type="submit"
-                        class="boton boton-primario">
-                    @(Model.EsEdicion ? "Guardar cambios" : "Emitir receta")
-                </button>
-                @if (Model.EsEdicion)
-                {
-                    <a asp-action="Detalle" asp-route-id="@Model.IdReceta" asp-route-paciente="@Model.IdPaciente"
-                       class="boton boton-secundario">
-                        Cancelar
-                    </a>
-                }
-                else if (vuelveAlTurno)
-                {
-                    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
-                       class="boton boton-secundario">
-                        Cancelar
-                    </a>
-                }
-                else
-                {
-                    <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-                       class="boton boton-secundario">
-                        Cancelar
-                    </a>
-                }
-            </div>
-        </form>
-    </div>
+                <div class="mt-7 flex flex-wrap items-center gap-3">
+                    <button type="submit"
+                            class="boton boton-primario">
+                        @(Model.EsEdicion ? "Guardar cambios" : "Emitir receta")
+                    </button>
+                    @if (Model.EsEdicion)
+                    {
+                        <a asp-action="Detalle" asp-route-id="@Model.IdReceta" asp-route-paciente="@Model.IdPaciente"
+                           class="boton boton-secundario">
+                            Cancelar
+                        </a>
+                    }
+                    else if (vuelveAlTurno)
+                    {
+                        <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
+                           class="boton boton-secundario">
+                            Cancelar
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                           class="boton boton-secundario">
+                            Cancelar
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    }
 </div>
 
 @* Esta pantalla no participa del fundido entre páginas: «+» y «−» la repintan

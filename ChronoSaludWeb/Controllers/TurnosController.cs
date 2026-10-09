@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
@@ -611,7 +610,8 @@ public class TurnosController : ControladorBase
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Confirmar(
-        int idDoctor, DateTime? fecha, string? inicio, string? fin, string? especialidad, int? elegido, int? paciente)
+        int idDoctor, DateTime? fecha, string? inicio, string? fin, string? especialidad, int? elegido, int? paciente,
+        string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Crear)));
@@ -650,7 +650,7 @@ public class TurnosController : ControladorBase
             modelo.IdPaciente = idPaciente;
         }
 
-        await CargarConfirmacionAsync(modelo);
+        await CargarConfirmacionAsync(modelo, buscar);
         return View(modelo);
     }
 
@@ -953,10 +953,11 @@ public class TurnosController : ControladorBase
 
     /// <summary>
     /// Lo que la confirmación muestra además del horario: el doctor y, para
-    /// el personal, la lista de pacientes. Si la API falla no tira: la
-    /// pantalla se muestra igual, con el aviso arriba.
+    /// el personal, el buscador de pacientes (<paramref name="buscar"/> es lo
+    /// que se escribió ahí). Si la API falla no tira: la pantalla se muestra
+    /// igual, con el aviso arriba.
     /// </summary>
-    private async Task CargarConfirmacionAsync(TurnoConfirmarViewModel modelo)
+    private async Task CargarConfirmacionAsync(TurnoConfirmarViewModel modelo, string? buscar = null)
     {
         try
         {
@@ -968,12 +969,13 @@ public class TurnosController : ControladorBase
                 modelo.Consultorio = doctor.Consultorio;
             }
 
+            // El buscador vuelve a esta misma pantalla con el horario elegido.
             if (modelo.MostrarSelectorPaciente)
             {
-                var pacientes = await _pacientes.ObtenerTodosAsync();
-                modelo.Pacientes = pacientes
-                    .Select(p => new SelectListItem($"{p.Nombre} {p.Apellido}".Trim(), p.IdPaciente.ToString()))
-                    .ToList();
+                var seleccion = await _pacientes.ElegirAsync(modelo.IdPaciente, buscar);
+                modelo.IdPaciente = seleccion.Elegido?.IdPaciente;
+                modelo.ElegirPaciente = ElegirPacienteViewModel.Desde(
+                    seleccion, "Turnos", nameof(Confirmar), buscar, modelo.RutaConfirmar);
             }
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)

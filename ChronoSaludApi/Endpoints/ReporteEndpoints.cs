@@ -50,7 +50,7 @@ public static class ReporteEndpoints
 
             // Todo se cuenta en la base. Del listado de pacientes alcanza con
             // el total: se pide una página de uno.
-            var (totalPacientes, _) = await pacienteRepo.Buscar(null, null, null, 1, 1);
+            var (totalPacientes, _) = await pacienteRepo.Buscar(null, null, null, null, 1, 1);
 
             var filtro = new FiltroTurnos { Desde = fecha_desde, Hasta = fecha_hasta };
             var turnosEnPeriodo = (await turnoRepo.ContarPorEstado(filtro)).Values.Sum();

@@ -38,7 +38,7 @@ public class PacientesController : ControladorBase
         _auth = auth;
     }
 
-    public async Task<IActionResult> Index(string? nombre)
+    public async Task<IActionResult> Index(string? buscar)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index)));
@@ -46,7 +46,7 @@ public class PacientesController : ControladorBase
         if (!_auth.PuedeVerPacientes)
             return SinPermiso(TituloSinPermiso, MotivoSinPermiso);
 
-        var busqueda = string.IsNullOrWhiteSpace(nombre) ? null : nombre.Trim();
+        var busqueda = string.IsNullOrWhiteSpace(buscar) ? null : buscar.Trim();
 
         try
         {
@@ -57,7 +57,7 @@ public class PacientesController : ControladorBase
 
             return View(new PacientesIndexViewModel
             {
-                Nombre = busqueda,
+                Buscar = busqueda,
                 Total = pagina.Total,
                 Pacientes = pagina.Pacientes
                     .Select(p => new PacienteFilaViewModel
@@ -65,6 +65,7 @@ public class PacientesController : ControladorBase
                         IdPaciente = p.IdPaciente,
                         Nombre = p.Nombre,
                         Apellido = p.Apellido,
+                        Dni = p.Dni,
                         FotoUrl = UrlDeFoto(fotos, p.IdPaciente)
                     })
                     .ToList()
@@ -72,7 +73,7 @@ public class PacientesController : ControladorBase
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            return View(new PacientesIndexViewModel { Nombre = busqueda, Error = error.Message });
+            return View(new PacientesIndexViewModel { Buscar = busqueda, Error = error.Message });
         }
     }
 

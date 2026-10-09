@@ -9,6 +9,9 @@ public class PacienteFilaViewModel
     public string Nombre { get; init; } = string.Empty;
     public string Apellido { get; init; } = string.Empty;
 
+    /// <summary>Para distinguir a dos pacientes con el mismo nombre.</summary>
+    public string? Dni { get; init; }
+
     /// <summary>Null si no tiene foto: el avatar muestra las iniciales.</summary>
     public string? FotoUrl { get; init; }
 
@@ -23,13 +26,16 @@ public class PacientesIndexViewModel
     public IReadOnlyList<PacienteFilaViewModel> Pacientes { get; init; } = Array.Empty<PacienteFilaViewModel>();
     public int Total { get; init; }
 
-    /// <summary>Texto del buscador. La API lo resuelve como "contiene".</summary>
-    public string? Nombre { get; init; }
+    /// <summary>
+    /// Texto del buscador. La API busca cada palabra en el nombre, el
+    /// apellido, el email o el DNI.
+    /// </summary>
+    public string? Buscar { get; init; }
 
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
 
-    public bool HayFiltro => !string.IsNullOrWhiteSpace(Nombre);
+    public bool HayFiltro => !string.IsNullOrWhiteSpace(Buscar);
     public bool SinResultados => Pacientes.Count == 0 && HayFiltro;
     public bool HayMas => Total > Pacientes.Count;
 }

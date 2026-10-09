@@ -38,20 +38,20 @@
     </div>
 </div>
 
-@if (Model.Aviso is null && !Model.HuboError)
+@if (Model.ElegirPaciente is not null)
+{
+    @* Doctor y administrador: el buscador de pacientes, o el elegido con "Cambiar paciente". *@
+    <div class="mt-6 tarjeta p-5">
+        <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+    </div>
+}
+
+@* El filtro por fechas, una vez que hay paciente. *@
+@if (Model.Aviso is null && !Model.HuboError && Model.IdPaciente is not null)
 {
     <form method="get" asp-action="Index"
-          class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
-        @if (Model.PuedeElegirPaciente)
-        {
-            <div class="w-full sm:w-auto sm:min-w-56">
-                <label for="paciente" class="block text-sm font-medium text-ink">Paciente</label>
-                <select id="paciente" name="paciente" asp-items="Model.Pacientes"
-                        class="campo mt-1.5">
-                    <option value="">Elegí un paciente</option>
-                </select>
-            </div>
-        }
+          class="mt-4 flex flex-wrap items-end gap-4 tarjeta p-5">
+        <input type="hidden" name="paciente" value="@Model.IdPaciente" />
 
         <div>
             <label for="desde" class="block text-sm font-medium text-ink">Desde</label>
@@ -104,10 +104,7 @@ else if (Model.HuboError)
 }
 else if (Model.SinPacienteElegido)
 {
-    <div class="tarjeta mt-6">
-        <partial name="_EstadoVacio"
-                 model='new EstadoVacioViewModel { Icono = "personas", Nivel = 2, Titulo = "Elegí un paciente", Ayuda = "La historia clínica se guarda por paciente, así que primero elegí de quién querés verla." }' />
-    </div>
+    @* Todavía no se eligió paciente: el buscador de arriba es el que lo pide. *@
 }
 else if (Model.Entradas.Count == 0)
 {
