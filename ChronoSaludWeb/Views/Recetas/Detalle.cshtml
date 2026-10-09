@@ -32,13 +32,25 @@ else
                 <p class="mt-1 text-sm text-muted">Paciente: <span class="font-medium text-ink">@Model.NombrePaciente</span></p>
             }
         </div>
-        <partial name="_Chip"
-                 model='new ChipViewModel { Texto = receta.Vigente ? "vigente" : "vencida", Tono = receta.Vigente ? TonoChip.Exito : TonoChip.Neutro, Capitalizar = true }' />
+        <div class="flex flex-wrap items-center gap-3">
+            <partial name="_Chip"
+                     model='new ChipViewModel { Texto = receta.Vigente ? "vigente" : "vencida", Tono = receta.Vigente ? TonoChip.Exito : TonoChip.Neutro, Capitalizar = true }' />
+            <a asp-action="Imprimir" asp-route-id="@receta.IdReceta" asp-route-paciente="@Model.IdPaciente"
+               class="boton boton-secundario">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
+                    <rect x="6" y="14" width="12" height="8" rx="1" />
+                </svg>
+                Imprimir
+            </a>
+        </div>
     </div>
 
     <div class="mt-6 grid gap-4 lg:grid-cols-3">
         <div class="tarjeta p-6">
-            <h2 class="text-base font-semibold text-ink">Vigencia</h2>
+            <h2 class="text-base font-semibold text-ink">Emisión</h2>
             <dl class="mt-4 space-y-4">
                 <div>
                     <dt class="text-sm text-muted">Emitida</dt>
@@ -47,6 +59,23 @@ else
                 <div>
                     <dt class="text-sm text-muted">Vigente hasta</dt>
                     <dd class="mt-0.5 capitalize text-ink">@receta.VigenciaLarga</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-muted">Firmada por</dt>
+                    @if (receta.Firma is not null)
+                    {
+                        <dd class="mt-0.5 text-ink">
+                            <span class="font-medium">@receta.Firma.NombreCompleto</span>
+                            @if (receta.Firma.Detalle is not null)
+                            {
+                                <span class="block text-sm text-muted">@receta.Firma.Detalle</span>
+                            }
+                        </dd>
+                    }
+                    else
+                    {
+                        <dd class="mt-0.5 text-sm text-muted">Sin datos del profesional.</dd>
+                    }
                 </div>
             </dl>
         </div>

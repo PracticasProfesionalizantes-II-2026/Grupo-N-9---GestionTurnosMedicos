@@ -9,4 +9,5 @@ public interface IMedicamentoRepository
     Task Agregar(Medicamento medicamento);
     Task Actualizar(Medicamento medicamento);
     Task Eliminar(Medicamento medicamento);
+    Task<bool> EstaEnAlgunaReceta(int id);
 }

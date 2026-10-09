@@ -1,15 +1,16 @@
 namespace ChronoSaludWeb.Services;
 
 /// <summary>
-/// Una entrada del historial. Espeja HistorialClinicoDto.
-/// No trae el doctor: quién la escribió no se puede saber desde el front.
+/// Una entrada del historial. Espeja HistorialClinicoDto. Doctor es quien
+/// la escribió.
 /// </summary>
 public record EntradaHistorial(
     int IdHistorial,
     DateTime Fecha,
     string Descripcion,
     string Diagnostico,
-    int? IdTurno);
+    int? IdTurno,
+    Profesional? Doctor = null);
 
 /// <summary>
 /// Respuesta de GET /pacientes/{id}/historiales-clinicos: { id_paciente, historiales }.

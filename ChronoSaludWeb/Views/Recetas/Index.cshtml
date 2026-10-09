@@ -114,6 +114,10 @@ else
                         </a>
                         <span class="mt-0.5 block text-sm text-muted">
                             Emitida el <span class="tabular-nums">@receta.FechaCorta</span>
+                            @if (receta.Firma is not null)
+                            {
+                                <text>por @receta.Firma.NombreCompleto</text>
+                            }
                             <span aria-hidden="true"> · </span>
                             vigente hasta <span class="tabular-nums">@receta.VigenciaCorta</span>
                         </span>

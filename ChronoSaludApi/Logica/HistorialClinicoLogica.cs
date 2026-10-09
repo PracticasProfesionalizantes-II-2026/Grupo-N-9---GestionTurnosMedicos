@@ -36,7 +36,8 @@ public class HistorialClinicoLogica : IHistorialClinicoLogica
             h.IdDoctor,
             h.Descripcion,
             h.Diagnostico,
-            h.IdTurno
+            h.IdTurno,
+            Profesional.Armar(h.Doctor)
         ));
         return (pacienteId, dtos, null, false);
     }

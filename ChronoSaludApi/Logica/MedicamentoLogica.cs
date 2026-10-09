@@ -52,12 +52,19 @@ public class MedicamentoLogica : IMedicamentoLogica
         return true;
     }
 
-    public async Task<bool> Eliminar(int id)
+    public async Task<(bool ok, string? error)> Eliminar(int id)
     {
         var med = await _repo.ObtenerPorId(id);
-        if (med == null) return false;
+        if (med == null)
+            return (false, "Medicamento no encontrado.");
+
+        // Las recetas guardan una copia de los datos, pero siguen apuntando al
+        // medicamento: uno que ya se recetó no se borra.
+        if (await _repo.EstaEnAlgunaReceta(id))
+            return (false, "No se puede borrar: el medicamento figura en al menos una receta emitida.");
+
         await _repo.Eliminar(med);
-        return true;
+        return (true, null);
     }
 
     private static MedicamentoDto MapearDto(Medicamento m) => new MedicamentoDto(

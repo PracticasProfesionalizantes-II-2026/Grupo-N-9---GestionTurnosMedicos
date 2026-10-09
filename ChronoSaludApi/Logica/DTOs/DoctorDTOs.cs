@@ -9,6 +9,15 @@ public record DoctorDto(
     string? Consultorio
 );
 
+// Quién firmó una receta o escribió una entrada de la historia clínica.
+public record ProfesionalDto(
+    int IdDoctor,
+    string Nombre,
+    string Apellido,
+    string Especialidad,
+    string Matricula
+);
+
 public record DoctorListaDto(
     int IdDoctor,
     string Nombre,

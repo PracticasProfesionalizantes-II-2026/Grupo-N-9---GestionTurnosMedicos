@@ -58,12 +58,6 @@ public class RecetasController : ControladorBase
 
             var recetas = await _recetas.ObtenerDePacienteAsync(idPaciente.Value);
 
-            // RecetaMedicamentoDto solo trae el id: los nombres se resuelven acá,
-            // con un solo pedido para toda la pantalla.
-            var vademecum = recetas.Any(r => r.Medicamentos.Count > 0)
-                ? await _medicamentos.ObtenerPorIdAsync()
-                : new Dictionary<int, Medicamento>();
-
             return View(new RecetasIndexViewModel
             {
                 IdPaciente = idPaciente,
@@ -73,7 +67,7 @@ public class RecetasController : ControladorBase
                     ? await OpcionesDePacienteAsync(idPaciente)
                     : Array.Empty<SelectListItem>(),
                 PuedeCrear = _auth.PuedeEmitirRecetas,
-                Recetas = recetas.Select(r => Mapear(r, vademecum))
+                Recetas = recetas.Select(RecetaFilaViewModel.Desde)
                                  .OrderByDescending(r => r.Fecha)
                                  .ToList()
             });
@@ -85,8 +79,7 @@ public class RecetasController : ControladorBase
     }
 
     /// <summary>
-    /// La API no tiene GET /recetas/{id}: el único listado es por paciente, así
-    /// que el detalle sale de esa misma lista y necesita saber de quién es.
+    /// El detalle necesita saber de quién es la receta: ver BuscarRecetaAsync.
     /// </summary>
     public async Task<IActionResult> Detalle(int id, int paciente)
     {
@@ -95,25 +88,15 @@ public class RecetasController : ControladorBase
 
         try
         {
-            var (idPaciente, aviso) = await ResolverPacienteAsync(paciente);
-
-            if (aviso is not null || idPaciente is null)
-                return NoEncontrado(id, "Receta no encontrada", "receta");
-
-            var receta = (await _recetas.ObtenerDePacienteAsync(idPaciente.Value))
-                .FirstOrDefault(r => r.IdReceta == id);
+            var (idPaciente, receta) = await BuscarRecetaAsync(id, paciente);
 
             // No existe, o es de otro paciente: se responde lo mismo.
-            if (receta is null)
+            if (idPaciente is null || receta is null)
                 return NoEncontrado(id, "Receta no encontrada", "receta");
-
-            var vademecum = receta.Medicamentos.Count > 0
-                ? await _medicamentos.ObtenerPorIdAsync()
-                : new Dictionary<int, Medicamento>();
 
             return View(new RecetaDetalleViewModel
             {
-                Receta = Mapear(receta, vademecum),
+                Receta = RecetaFilaViewModel.Desde(receta),
                 IdPaciente = idPaciente.Value,
                 NombrePaciente = await NombreDePacienteAsync(idPaciente.Value)
             });
@@ -121,6 +104,41 @@ public class RecetasController : ControladorBase
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             return View(new RecetaDetalleViewModel { IdPaciente = paciente, Error = error.Message });
+        }
+    }
+
+    /// <summary>
+    /// La hoja de la receta para imprimir. Mismo permiso que el detalle: el
+    /// paciente solo ve las suyas. Sin JavaScript: se imprime con el menú del
+    /// navegador, y los estilos @media print dejan solo la hoja.
+    /// </summary>
+    public async Task<IActionResult> Imprimir(int id, int paciente)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Imprimir), new { id, paciente }));
+
+        try
+        {
+            var (idPaciente, receta) = await BuscarRecetaAsync(id, paciente);
+
+            if (idPaciente is null || receta is null)
+                return NoEncontrado(id, "Receta no encontrada", "receta");
+
+            var ficha = await FichaParaImprimirAsync(idPaciente.Value);
+
+            return View(new RecetaImprimirViewModel
+            {
+                Receta = RecetaFilaViewModel.Desde(receta),
+                IdPaciente = idPaciente.Value,
+                NombrePaciente = ficha is null ? null : $"{ficha.Nombre} {ficha.Apellido}".Trim(),
+                TipoDocumento = ficha?.TipoDocumento,
+                Dni = ficha?.Dni,
+                GeneradaEl = FechaArgentina.Ahora()
+            });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            return View(new RecetaImprimirViewModel { IdPaciente = paciente, Error = error.Message });
         }
     }
 
@@ -308,6 +326,42 @@ public class RecetasController : ControladorBase
         return paciente is null ? null : $"{paciente.Nombre} {paciente.Apellido}".Trim();
     }
 
+    /// <summary>
+    /// La API no tiene GET /recetas/{id}: el único listado es por paciente, así
+    /// que la receta sale de esa lista. Devuelve null si no hay paciente o si
+    /// la receta no es de él.
+    /// </summary>
+    private async Task<(int? idPaciente, Receta? receta)> BuscarRecetaAsync(int id, int paciente)
+    {
+        var (idPaciente, aviso) = await ResolverPacienteAsync(paciente);
+        if (aviso is not null || idPaciente is null)
+            return (null, null);
+
+        var receta = (await _recetas.ObtenerDePacienteAsync(idPaciente.Value))
+            .FirstOrDefault(r => r.IdReceta == id);
+
+        return (idPaciente, receta);
+    }
+
+    /// <summary>
+    /// Nombre y documento del paciente para la hoja. El personal pide la ficha
+    /// por id; el paciente, la suya. Si falla, la hoja sale igual, con
+    /// "Sin datos" en el paciente.
+    /// </summary>
+    private async Task<PacienteDetalle?> FichaParaImprimirAsync(int idPaciente)
+    {
+        try
+        {
+            return _auth.PuedeVerPacientes
+                ? await _pacientes.ObtenerPorIdAsync(idPaciente)
+                : await _pacientes.ObtenerMiPerfilAsync();
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            return null;
+        }
+    }
+
     private async Task<IReadOnlyList<SelectListItem>> OpcionesDePacienteAsync(int? seleccionado)
     {
         var pacientes = await _pacientes.ObtenerTodosAsync();
@@ -403,34 +457,4 @@ public class RecetasController : ControladorBase
     private IActionResult SinPermisoDeEmision() => SinPermiso(
         "No podés emitir recetas con tu rol",
         "Solo los doctores pueden emitir recetas.");
-
-    private static RecetaFilaViewModel Mapear(
-        Services.Receta receta,
-        IReadOnlyDictionary<int, Medicamento> vademecum) => new()
-    {
-        IdReceta = receta.IdReceta,
-        Fecha = receta.Fecha,
-        Vigencia = receta.Vigencia,
-        Detalles = receta.Detalles,
-        Medicamentos = receta.Medicamentos
-            .Select(m =>
-            {
-                vademecum.TryGetValue(m.IdMedicamento, out var med);
-
-                return new RecetaMedicamentoViewModel
-                {
-                    IdMedicamento = m.IdMedicamento,
-                    Nombre = med?.Nombre,
-                    NombreGenerico = med?.NombreGenerico,
-                    Concentracion = med?.Concentracion,
-                    FormaFarmaceutica = med?.FormaFarmaceutica,
-                    EsOtro = med is not null && MedicamentoService.EsMarcadorOtro(med),
-                    Dosis = m.Dosis,
-                    Frecuencia = m.Frecuencia,
-                    Duracion = m.Duracion,
-                    Indicaciones = m.Indicaciones
-                };
-            })
-            .ToList()
-    };
 }

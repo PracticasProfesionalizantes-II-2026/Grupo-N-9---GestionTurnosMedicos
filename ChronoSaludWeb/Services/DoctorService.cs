@@ -12,6 +12,17 @@ public record DoctorDetalle(
     string? Consultorio);
 
 /// <summary>
+/// Quién firmó una receta o escribió una entrada de la historia clínica.
+/// Espeja ProfesionalDto.
+/// </summary>
+public record Profesional(
+    int IdDoctor,
+    string Nombre,
+    string Apellido,
+    string Especialidad,
+    string Matricula);
+
+/// <summary>
 /// Una fila del listado. Espeja DoctorListaDto: Nombre ya viene armado
 /// como "Nombre Apellido". TieneHorario queda en null si la API no lo informa
 /// (una versión anterior a ese campo): no es lo mismo que "no tiene".

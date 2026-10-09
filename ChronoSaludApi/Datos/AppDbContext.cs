@@ -148,11 +148,23 @@ public class AppDbContext : DbContext
             .WithMany(r => r.RecetaMedicamentos)
             .HasForeignKey(rm => rm.IdReceta);
 
-        // RecetaMedicamento -> Medicamento
+        // RecetaMedicamento -> Medicamento. Sin borrado en cascada: borrar un
+        // medicamento borraba ese renglón de las recetas ya emitidas. Ahora la
+        // base frena el borrado de un medicamento que está en una receta.
         modelBuilder.Entity<RecetaMedicamento>()
             .HasOne(rm => rm.Medicamento)
             .WithMany(m => m.RecetaMedicamentos)
-            .HasForeignKey(rm => rm.IdMedicamento);
+            .HasForeignKey(rm => rm.IdMedicamento)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // RecetaMedicamento - copia de los datos del medicamento, con los
+        // mismos largos que en Medicamento para que siempre entre.
+        modelBuilder.Entity<RecetaMedicamento>(e =>
+        {
+            e.Property(rm => rm.NombreGenerico).HasMaxLength(500);
+            e.Property(rm => rm.Concentracion).HasMaxLength(200);
+            e.Property(rm => rm.FormaFarmaceutica).HasMaxLength(150);
+        });
 
         // Medicamento - longitudes de los datos del Vademécum (el genérico puede
         // ser largo: las combinaciones listan todas las drogas)

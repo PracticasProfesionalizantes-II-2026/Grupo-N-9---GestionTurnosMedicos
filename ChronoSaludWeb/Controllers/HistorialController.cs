@@ -195,6 +195,7 @@ public class HistorialController : ControladorBase
         Fecha = entrada.Fecha,
         Descripcion = entrada.Descripcion,
         Diagnostico = entrada.Diagnostico,
-        IdTurno = entrada.IdTurno
+        IdTurno = entrada.IdTurno,
+        Firma = FirmaViewModel.Desde(entrada.Doctor)
     };
 }

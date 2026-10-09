@@ -11,6 +11,9 @@ public class EntradaHistorialViewModel
     public string Diagnostico { get; init; } = string.Empty;
     public int? IdTurno { get; init; }
 
+    /// <summary>Quién escribió la entrada. Null si la API no lo mandó.</summary>
+    public FirmaViewModel? Firma { get; init; }
+
     public string FechaLarga => Fecha.ToString("D", TurnosIndexViewModel.Cultura);
     public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
 

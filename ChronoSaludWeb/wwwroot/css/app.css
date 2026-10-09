@@ -591,3 +591,48 @@
 [data-scale="xl"] {
   font-size: 125%;
 }
+
+/* Impresión (Recetas/Imprimir). En el papel va siempre el tema claro, con
+   tinta negra y sin sombras, aunque se haya elegido el tema oscuro. Lo que
+   no se imprime (encabezado, pie, barra del celular, avisos y botones)
+   lleva print:hidden en la vista. Va al final del archivo y sin capa para
+   ganarle al bloque del tema oscuro y a las utilidades. */
+@media print {
+  :root,
+  [data-theme="dark"] {
+    color-scheme: light;
+    --color-canvas: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-card: #FFFFFF;
+    --color-ink: #000000;
+    --color-muted: #404040;
+    --color-border: #BFBFBF;
+    --color-contorno: #BFBFBF;
+    --color-primary: #0B6E75;
+    --color-on-primary: #FFFFFF;
+  }
+
+  /* Sin el lugar que se deja para la barra del celular ni el margen de la
+     página: el papel ya tiene los suyos. */
+  body {
+    padding-bottom: 0;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* La hoja ocupa el papel entero: sin borde, sombra ni relleno propio. */
+  .hoja-receta {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 15mm;
+  }
+}

@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 9
+# Cambios en la API — Mejoras, pasos 2 a 10
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7) y `feature/cuentas` (pasos 8 y 9)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) y `feature/recetas-e-historia` (paso 10)
 
 Un apartado por cada paso.
 
@@ -417,3 +417,79 @@ Al final del objeto: `"activo": true` o `false`.
 | `Repositorios/UsuarioRepository.cs`, `IUsuarioRepository.cs` | `ObtenerConDoctor`, `ContarAdministradoresActivos`, `EstaActivo`, `GuardarActivo` (reemplaza a `Eliminar`) y `Buscar` con `bajas` |
 | `Repositorios/PacienteRepository.cs` | El listado, solo con cuentas activas |
 | `Logica/DTOs/UsuarioDTOs.cs` | `UsuarioDto` suma `Activo` |
+
+---
+
+## Paso 10 — Recetas que no cambian solas y quién firmó
+
+**Hay migración:** `CopiarMedicamentoEnReceta`:
+- agrega cuatro columnas a `RecetaMedicamentos`, todas admiten nulo;
+- llena esas columnas en las recetas que ya existen;
+- cambia la regla de borrado de la clave foránea hacia `Medicamentos` de `CASCADE` a `NO ACTION`;
+- no borra nada.
+
+El script se corre en Azure **antes** de desplegar la API: la API nueva lee esas columnas.
+
+### La receta guarda una copia del medicamento
+
+- **Al emitir una receta**, cada renglón guarda el nombre comercial, el genérico, la concentración y la forma farmacéutica del medicamento. Si después alguien edita el medicamento con `PUT /medicamentos/{id}`, la receta sigue diciendo lo que se recetó.
+- **Al modificar una receta** con `PUT /recetas/{id}`, los renglones se reemplazan y toman los datos del momento: el doctor la vuelve a firmar.
+- **`GET /pacientes/{id}/recetas`:** cada medicamento suma `nombre`, `nombreGenerico`, `concentracion` y `formaFarmaceutica`. Los campos que ya venían no cambian.
+  ```json
+  { "idMedicamento": 1, "nombre": "GEFINOVA", "nombreGenerico": "GEFITINIB",
+    "concentracion": "250 MG", "formaFarmaceutica": "COMPRIMIDO RECUBIERTO",
+    "dosis": "1 comprimido", "frecuencia": "cada 8 horas", "duracion": "5 días", "indicaciones": null }
+  ```
+- **El cuerpo de `POST /recetas` y `PUT /recetas/{id}` no cambia:** se manda el `idMedicamento` y la API copia los datos.
+- **Un renglón sin copia**, de una receta emitida con la API vieja después de correr el script, se muestra con los datos actuales del medicamento.
+
+### `DELETE /medicamentos/{id}` no borra uno que está en una receta
+
+**Antes**, borrar un medicamento borraba en cascada ese renglón de todas las recetas que lo tenían.
+
+| Respuesta | Cuándo |
+|---|---|
+| `204` | Salió bien: no figura en ninguna receta |
+| `404` *"Medicamento no encontrado."* | No existe |
+| `409` *"No se puede borrar: el medicamento figura en al menos una receta emitida."* | Está en alguna receta |
+
+Además, la base misma frena el borrado (clave foránea `NO ACTION`).
+
+### Quién firmó y quién escribió
+
+`GET /pacientes/{id}/recetas` y `GET /pacientes/{id}/historiales-clinicos` suman, al final de cada receta o entrada, el bloque `doctor`:
+
+```json
+"doctor": { "idDoctor": 1, "nombre": "Laura", "apellido": "Gomez",
+            "especialidad": "Clínica", "matricula": "MP-10001" }
+```
+
+En el historial, el `idDoctor` que ya venía sigue igual.
+
+### A quién le pega
+
+- **La Web:**
+  - muestra "Firmada por" en la receta y "Escrita por" en la historia clínica;
+  - tiene la hoja nueva para imprimir;
+  - ya no baja el vademécum completo para mostrar el nombre de los medicamentos.
+- **Quien pruebe desde Scalar:** `DELETE /medicamentos/{id}` ahora puede contestar `409`.
+- **El seeder:** no cambia. Carga medicamentos, no borra ninguno.
+- **Límite conocido:** si se emite una receta con un medicamento justo mientras otro lo borra, la base frena el borrado y la respuesta es `500` en vez de `409`. No se pierde ningún dato.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Entidades/RecetaMedicamento.cs` | Cuatro campos con la copia del medicamento |
+| `Datos/AppDbContext.cs` | Largos de la copia; la relación con `Medicamento` pasa a `Restrict` |
+| `Logica/RecetaLogica.cs` | Copia los datos al emitir y al modificar; el DTO usa la copia y suma el doctor |
+| `Logica/Profesional.cs` *(nuevo)* | Arma el bloque `doctor` |
+| `Logica/HistorialClinicoLogica.cs` | El DTO suma el doctor |
+| `Logica/MedicamentoLogica.cs`, `IMedicamentoLogica.cs` | `Eliminar` devuelve `(ok, error)` y frena si está en una receta |
+| `Endpoints/MedicamentoEndpoints.cs` | `DELETE` con `404` y `409` |
+| `Logica/DTOs/MedicamentoDTOs.cs` | `MedicamentoRecetadoDto` *(nuevo)*: lo que se lee de una receta |
+| `Logica/DTOs/RecetaDTOs.cs`, `HistorialClinicoDTOs.cs` | Suman `Doctor` |
+| `Logica/DTOs/DoctorDTOs.cs` | `ProfesionalDto` *(nuevo)* |
+| `Repositorios/RecetaRepository.cs`, `HistorialClinicoRepository.cs` | Cargan el doctor y su cuenta |
+| `Repositorios/MedicamentoRepository.cs`, `IMedicamentoRepository.cs` | `EstaEnAlgunaReceta` |
+| `Migrations/…_CopiarMedicamentoEnReceta.cs` | La migración, con el `UPDATE` que llena las recetas existentes |

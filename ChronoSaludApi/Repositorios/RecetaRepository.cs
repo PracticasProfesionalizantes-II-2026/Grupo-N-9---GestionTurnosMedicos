@@ -10,10 +10,13 @@ public class RecetaRepository : IRecetaRepository
 
     public RecetaRepository(AppDbContext db) => _db = db;
 
+    // El doctor y su cuenta se cargan para mostrar quién firmó la receta. El
+    // medicamento, para las recetas viejas que no tienen la copia de sus datos.
     public async Task<IEnumerable<Receta>> ObtenerDePaciente(int pacienteId)
         => await _db.Recetas
             .Include(r => r.RecetaMedicamentos)
                 .ThenInclude(rm => rm.Medicamento)
+            .Include(r => r.Doctor).ThenInclude(d => d!.Usuario)
             .Where(r => r.IdPaciente == pacienteId)
             .OrderByDescending(r => r.Fecha)
             .ToListAsync();
@@ -22,6 +25,7 @@ public class RecetaRepository : IRecetaRepository
         => await _db.Recetas
             .Include(r => r.RecetaMedicamentos)
                 .ThenInclude(rm => rm.Medicamento)
+            .Include(r => r.Doctor).ThenInclude(d => d!.Usuario)
             .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task Agregar(Receta receta)

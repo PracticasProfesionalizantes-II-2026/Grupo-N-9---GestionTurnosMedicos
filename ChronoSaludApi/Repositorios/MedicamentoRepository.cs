@@ -33,4 +33,7 @@ public class MedicamentoRepository : IMedicamentoRepository
         _db.Medicamentos.Remove(medicamento);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<bool> EstaEnAlgunaReceta(int id)
+        => await _db.RecetaMedicamentos.AnyAsync(rm => rm.IdMedicamento == id);
 }

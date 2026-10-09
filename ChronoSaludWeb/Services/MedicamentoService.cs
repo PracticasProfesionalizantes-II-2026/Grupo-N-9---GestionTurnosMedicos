@@ -32,8 +32,15 @@ public class MedicamentoService
     public MedicamentoService(ApiClient api) => _api = api;
 
     public static bool EsMarcadorOtro(Medicamento medicamento) =>
-        string.Equals(medicamento.Nombre?.Trim(), NombreMarcadorOtro, StringComparison.OrdinalIgnoreCase) &&
-        string.IsNullOrWhiteSpace(medicamento.NombreGenerico);
+        EsMarcadorOtro(medicamento.Nombre, medicamento.NombreGenerico);
+
+    /// <summary>
+    /// Lo mismo, a partir del nombre y el genérico: sirve para la copia que
+    /// guarda cada receta.
+    /// </summary>
+    public static bool EsMarcadorOtro(string? nombre, string? nombreGenerico) =>
+        string.Equals(nombre?.Trim(), NombreMarcadorOtro, StringComparison.OrdinalIgnoreCase) &&
+        string.IsNullOrWhiteSpace(nombreGenerico);
 
     /// <summary>
     /// GET /medicamentos. No pagina: devuelve el vademécum completo.
@@ -49,11 +56,4 @@ public class MedicamentoService
     /// </summary>
     public async Task<int?> ObtenerIdMarcadorOtroAsync()
         => (await ObtenerTodosAsync()).FirstOrDefault(EsMarcadorOtro)?.IdMedicamento;
-
-    /// <summary>
-    /// Diccionario id -> nombre, para resolver los medicamentos de una receta:
-    /// RecetaMedicamentoDto solo trae el IdMedicamento, no el nombre.
-    /// </summary>
-    public async Task<IReadOnlyDictionary<int, Medicamento>> ObtenerPorIdAsync()
-        => (await ObtenerTodosAsync()).ToDictionary(m => m.IdMedicamento);
 }

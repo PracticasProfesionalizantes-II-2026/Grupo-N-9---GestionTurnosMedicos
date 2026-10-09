@@ -89,12 +89,16 @@ public class RecetaLogica : IRecetaLogica
                 return (null, $"Doctor con id {idDoctor} no encontrado.", false);
         }
 
-        // Validar que existan todos los medicamentos
+        // Cada medicamento tiene que existir. Cada renglón guarda una copia de
+        // sus datos, así la receta no cambia si después se edita el medicamento.
+        var renglones = new List<RecetaMedicamento>();
         foreach (var m in dto.Medicamentos)
         {
             var med = await _medRepo.ObtenerPorId(m.IdMedicamento);
             if (med == null)
                 return (null, $"Medicamento con id {m.IdMedicamento} no encontrado.", false);
+
+            renglones.Add(ArmarRenglon(m, med));
         }
 
         var receta = new Receta
@@ -105,14 +109,7 @@ public class RecetaLogica : IRecetaLogica
             Fecha      = dto.Fecha,
             Vigencia   = dto.Vigencia,
             Detalles   = dto.Detalles,
-            RecetaMedicamentos = dto.Medicamentos.Select(m => new RecetaMedicamento
-            {
-                IdMedicamento = m.IdMedicamento,
-                Dosis         = m.Dosis,
-                Frecuencia    = m.Frecuencia,
-                Duracion      = m.Duracion,
-                Indicaciones  = m.Indicaciones
-            }).ToList()
+            RecetaMedicamentos = renglones
         };
 
         await _repo.Agregar(receta);
@@ -139,42 +136,83 @@ public class RecetaLogica : IRecetaLogica
         if (dto.Medicamentos == null || !dto.Medicamentos.Any())
             return (false, "Debe especificar al menos un medicamento.", false);
 
+        // Los renglones se reemplazan y toman los datos que tiene cada
+        // medicamento ahora: el doctor vuelve a firmar la receta.
+        var renglones = new List<RecetaMedicamento>();
         foreach (var m in dto.Medicamentos)
         {
             var med = await _medRepo.ObtenerPorId(m.IdMedicamento);
             if (med == null)
                 return (false, $"Medicamento con id {m.IdMedicamento} no encontrado.", false);
+
+            var renglon = ArmarRenglon(m, med);
+            renglon.IdReceta = id;
+            renglones.Add(renglon);
         }
 
         receta.IdTurno   = dto.IdTurno;
         receta.Fecha     = dto.Fecha;
         receta.Vigencia  = dto.Vigencia;
         receta.Detalles  = dto.Detalles;
-        receta.RecetaMedicamentos = dto.Medicamentos.Select(m => new RecetaMedicamento
-        {
-            IdReceta      = id,
-            IdMedicamento = m.IdMedicamento,
-            Dosis         = m.Dosis,
-            Frecuencia    = m.Frecuencia,
-            Duracion      = m.Duracion,
-            Indicaciones  = m.Indicaciones
-        }).ToList();
+        receta.RecetaMedicamentos = renglones;
 
         await _repo.Actualizar(receta);
         return (true, null, false);
     }
+
+    /// <summary>
+    /// Un renglón de la receta: lo que indicó el doctor más una copia de los
+    /// datos del medicamento tal como están hoy.
+    /// </summary>
+    private static RecetaMedicamento ArmarRenglon(RecetaMedicamentoDto m, Medicamento med) => new RecetaMedicamento
+    {
+        IdMedicamento     = m.IdMedicamento,
+        Dosis             = m.Dosis,
+        Frecuencia        = m.Frecuencia,
+        Duracion          = m.Duracion,
+        Indicaciones      = m.Indicaciones,
+        NombreMedicamento = med.Nombre,
+        NombreGenerico    = med.NombreGenerico,
+        Concentracion     = med.Concentracion,
+        FormaFarmaceutica = med.FormaFarmaceutica
+    };
 
     private static RecetaDto MapearDto(Receta r) => new RecetaDto(
         r.Id,
         r.Fecha,
         r.Vigencia,
         r.Detalles,
-        r.RecetaMedicamentos.Select(rm => new RecetaMedicamentoDto(
+        r.RecetaMedicamentos.Select(MapearRenglon).ToList(),
+        Profesional.Armar(r.Doctor)
+    );
+
+    private static MedicamentoRecetadoDto MapearRenglon(RecetaMedicamento rm)
+    {
+        // Un renglón sin copia es de una receta emitida antes de este cambio:
+        // se muestra el medicamento como está hoy.
+        if (rm.NombreMedicamento == null && rm.Medicamento != null)
+        {
+            return new MedicamentoRecetadoDto(
+                rm.IdMedicamento,
+                rm.Medicamento.Nombre,
+                rm.Medicamento.NombreGenerico,
+                rm.Medicamento.Concentracion,
+                rm.Medicamento.FormaFarmaceutica,
+                rm.Dosis,
+                rm.Frecuencia,
+                rm.Duracion,
+                rm.Indicaciones);
+        }
+
+        return new MedicamentoRecetadoDto(
             rm.IdMedicamento,
+            rm.NombreMedicamento ?? "",
+            rm.NombreGenerico,
+            rm.Concentracion,
+            rm.FormaFarmaceutica,
             rm.Dosis,
             rm.Frecuencia,
             rm.Duracion,
-            rm.Indicaciones
-        )).ToList()
-    );
+            rm.Indicaciones);
+    }
 }

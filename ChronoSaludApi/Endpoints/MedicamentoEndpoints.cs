@@ -54,12 +54,16 @@ public static class MedicamentoEndpoints
         .RequireAuthorization(p => p.RequireRole("administrador", "doctor"));
 
         // DELETE /medicamentos/{id}
+        // Un medicamento que figura en una receta no se borra: 409.
         grupo.MapDelete("/{id:int}", async (int id, IMedicamentoLogica logica) =>
         {
-            var ok = await logica.Eliminar(id);
-            return ok
-                ? Results.NoContent()
-                : Results.NotFound(new { error = "Medicamento no encontrado." });
+            var (ok, error) = await logica.Eliminar(id);
+            if (!ok)
+                return error!.Contains("no encontrado")
+                    ? Results.NotFound(new { error })
+                    : Results.Conflict(new { error });
+
+            return Results.NoContent();
         })
         .WithSummary("Eliminar medicamento")
         .RequireAuthorization(p => p.RequireRole("administrador"));

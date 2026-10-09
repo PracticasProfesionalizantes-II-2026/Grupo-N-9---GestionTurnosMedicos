@@ -17,7 +17,7 @@
 @* Barra de navegación del celular. Html.Raw es seguro acá: IconosLucide.Trazos
    devuelve literales del código. *@
 <nav aria-label="Principal"
-     class="fixed inset-x-0 bottom-0 z-20 border-t border-contorno-suave bg-surface shadow-barra-inferior px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden">
+     class="fixed inset-x-0 bottom-0 z-20 border-t border-contorno-suave bg-surface shadow-barra-inferior px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden print:hidden">
     <ul class="grid grid-cols-5 gap-1">
         @foreach (var item in Model.Barra)
         {

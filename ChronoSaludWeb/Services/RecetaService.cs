@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace ChronoSaludWeb.Services;
 
 /// <summary>
-/// Un medicamento dentro de una receta. Espeja RecetaMedicamentoDto.
-/// Ojo: solo trae el id, no el nombre; hay que cruzarlo con GET /medicamentos.
+/// Un medicamento de la receta que se manda al emitirla. Espeja
+/// RecetaMedicamentoDto: va solo el id, los datos del medicamento los copia la API.
 /// </summary>
 public record RecetaMedicamento(
     int IdMedicamento,
@@ -14,15 +14,32 @@ public record RecetaMedicamento(
     string? Indicaciones);
 
 /// <summary>
-/// Espeja RecetaDto. No trae IdPaciente ni IdDoctor: el paciente se conoce
-/// por el endpoint que se consultó, y quién la emitió no se puede saber.
+/// Un medicamento de una receta ya emitida. Espeja MedicamentoRecetadoDto:
+/// nombre, genérico, concentración y forma son una copia guardada al emitir,
+/// así que no cambian si después se edita el medicamento.
+/// </summary>
+public record MedicamentoRecetado(
+    int IdMedicamento,
+    string? Nombre,
+    string? NombreGenerico,
+    string? Concentracion,
+    string? FormaFarmaceutica,
+    string Dosis,
+    string Frecuencia,
+    string? Duracion,
+    string? Indicaciones);
+
+/// <summary>
+/// Espeja RecetaDto. No trae IdPaciente: el paciente se conoce por el
+/// endpoint que se consultó. Doctor es quien la firmó.
 /// </summary>
 public record Receta(
     int IdReceta,
     DateTime Fecha,
     DateTime Vigencia,
     string? Detalles,
-    IReadOnlyList<RecetaMedicamento> Medicamentos);
+    IReadOnlyList<MedicamentoRecetado> Medicamentos,
+    Profesional? Doctor = null);
 
 /// <summary>
 /// Respuesta de GET /pacientes/{id}/recetas: { recetas }.

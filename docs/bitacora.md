@@ -547,3 +547,23 @@ la baja lista los turnos que la frenan). Probado contra una API de
 mentira.
 **Ojo:** sin migración. No dar de baja cuentas de la demo: el seeder no
 puede entrar con ellas (si pasa, reactivarlas).
+
+## 2026-10-09 — mejoras, paso 10: recetas que no cambian solas, firmante e impresión
+**Hecho:** cada renglón de la receta guarda una copia del nombre, el
+genérico, la concentración y la forma del medicamento, así la receta no
+cambia si después se edita el medicamento. DELETE /medicamentos/{id}
+contesta 409 si el medicamento figura en una receta, y la base ya no borra
+en cascada esos renglones. Las recetas y la historia clínica traen quién
+las firmó o escribió (nombre, especialidad y matrícula). En la Web:
+"Firmada por" en el detalle y en la lista de recetas, "Escrita por" en la
+historia clínica, y la hoja nueva `Recetas/Imprimir/{id}`. La hoja se
+imprime con Ctrl + P, sin JavaScript. El bloque `@media print` de
+app.css la deja en blanco y negro aunque se haya elegido el tema oscuro.
+El listado de recetas ya no baja el vademécum completo. CSS recompilado
+con Tailwind 4.3.3. Probado contra SQL Server 2022 de verdad: se crearon
+recetas con la API vieja, se corrió el script idempotente dos veces, y
+después se probaron la API y la Web nuevas, con la hoja impresa a PDF.
+**Ojo:** hay migración (CopiarMedicamentoEnReceta). Lleva a mano un
+`UPDATE` dentro de `EXEC` que llena las recetas existentes. Sin el `EXEC`,
+el script idempotente falla con "nombre de columna no válido". El script
+se corre en Azure antes del merge.

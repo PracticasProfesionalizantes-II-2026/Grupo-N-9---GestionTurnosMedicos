@@ -16,6 +16,17 @@ public class RecetaMedicamento
 
     public string? Indicaciones { get; set; }
 
+    // Copia de los datos del medicamento al momento de emitir la receta. Así
+    // la receta no cambia si después se edita el medicamento. Las recetas
+    // emitidas antes de este cambio pueden tenerla vacía.
+    public string? NombreMedicamento { get; set; }
+
+    public string? NombreGenerico { get; set; }
+
+    public string? Concentracion { get; set; }
+
+    public string? FormaFarmaceutica { get; set; }
+
     // Navegación
     public Receta? Receta { get; set; }
 

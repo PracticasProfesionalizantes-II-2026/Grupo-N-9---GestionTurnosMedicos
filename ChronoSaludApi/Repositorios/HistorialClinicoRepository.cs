@@ -12,7 +12,11 @@ public class HistorialClinicoRepository : IHistorialClinicoRepository
 
     public async Task<IEnumerable<HistorialClinico>> ObtenerDePaciente(int pacienteId, DateTime? desde, DateTime? hasta)
     {
-        var query = _db.HistorialesClinicos.Where(h => h.IdPaciente == pacienteId).AsQueryable();
+        // El doctor y su cuenta se cargan para mostrar quién escribió cada entrada.
+        var query = _db.HistorialesClinicos
+            .Include(h => h.Doctor).ThenInclude(d => d!.Usuario)
+            .Where(h => h.IdPaciente == pacienteId)
+            .AsQueryable();
         if (desde.HasValue) query = query.Where(h => h.Fecha >= desde);
         if (hasta.HasValue) query = query.Where(h => h.Fecha <= hasta);
         return await query.OrderByDescending(h => h.Fecha).ToListAsync();

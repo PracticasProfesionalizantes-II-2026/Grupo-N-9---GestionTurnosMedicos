@@ -8,5 +8,5 @@ public interface IMedicamentoLogica
     Task<MedicamentoDto?> ObtenerPorId(int id);
     Task<int> Crear(MedicamentoCreateDto dto);
     Task<bool> Actualizar(int id, MedicamentoCreateDto dto);
-    Task<bool> Eliminar(int id);
+    Task<(bool ok, string? error)> Eliminar(int id);
 }

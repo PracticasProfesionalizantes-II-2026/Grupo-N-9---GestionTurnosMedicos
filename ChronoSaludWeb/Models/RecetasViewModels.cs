@@ -46,7 +46,8 @@ public class RecetaMedicamentoViewModel
     public int IdMedicamento { get; init; }
 
     /// <summary>
-    /// Resuelto contra GET /medicamentos: la receta solo trae el id.
+    /// Nombre comercial. Como el genérico, la concentración y la forma, es la
+    /// copia que guardó la receta al emitirse.
     /// </summary>
     public string? Nombre { get; init; }
 
@@ -97,9 +98,50 @@ public class RecetaMedicamentoViewModel
         }
     }
 
+    /// <summary>
+    /// Para la hoja impresa va primero el genérico: "Ibuprofeno 400 mg ·
+    /// comprimido (IBUPIRAC)". Sin genérico queda la descripción de siempre.
+    /// </summary>
+    public string DescripcionParaImprimir
+    {
+        get
+        {
+            if (EsOtro || string.IsNullOrWhiteSpace(NombreGenerico))
+                return DescripcionCompleta;
+
+            var generico = NombreGenerico.Trim().ToLower(TurnosIndexViewModel.Cultura);
+            var descripcion = char.ToUpper(generico[0], TurnosIndexViewModel.Cultura) + generico[1..];
+
+            if (!string.IsNullOrWhiteSpace(Concentracion))
+                descripcion += $" {Concentracion.Trim()}";
+
+            if (!string.IsNullOrWhiteSpace(FormaFarmaceutica))
+                descripcion += $" · {FormaFarmaceutica.Trim().ToLower(TurnosIndexViewModel.Cultura)}";
+
+            if (!string.IsNullOrWhiteSpace(Nombre))
+                descripcion += $" ({Nombre.Trim()})";
+
+            return descripcion;
+        }
+    }
+
     /// <summary>Las indicaciones sin la línea del nombre en las filas "Otro...".</summary>
     public string? IndicacionesMostradas =>
         EsOtro ? IndicacionesDeOtro.Separar(Indicaciones).Indicaciones : Indicaciones;
+
+    public static RecetaMedicamentoViewModel Desde(MedicamentoRecetado medicamento) => new()
+    {
+        IdMedicamento = medicamento.IdMedicamento,
+        Nombre = medicamento.Nombre,
+        NombreGenerico = medicamento.NombreGenerico,
+        Concentracion = medicamento.Concentracion,
+        FormaFarmaceutica = medicamento.FormaFarmaceutica,
+        EsOtro = MedicamentoService.EsMarcadorOtro(medicamento.Nombre, medicamento.NombreGenerico),
+        Dosis = medicamento.Dosis,
+        Frecuencia = medicamento.Frecuencia,
+        Duracion = medicamento.Duracion,
+        Indicaciones = medicamento.Indicaciones
+    };
 }
 
 public class RecetaFilaViewModel
@@ -111,6 +153,9 @@ public class RecetaFilaViewModel
     public IReadOnlyList<RecetaMedicamentoViewModel> Medicamentos { get; init; }
         = Array.Empty<RecetaMedicamentoViewModel>();
 
+    /// <summary>Quién la firmó. Null si la API no lo mandó.</summary>
+    public FirmaViewModel? Firma { get; init; }
+
     public bool Vigente => Vigencia.Date >= FechaArgentina.Hoy();
 
     public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
@@ -119,6 +164,16 @@ public class RecetaFilaViewModel
     public string VigenciaLarga => Vigencia.ToString("D", TurnosIndexViewModel.Cultura);
 
     public bool TieneDetalles => !string.IsNullOrWhiteSpace(Detalles);
+
+    public static RecetaFilaViewModel Desde(Receta receta) => new()
+    {
+        IdReceta = receta.IdReceta,
+        Fecha = receta.Fecha,
+        Vigencia = receta.Vigencia,
+        Detalles = receta.Detalles,
+        Medicamentos = receta.Medicamentos.Select(RecetaMedicamentoViewModel.Desde).ToList(),
+        Firma = FirmaViewModel.Desde(receta.Doctor)
+    };
 }
 
 public class RecetasIndexViewModel
@@ -154,6 +209,37 @@ public class RecetaDetalleViewModel
 
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
+}
+
+/// <summary>
+/// La hoja de la receta para imprimir (Recetas/Imprimir).
+/// </summary>
+public class RecetaImprimirViewModel
+{
+    public RecetaFilaViewModel? Receta { get; init; }
+    public int IdPaciente { get; init; }
+    public string? NombrePaciente { get; init; }
+    public string? TipoDocumento { get; init; }
+    public string? Dni { get; init; }
+
+    /// <summary>Cuándo se armó la hoja, en hora de Argentina.</summary>
+    public DateTime GeneradaEl { get; init; }
+
+    public string? Error { get; init; }
+    public bool HuboError => Error is not null;
+
+    /// <summary>"DNI 30111222", solo el número si no hay tipo, o null si no hay número.</summary>
+    public string? Documento
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Dni)) return null;
+            if (string.IsNullOrWhiteSpace(TipoDocumento)) return Dni;
+            return $"{TipoDocumento} {Dni}";
+        }
+    }
+
+    public string GeneradaElTexto => GeneradaEl.ToString("d/M/yyyy, HH:mm", TurnosIndexViewModel.Cultura);
 }
 
 /// <summary>
