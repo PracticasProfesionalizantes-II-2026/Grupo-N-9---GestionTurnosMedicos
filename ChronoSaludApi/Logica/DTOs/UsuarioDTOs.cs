@@ -6,7 +6,8 @@ public record UsuarioDto(
     string Apellido,
     string Email,
     string? Telefono,
-    string Rol
+    string Rol,
+    bool Activo
 );
 
 // Ficha: datos del paciente que se guardan junto con la cuenta. Solo se

@@ -94,8 +94,30 @@
             <span aria-hidden="true"> · </span>
             <span class="capitalize">@Model.Rol</span>
         </p>
+        @if (!Model.Activo)
+        {
+            <p class="mt-2">
+                <partial name="_Chip" model='new ChipViewModel { Texto = "Dada de baja", Tono = TonoChip.Peligro }' />
+            </p>
+        }
     </div>
 </div>
+
+@if (!Model.Activo)
+{
+    <div class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+        </svg>
+        <span>
+            Esta cuenta está dada de baja: no puede entrar y no aparece en los listados. Sus datos
+            se pueden seguir corrigiendo. Para que vuelva a entrar, usá <strong>Reactivar</strong> al final de la página.
+        </span>
+    </div>
+}
 
 <div class="mt-6 tarjeta p-8">
     <h2 class="@claseSeccion">Datos de la cuenta</h2>
@@ -367,5 +389,39 @@
                 <button type="submit" class="@claseBoton">Completar perfil</button>
             </div>
         </form>
+    </div>
+}
+
+@* Al final, separado del resto: dar de baja (no en la propia cuenta) o
+   reactivar. Las dos llevan a una pantalla de confirmación. *@
+@if (Model.Activo && !Model.EsLaPropia)
+{
+    <div class="mt-6 tarjeta p-8">
+        <h2 class="@claseSeccion">Dar de baja</h2>
+        <p class="mt-2 text-sm text-muted">
+            La cuenta deja de poder entrar y, si es de un doctor, deja de recibir turnos. No se borra
+            nada y se puede reactivar. Antes vas a ver una confirmación.
+        </p>
+        <div class="mt-4 flex justify-end">
+            <a asp-action="Baja" asp-route-id="@Model.IdUsuario"
+               class="boton boton-secundario border-status-cancelado text-status-cancelado">
+                Dar de baja…
+            </a>
+        </div>
+    </div>
+}
+else if (!Model.Activo)
+{
+    <div class="mt-6 tarjeta p-8">
+        <h2 class="@claseSeccion">Reactivar</h2>
+        <p class="mt-2 text-sm text-muted">
+            La cuenta vuelve a poder entrar con la misma contraseña y, si es de un doctor, vuelve a
+            Doctores con su horario.
+        </p>
+        <div class="mt-4 flex justify-end">
+            <a asp-action="Reactivar" asp-route-id="@Model.IdUsuario" class="@claseBoton">
+                Reactivar…
+            </a>
+        </div>
     </div>
 }

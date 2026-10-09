@@ -33,6 +33,19 @@ builder.Services
             IssuerSigningKey         = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
+
+        // El token dura 8 horas. Para que una cuenta dada de baja deje de
+        // entrar en el momento, en cada pedido se revisa que siga activa; si
+        // no, el pedido sale con 401 y la Web cierra la sesión.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async contexto =>
+            {
+                var usuarios = contexto.HttpContext.RequestServices.GetRequiredService<IUsuarioRepository>();
+                if (!await CuentaActiva.EstaActivaAsync(contexto.Principal!, usuarios))
+                    contexto.Fail("La cuenta está dada de baja.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();

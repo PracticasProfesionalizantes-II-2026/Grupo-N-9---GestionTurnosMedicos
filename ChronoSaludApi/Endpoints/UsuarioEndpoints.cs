@@ -123,17 +123,37 @@ public static class UsuarioEndpoints
         .RequireAuthorization();
 
         // DELETE /usuarios/{id}
-        grupo.MapDelete("/{id:int}", async (int id, IUsuarioLogica logica) =>
+        // Baja lógica. Quién la pide sale del token: nadie se da de baja a sí
+        // mismo. Los frenos (último administrador, turnos en pie) van con 409.
+        grupo.MapDelete("/{id:int}", async (int id, HttpContext ctx, IUsuarioLogica logica) =>
         {
-            var (ok, error) = await logica.EliminarLogico(id);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idSolicitante))
+                return Results.Unauthorized();
+
+            var (ok, error) = await logica.DarDeBaja(id, idSolicitante);
             if (!ok)
                 return error!.Contains("no encontrado")
                     ? Results.NotFound(new { error })
-                    : Results.Forbid();
+                    : Results.Conflict(new { error });
 
             return Results.NoContent();
         })
-        .WithSummary("Baja lógica de usuario")
+        .WithSummary("Baja lógica de usuario (y de su perfil de doctor)")
+        .RequireAuthorization(policy => policy.RequireRole("administrador"));
+
+        // POST /usuarios/{id}/reactivar
+        grupo.MapPost("/{id:int}/reactivar", async (int id, IUsuarioLogica logica) =>
+        {
+            var (ok, error) = await logica.Reactivar(id);
+            if (!ok)
+                return error!.Contains("no encontrado")
+                    ? Results.NotFound(new { error })
+                    : Results.Conflict(new { error });
+
+            return Results.Ok(new { mensaje = "Cuenta reactivada." });
+        })
+        .WithSummary("Reactivar una cuenta dada de baja (y su perfil de doctor)")
         .RequireAuthorization(policy => policy.RequireRole("administrador"));
 
         // GET /usuarios
@@ -142,18 +162,19 @@ public static class UsuarioEndpoints
             string? buscar,
             string? rol,
             int pagina = 1,
-            int limite = 20) =>
+            int limite = 20,
+            bool bajas = false) =>
         {
             pagina = Math.Max(pagina, 1);
             limite = Math.Clamp(limite, 1, 100);
 
-            var (total, usuarios, error) = await logica.Buscar(buscar, rol, pagina, limite);
+            var (total, usuarios, error) = await logica.Buscar(buscar, rol, pagina, limite, bajas);
             if (error != null)
                 return Results.BadRequest(new { error });
 
             return Results.Ok(new { total, pagina, usuarios });
         })
-        .WithSummary("Buscar usuarios activos por nombre, apellido o email")
+        .WithSummary("Buscar usuarios activos (o, con bajas=true, los dados de baja) por nombre, apellido o email")
         .RequireAuthorization(policy => policy.RequireRole("administrador"));
     }
 }

@@ -27,6 +27,12 @@ public class UsuarioEditarViewModel
     /// <summary>Según la API. Decide si el avatar pide la foto y si se ofrece quitarla.</summary>
     public bool TieneFoto { get; init; }
 
+    /// <summary>False si la cuenta está dada de baja: se ofrece reactivarla.</summary>
+    public bool Activo { get; init; } = true;
+
+    /// <summary>Es la cuenta del administrador logueado: no se ofrece darla de baja.</summary>
+    public bool EsLaPropia { get; init; }
+
     public CuentaEditarViewModel Cuenta { get; set; } = new();
 
     public PacienteEditarViewModel? Paciente { get; set; }
@@ -123,6 +129,9 @@ public class UsuariosIndexViewModel
     /// <summary>Null es "todos los roles".</summary>
     public string? Rol { get; init; }
 
+    /// <summary>Pestaña "Dadas de baja" (estado=bajas en la URL). Si no, las activas.</summary>
+    public bool VerBajas { get; init; }
+
     public string? Error { get; init; }
     public bool HuboError => Error is not null;
 
@@ -148,7 +157,23 @@ public class UsuariosIndexViewModel
 
         if (!string.IsNullOrEmpty(Buscar)) ruta["buscar"] = Buscar;
         if (!string.IsNullOrEmpty(Rol)) ruta["rol"] = Rol;
+        if (VerBajas) ruta["estado"] = "bajas";
         ruta["pagina"] = $"{pagina}";
+
+        return ruta;
+    }
+
+    /// <summary>
+    /// La misma búsqueda en la otra pestaña (activas o dadas de baja), desde
+    /// la primera página.
+    /// </summary>
+    public IDictionary<string, string> RutaPestana(bool bajas)
+    {
+        var ruta = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(Buscar)) ruta["buscar"] = Buscar;
+        if (!string.IsNullOrEmpty(Rol)) ruta["rol"] = Rol;
+        if (bajas) ruta["estado"] = "bajas";
 
         return ruta;
     }
@@ -340,4 +365,34 @@ public class PacienteEditarViewModel
         if (string.IsNullOrWhiteSpace(texto)) return null;
         return texto.Trim();
     }
+}
+
+/// <summary>
+/// Confirmación de la baja o de la reactivación de una cuenta
+/// (Usuarios/Baja y Usuarios/Reactivar).
+/// </summary>
+public class CambioDeEstadoCuentaViewModel
+{
+    public int IdUsuario { get; init; }
+    public string NombreCompleto { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string Rol { get; init; } = string.Empty;
+    public bool TieneFoto { get; init; }
+
+    /// <summary>Tiene perfil de doctor: la baja también lo saca de Doctores.</summary>
+    public bool TienePerfilDoctor { get; init; }
+
+    /// <summary>
+    /// Solo en la baja: los turnos pendientes o confirmados desde hoy, que la
+    /// frenan. Se muestran los primeros; el total va aparte.
+    /// </summary>
+    public IReadOnlyList<TurnoLista> TurnosQueFrenan { get; init; } = Array.Empty<TurnoLista>();
+    public int TotalQueFrenan { get; init; }
+
+    /// <summary>Sin turnos en pie, se ofrece el botón de la baja.</summary>
+    public bool PuedeDarDeBaja => TotalQueFrenan == 0;
+
+    /// <summary>Por ejemplo "jueves 9 de octubre".</summary>
+    public static string FechaDe(TurnoLista turno) =>
+        turno.FechaInicio.ToString("dddd d 'de' MMMM", TurnosIndexViewModel.Cultura);
 }

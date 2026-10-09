@@ -1,0 +1,98 @@
+@model CambioDeEstadoCuentaViewModel
+@{
+    ViewData["Title"] = $"Dar de baja a {Model.NombreCompleto}";
+}
+
+<a asp-action="Editar" asp-route-id="@Model.IdUsuario"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al usuario
+</a>
+
+<div class="mt-6 max-w-xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">¿Dar de baja la cuenta de @Model.NombreCompleto?</h1>
+    <p class="mt-1 text-sm text-muted">
+        No se borra nada y la podés reactivar cuando quieras.
+    </p>
+
+    <div class="mt-6 tarjeta p-6">
+        <div class="flex items-center gap-3">
+            <partial name="_Avatar"
+                     model='new AvatarViewModel { Nombre = Model.NombreCompleto, FotoUrl = Model.TieneFoto ? Url.Action("Foto", new { id = Model.IdUsuario }) : null, Tamano = TamanoAvatar.Mediano }' />
+            <span class="min-w-0">
+                <span class="block font-medium text-ink">@Model.NombreCompleto</span>
+                <span class="block text-sm text-muted">
+                    <span class="break-all">@Model.Email</span>
+                    <span aria-hidden="true"> · </span>
+                    <span class="capitalize">@Model.Rol</span>
+                </span>
+            </span>
+        </div>
+
+        <h2 class="mt-5 border-t border-border pt-5 text-sm font-semibold text-ink">Qué va a pasar</h2>
+        <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+            <li>No va a poder entrar, y si tiene la sesión abierta se le cierra en el próximo clic.</li>
+            @if (Model.TienePerfilDoctor)
+            {
+                <li>Deja de aparecer en Doctores y no se le pueden dar turnos. Su horario queda guardado.</li>
+            }
+            <li>La historia clínica, las recetas y los turnos pasados quedan como están.</li>
+        </ul>
+
+        @if (!Model.PuedeDarDeBaja)
+        {
+            @* Los turnos en pie frenan la baja: primero hay que resolverlos. *@
+            <div role="alert"
+                 class="mt-5 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                <p class="font-semibold">
+                    Todavía no se puede: tiene @Model.TotalQueFrenan
+                    @(Model.TotalQueFrenan == 1 ? "turno pendiente o confirmado" : "turnos pendientes o confirmados")
+                    desde hoy.
+                </p>
+                <p class="mt-1">Cancelalos o reprogramalos desde cada turno y después volvé acá.</p>
+            </div>
+
+            <ul class="mt-4 divide-y divide-border text-sm">
+                @foreach (var turno in Model.TurnosQueFrenan)
+                {
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span>
+                            <span class="capitalize text-ink">@CambioDeEstadoCuentaViewModel.FechaDe(turno)</span>
+                            <span class="tabular-nums text-muted"> · @turno.HoraInicio</span>
+                            <span class="block text-muted">@turno.Paciente con @turno.Doctor</span>
+                        </span>
+                        <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                           class="rounded-badge font-semibold text-primary hover:text-primary-hover hover:underline">
+                            Ver turno #@turno.IdTurno
+                        </a>
+                    </li>
+                }
+            </ul>
+            @if (Model.TotalQueFrenan > Model.TurnosQueFrenan.Count)
+            {
+                <p class="mt-2 text-xs text-muted">Se muestran los primeros. El resto está en el listado de turnos.</p>
+            }
+
+            <div class="mt-7">
+                <a asp-action="Editar" asp-route-id="@Model.IdUsuario" class="boton boton-secundario">
+                    Volver al usuario
+                </a>
+            </div>
+        }
+        else
+        {
+            <form asp-action="Baja" asp-route-id="@Model.IdUsuario" method="post" class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit" class="boton boton-peligro">
+                    Sí, dar de baja
+                </button>
+                <a asp-action="Editar" asp-route-id="@Model.IdUsuario" class="boton boton-secundario">
+                    No, volver al usuario
+                </a>
+            </form>
+        }
+    </div>
+</div>

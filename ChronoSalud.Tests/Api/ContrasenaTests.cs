@@ -30,7 +30,7 @@ public class ContrasenaTests
             ["Jwt:Audience"] = "ChronoSaludClients"
         };
         var configuracion = new ConfigurationBuilder().AddInMemoryCollection(valores).Build();
-        _logica = new UsuarioLogica(_usuarios, _pacientes, configuracion);
+        _logica = new UsuarioLogica(_usuarios, _pacientes, new TurnoRepositoryFalso(), new RelojFijo(), configuracion);
 
         // Un usuario con la contraseña guardada como hash, igual que en la base.
         _usuario = new Usuario

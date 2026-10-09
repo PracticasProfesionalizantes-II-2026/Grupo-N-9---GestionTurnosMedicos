@@ -15,7 +15,12 @@ public class PacienteRepository : IPacienteRepository
     public async Task<(int total, List<Paciente> pacientes)> Buscar(
         string? nombre, string? dni, int? coberturaId, int pagina, int limite)
     {
-        var query = _db.Pacientes.AsNoTracking().Include(p => p.Usuario).AsQueryable();
+        // Solo pacientes con la cuenta activa. La ficha por id sigue
+        // accesible, para no perder la historia clínica de una baja.
+        var query = _db.Pacientes
+            .AsNoTracking()
+            .Include(p => p.Usuario)
+            .Where(p => p.Usuario!.Activo);
 
         if (!string.IsNullOrEmpty(nombre))
             query = query.Where(p =>

@@ -12,12 +12,21 @@ public class UsuarioLogica : IUsuarioLogica
 {
     private readonly IUsuarioRepository _repo;
     private readonly IPacienteRepository _pacienteRepo;
+    private readonly ITurnoRepository _turnoRepo;
+    private readonly IReloj _reloj;
     private readonly IConfiguration _config;
 
-    public UsuarioLogica(IUsuarioRepository repo, IPacienteRepository pacienteRepo, IConfiguration config)
+    public UsuarioLogica(
+        IUsuarioRepository repo,
+        IPacienteRepository pacienteRepo,
+        ITurnoRepository turnoRepo,
+        IReloj reloj,
+        IConfiguration config)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
+        _turnoRepo = turnoRepo;
+        _reloj = reloj;
         _config = config;
     }
 
@@ -115,7 +124,7 @@ public class UsuarioLogica : IUsuarioLogica
         var u = await _repo.ObtenerPorId(id);
         if (u == null) return null;
 
-        return new UsuarioDto(u.Id, u.Nombre, u.Apellido, u.Email, u.Telefono, u.Rol);
+        return new UsuarioDto(u.Id, u.Nombre, u.Apellido, u.Email, u.Telefono, u.Rol, u.Activo);
     }
 
     public async Task<(bool ok, string? error)> Actualizar(int id, UsuarioUpdateDto dto)
@@ -157,25 +166,109 @@ public class UsuarioLogica : IUsuarioLogica
         return (true, null);
     }
 
-    public async Task<(bool ok, string? error)> EliminarLogico(int id)
+    /// <summary>
+    /// Baja lógica: la cuenta deja de poder entrar y, si es de un doctor, el
+    /// doctor deja de aparecer y de recibir turnos. No se borra nada: la
+    /// historia clínica, las recetas y los turnos pasados quedan.
+    /// Se frena (con el motivo) si es la propia cuenta, si es el último
+    /// administrador o si tiene turnos en pie desde hoy.
+    /// </summary>
+    public async Task<(bool ok, string? error)> DarDeBaja(int id, int idSolicitante)
     {
-        var usuario = await _repo.ObtenerPorId(id);
-        if (usuario == null) return (false, "Usuario no encontrado.");
+        var usuario = await _repo.ObtenerConDoctor(id);
+        if (usuario == null)
+            return (false, "Usuario no encontrado.");
+
+        if (!usuario.Activo)
+            return (false, "La cuenta ya está dada de baja.");
+
+        if (usuario.Id == idSolicitante)
+            return (false, "No podés dar de baja tu propia cuenta.");
+
+        if (usuario.Rol == "administrador" && await _repo.ContarAdministradoresActivos() <= 1)
+            return (false, "Es el único administrador activo: sin él nadie podría administrar el sistema.");
+
+        var turnosEnPie = await ContarTurnosEnPie(usuario);
+        if (turnosEnPie > 0)
+        {
+            var cuantos = turnosEnPie == 1
+                ? "1 turno pendiente o confirmado"
+                : $"{turnosEnPie} turnos pendientes o confirmados";
+            return (false, $"La cuenta tiene {cuantos} desde hoy. Cancelalos o reprogramalos antes de darla de baja.");
+        }
 
         usuario.Activo = false;
-        await _repo.Eliminar(usuario);
+        if (usuario.Doctor != null)
+            usuario.Doctor.Activo = false;
+
+        await _repo.GuardarActivo(usuario);
         return (true, null);
     }
 
+    /// <summary>
+    /// Vuelve a activar una cuenta dada de baja y, si tiene, su perfil de
+    /// doctor. El horario del doctor quedó guardado, así que vuelve igual.
+    /// </summary>
+    public async Task<(bool ok, string? error)> Reactivar(int id)
+    {
+        var usuario = await _repo.ObtenerConDoctor(id);
+        if (usuario == null)
+            return (false, "Usuario no encontrado.");
+
+        if (usuario.Activo)
+            return (false, "La cuenta ya está activa.");
+
+        usuario.Activo = true;
+        if (usuario.Doctor != null)
+            usuario.Doctor.Activo = true;
+
+        await _repo.GuardarActivo(usuario);
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Cuántos turnos pendientes o confirmados tiene la cuenta desde hoy (hora
+    /// de Argentina), como paciente o como doctor.
+    /// </summary>
+    private async Task<int> ContarTurnosEnPie(Usuario usuario)
+    {
+        var total = 0;
+
+        var paciente = await _pacienteRepo.ObtenerPorIdUsuario(usuario.Id);
+        if (paciente != null)
+            total += await ContarTurnosEnPie(pacienteId: paciente.Id, doctorId: null);
+
+        if (usuario.Doctor != null)
+            total += await ContarTurnosEnPie(pacienteId: null, doctorId: usuario.Doctor.Id);
+
+        return total;
+    }
+
+    private async Task<int> ContarTurnosEnPie(int? pacienteId, int? doctorId)
+    {
+        var filtro = new FiltroTurnos
+        {
+            PacienteId = pacienteId,
+            DoctorId = doctorId,
+            Desde = _reloj.Ahora().Date
+        };
+        filtro.Estados.Add(EstadosTurno.Pendiente);
+        filtro.Estados.Add(EstadosTurno.Confirmado);
+
+        // Alcanza con el total: se pide una página de un solo turno.
+        var (total, _) = await _turnoRepo.Buscar(filtro, "fecha", false, 1, 1);
+        return total;
+    }
+
     public async Task<(int total, IEnumerable<UsuarioListaDto> usuarios, string? error)> Buscar(
-        string? buscar, string? rol, int pagina, int limite)
+        string? buscar, string? rol, int pagina, int limite, bool bajas = false)
     {
         var rolesValidos = new[] { "paciente", "doctor", "administrador" };
         if (!string.IsNullOrEmpty(rol) && !rolesValidos.Contains(rol))
             return (0, Enumerable.Empty<UsuarioListaDto>(),
                 "Rol inválido. Valores válidos: paciente, doctor, administrador.");
 
-        var (total, usuarios) = await _repo.Buscar(buscar?.Trim(), rol, pagina, limite);
+        var (total, usuarios) = await _repo.Buscar(buscar?.Trim(), rol, pagina, limite, bajas);
         var conFoto = (await _repo.ObtenerIdsConFoto(usuarios.Select(u => u.Id))).ToHashSet();
 
         var resultado = usuarios.Select(u => new UsuarioListaDto(
