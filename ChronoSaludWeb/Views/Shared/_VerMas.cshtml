@@ -3,9 +3,12 @@
 @* El "…" de las tarjetas de número, donde no hay lugar para un texto: lleva a
    la pantalla que muestra todo lo que la tarjeta resume. El texto va en un
    sr-only porque tres puntos solos no le dicen nada a un lector de pantalla.
-   El foco lo dibuja la regla global de app.css. *@
+   El foco lo dibuja la regla global de app.css. relative: el sr-only (que
+   tiene posición absoluta) queda adentro del enlace; sin eso, en el celular
+   con letra grande se salía de la pantalla y la corría de costado. min-h-11 y
+   min-w-11: 44 px para tocarlo, como el resto de los botones. *@
 <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.Ruta"
-   class="inline-flex shrink-0 items-center rounded-badge px-2 py-1 text-muted transition-colors hover:bg-primary-soft/40 hover:text-primary">
+   class="relative inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-badge px-2 py-1 text-muted transition-colors hover:bg-primary-soft/40 hover:text-primary">
     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         @Html.Raw(IconosLucide.Trazos("puntos"))

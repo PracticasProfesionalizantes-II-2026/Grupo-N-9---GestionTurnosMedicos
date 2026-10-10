@@ -723,3 +723,30 @@ con la API y la Web reales: 42 chequeos.
 - **Para Azure:** cargar `Recuperacion__UrlWeb` con la URL de la Web publicada (si no, el enlace apunta a `localhost:5044`). Conviene también `Recuperacion__Clave`, una clave larga propia; si falta, se usa la del JWT.
 - Hasta conectar un proveedor de correo, el enlace solo se ve en el log de la API (en Azure, en el Log stream), así que un paciente real no lo recibe. Además, el log pasa a tener enlaces que sirven para cambiar contraseñas.
 - La API conviene publicarla antes que la Web.
+
+## 2026-10-10 — mejoras, paso 19: auditoría para lectores de pantalla
+**Hecho:**
+- **Auditoría con la app real:** SQL Server 2022 en un contenedor, la API, la Web y los datos de `tools/Seed`, más una receta, una consulta y un estudio.
+  - Con axe-core (reglas WCAG 2.1 A y AA y buenas prácticas) se pasaron 58 pantallas de los cuatro casos (sin sesión, paciente, doctor y administrador), en tema claro, oscuro y con letra extra grande en el celular: 174 pasadas.
+  - También se revisaron los menús y la ventanita de ayuda abiertos, los formularios con errores y el recorrido con Tab (sin foco en elementos ocultos y con contorno siempre visible).
+  - **Resultado:** axe no encontró ninguna violación. Lo que se arregló salió de leer el árbol de accesibilidad, que es lo mismo que leen NVDA, VoiceOver y TalkBack.
+- **Arreglos:**
+  - **Cada enlace de turno dice de qué turno es.** En el listado y en el inicio, "ver detalle del turno" y "Cancelar el turno de Ana Duarte" se repetían iguales en cada fila. Ahora dicen "Laura Gomez — ver el turno del lunes 12 de octubre a las 08:00" y "Cancelar el turno con Laura Gomez del lunes 12 de octubre a las 08:00" (`TurnoFilaViewModel.CuandoParaLector`). Lo mismo para Confirmar, Completado y Ausente.
+  - **El paciente ve la columna "Doctor":** antes era "Paciente", con su propio nombre en todas las filas y su foto. No es un enlace de orden, porque la API no ordena por doctor.
+  - **Los encabezados que ordenan** dicen "ordenar por esta columna".
+  - **"Consultorio Consultorio 101":** el dato a veces ya trae la palabra. `ConsultorioTexto.Para` la pone una sola vez en el detalle, la confirmación, el comprobante y el `.ics`.
+  - **Cancelar turno:** el lector aclara "Paciente:" y "Doctor:"; antes leía dos nombres seguidos.
+  - **Confirmar turno:** "Queda pendiente…" pasa a "Después queda esperando la confirmación del consultorio", como en el paso 17.
+  - **Las tarjetas de números del inicio:**
+    - el "…" mide 44 px, como el resto de los botones;
+    - su texto oculto ya no corre la página de costado (`relative`);
+    - en el celular con letra extra grande las tarjetas pasan a una columna, porque antes se salían de la pantalla.
+- **Pruebas:** 10 nuevas (348 en total).
+
+**Ojo:**
+- Sin migración, sin cambios en la API y sin nada para Azure.
+- La prueba con lectores de pantalla reales queda para el grupo, con la guía `paso-19.md`.
+- **Quedan para más adelante:**
+  - en la barra del celular con letra extra grande, "Pacientes" y "Cuentas" se cortan en cualquier letra;
+  - las notificaciones traen fechas como "13/10/2026" desde la API;
+  - en Estudios, la fecha corta "10 oct 2026".

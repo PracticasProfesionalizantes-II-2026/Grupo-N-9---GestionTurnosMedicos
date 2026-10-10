@@ -2,7 +2,10 @@
 
 @if (Model.Count > 0)
 {
-    <div class="grid grid-cols-2 gap-4">
+    @* Dos columnas mientras cada tarjeta tenga al menos 10rem; si no, una.
+       Como es en rem, con la letra extra grande en el celular las tarjetas
+       pasan solas a una columna en vez de salirse de la pantalla. *@
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4">
         @{ var indice = 0; }
         @foreach (var metrica in Model)
         {

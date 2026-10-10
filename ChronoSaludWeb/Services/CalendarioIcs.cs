@@ -34,7 +34,7 @@ public static class CalendarioIcs
 
         var lugar = string.Join(", ", new[]
         {
-            string.IsNullOrWhiteSpace(turno.Consultorio) ? null : $"Consultorio {turno.Consultorio.Trim()}",
+            ConsultorioTexto.Para(turno.Consultorio),
             string.IsNullOrWhiteSpace(direccion) ? null : direccion.Trim()
         }.Where(parte => parte is not null));
 

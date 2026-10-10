@@ -117,7 +117,7 @@ else
                             @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
                             {
                                 <span aria-hidden="true"> · </span>
-                                <span>Consultorio @Model.Consultorio</span>
+                                <span>@ConsultorioTexto.Para(Model.Consultorio)</span>
                             }
                         </span>
                     </span>

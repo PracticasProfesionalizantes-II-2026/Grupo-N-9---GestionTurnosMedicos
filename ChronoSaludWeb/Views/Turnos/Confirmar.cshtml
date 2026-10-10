@@ -21,7 +21,7 @@
     <p class="mt-1 text-sm text-muted">
         @if (Model.MostrarFormulario)
         {
-            <text>Todavía no está reservado: revisá los datos y tocá "Confirmar turno". Queda pendiente hasta que lo confirme el consultorio.</text>
+            <text>Todavía no está reservado: revisá los datos y tocá "Confirmar turno". Después queda esperando la confirmación del consultorio.</text>
         }
         else
         {
@@ -61,7 +61,7 @@
                         @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
                         {
                             <span aria-hidden="true"> · </span>
-                            <span>Consultorio @Model.Consultorio</span>
+                            <span>@ConsultorioTexto.Para(Model.Consultorio)</span>
                         }
                     </dd>
                 }

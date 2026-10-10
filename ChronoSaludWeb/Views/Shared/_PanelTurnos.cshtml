@@ -46,7 +46,7 @@
                         <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
                            class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             @principal
-                            <span class="sr-only">— ver detalle del turno</span>
+                            <span class="sr-only">— ver el turno @turno.CuandoParaLector</span>
                         </a>
                         @if (secundario is not null)
                         {
@@ -73,7 +73,7 @@
                            asp-route-volver="@Url.Action("Index", "Home")"
                            class="boton-texto relative z-10 shrink-0 px-2 py-1 text-status-cancelado">
                             Cancelar
-                            <span class="sr-only">el turno con @principal</span>
+                            <span class="sr-only">el turno con @principal @turno.CuandoParaLector</span>
                         </a>
                     }
                 </li>

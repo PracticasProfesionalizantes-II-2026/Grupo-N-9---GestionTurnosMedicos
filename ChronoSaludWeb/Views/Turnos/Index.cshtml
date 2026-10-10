@@ -23,6 +23,9 @@
             <a asp-action="Index" asp-all-route-data="Model.Filtros.RutaDeOrden(columna)"
                class="inline-flex items-center gap-1 rounded-badge hover:text-primary">
                 @titulo
+                @* El lector de pantalla lee "Hora, ordenar por esta columna": sin
+                   esto, un encabezado que es enlace no dice para qué sirve. *@
+                <span class="sr-only">, ordenar por esta columna</span>
                 @if (activa)
                 {
                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"
@@ -343,7 +346,17 @@ else
                         <tr class="tarjeta-encabezado text-xs font-semibold text-primary-deep">
                             @{
                                 await Encabezado("hora", "Hora");
-                                await Encabezado("paciente", "Paciente");
+                                // Al paciente la columna le muestra con quién es el turno:
+                                // el paciente es siempre él. La API no ordena por doctor,
+                                // así que ese encabezado no es un enlace.
+                                if (esPaciente)
+                                {
+                                    <th scope="col" class="px-5 py-3 font-semibold">Doctor</th>
+                                }
+                                else
+                                {
+                                    await Encabezado("paciente", "Paciente");
+                                }
                                 await Encabezado("fecha", "Fecha");
                                 await Encabezado("estado", "Estado", "text-right");
                             }
@@ -368,25 +381,41 @@ else
                                    con after:absolute inset-0. Así se navega con click o con teclado
                                    (el foco cae sobre el nombre) sin poner un onclick en el <tr>. *@
                                 <td class="relative px-5 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <partial name="_Avatar"
-                                                 model="new AvatarViewModel { Nombre = turno.Paciente, FotoUrl = turno.FotoUrl, Tamano = TamanoAvatar.Chico }" />
-                                        <span>
-                                            <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
-                                               class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
-                                                @turno.PacienteMostrado
-                                                <span class="sr-only">— ver detalle del turno</span>
-                                            </a>
-                                            <span class="block text-sm text-muted">
-                                                @turno.DoctorMostrado
-                                                @if (turno.EspecialidadMostrada is not null)
-                                                {
-                                                    <span aria-hidden="true"> · </span>
-                                                    <span class="capitalize">@turno.EspecialidadMostrada</span>
-                                                }
+                                    @if (esPaciente)
+                                    {
+                                        @* El paciente ve con quién es cada turno. *@
+                                        <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                                           class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                                            @turno.DoctorMostrado
+                                            <span class="sr-only">— ver el turno @turno.CuandoParaLector</span>
+                                        </a>
+                                        @if (turno.EspecialidadMostrada is not null)
+                                        {
+                                            <span class="block text-sm capitalize text-muted">@turno.EspecialidadMostrada</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="flex items-center gap-3">
+                                            <partial name="_Avatar"
+                                                     model="new AvatarViewModel { Nombre = turno.Paciente, FotoUrl = turno.FotoUrl, Tamano = TamanoAvatar.Chico }" />
+                                            <span>
+                                                <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                                                   class="block rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                                                    @turno.PacienteMostrado
+                                                    <span class="sr-only">— ver el turno @turno.CuandoParaLector</span>
+                                                </a>
+                                                <span class="block text-sm text-muted">
+                                                    @turno.DoctorMostrado
+                                                    @if (turno.EspecialidadMostrada is not null)
+                                                    {
+                                                        <span aria-hidden="true"> · </span>
+                                                        <span class="capitalize">@turno.EspecialidadMostrada</span>
+                                                    }
+                                                </span>
                                             </span>
-                                        </span>
-                                    </div>
+                                        </div>
+                                    }
                                 </td>
                                 @* El paciente lee el día con palabras ("viernes 16 de
                                    octubre"); el personal, la fecha corta de siempre. *@
@@ -411,7 +440,7 @@ else
                                                     <button type="submit"
                                                             class="boton-texto px-2 py-1">
                                                         Confirmar
-                                                        <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                        <span class="sr-only">el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
                                                     </button>
                                                 </form>
                                             }
@@ -422,12 +451,12 @@ else
                                                 <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="completado" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1">
                                                     Completado
-                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado</span>
+                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
                                                 </a>
                                                 <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="ausente" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1">
                                                     Ausente
-                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado</span>
+                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
                                                 </a>
                                             }
                                             @* El paciente no cancela un turno que ya empezó. *@
@@ -436,7 +465,7 @@ else
                                                 <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
                                                    class="boton-texto relative z-10 px-2 py-1 text-status-cancelado">
                                                     Cancelar
-                                                    <span class="sr-only">el turno de @turno.PacienteMostrado</span>
+                                                    <span class="sr-only">el turno @(esPaciente ? $"con {turno.DoctorMostrado}" : $"de {turno.PacienteMostrado}") @turno.CuandoParaLector</span>
                                                 </a>
                                             }
                                         </div>

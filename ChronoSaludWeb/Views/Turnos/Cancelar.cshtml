@@ -29,9 +29,11 @@
             <partial name="_Avatar"
                      model="new AvatarViewModel { Nombre = Model.PacienteNombre, FotoUrl = Model.PacienteFotoUrl, Tamano = TamanoAvatar.Mediano }" />
             <span>
-                <span class="block font-medium text-ink">@Model.PacienteMostrado</span>
+                @* Los sr-only dicen quién es quién: sin ellos el lector leía dos
+                   nombres seguidos sin aclarar cuál es el paciente y cuál el doctor. *@
+                <span class="block font-medium text-ink"><span class="sr-only">Paciente: </span>@Model.PacienteMostrado</span>
                 <span class="block text-sm text-muted">
-                    @Model.DoctorMostrado
+                    <span class="sr-only">Doctor: </span>@Model.DoctorMostrado
                     @if (!string.IsNullOrWhiteSpace(Model.Especialidad))
                     {
                         <span aria-hidden="true"> · </span>

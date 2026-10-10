@@ -35,6 +35,22 @@ public class TurnoFilaViewModel
     public string FechaCorta => FechaArgentina.Corta(FechaInicio);
 
     /// <summary>
+    /// Para el lector de pantalla: "del lunes 12 de octubre a las 08:00" (o "de
+    /// hoy", "de mañana"). Se suma a "ver detalle" y "cancelar" para que cada
+    /// enlace diga de qué turno es: con varios turnos con el mismo nombre, "ver
+    /// detalle del turno" repetido no alcanza.
+    /// </summary>
+    public string CuandoParaLector
+    {
+        get
+        {
+            var dia = FechaArgentina.DiaNatural(FechaInicio, Ahora);
+            var cuando = dia is "hoy" or "mañana" ? $"de {dia}" : $"del {dia}";
+            return Hora is null ? cuando : $"{cuando} a las {Hora}";
+        }
+    }
+
+    /// <summary>
     /// Para el paciente, el día como se dice: "hoy", "mañana" o "viernes 16 de
     /// octubre". La hora va aparte, en su propia columna.
     /// </summary>
