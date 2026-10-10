@@ -261,6 +261,9 @@ public class HomeController : Controller
 
         var hoy = FechaArgentina.Hoy().ToString("yyyy-MM-dd");
 
+        // Sin perfil no hay agenda: el aviso de abajo explica eso y no este.
+        var sinCerrar = perfil is null ? null : TurnosSinCerrar.Aviso(await ContarSinCerrarAsync(perfil.IdDoctor), esDoctor: true);
+
         var todaLaAgenda = new EnlaceViewModel
         {
             Controlador = "Turnos",
@@ -352,7 +355,8 @@ public class HomeController : Controller
                     secundario: todaLaAgenda),
             Aviso = perfil is null
                 ? "Tu cuenta todavía no tiene el perfil de doctor completo (matrícula y especialidad), por eso no vemos tus turnos. Pedile a administración que lo complete."
-                : null,
+                : sinCerrar,
+            AvisoEnlace = sinCerrar is null ? null : TurnosSinCerrar.Enlace,
             Accesos = accesos,
             Panel = new PanelTurnosViewModel
             {
@@ -386,6 +390,8 @@ public class HomeController : Controller
 
         var totalPacientes = await _pacientes.ContarAsync();
 
+        var sinCerrar = TurnosSinCerrar.Aviso(await ContarSinCerrarAsync(doctorId: null), esDoctor: false);
+
         var hoy = diaDeHoy.ToString("yyyy-MM-dd");
         var soloHoy = new Dictionary<string, string> { ["desde"] = hoy, ["hasta"] = hoy };
 
@@ -400,6 +406,8 @@ public class HomeController : Controller
         {
             Rol = sesion.Rol,
             Nombre = sesion.Nombre,
+            Aviso = sinCerrar,
+            AvisoEnlace = sinCerrar is null ? null : TurnosSinCerrar.Enlace,
             // Sale del total de hoy que ya se pide para la métrica y el panel.
             Banner = new BannerViewModel
             {
@@ -528,6 +536,28 @@ public class HomeController : Controller
             hasta: hasta,
             orden: "fecha",
             limite: TurnosDelPanel);
+    }
+
+    /// <summary>
+    /// Cuántos turnos de días anteriores siguen pendientes o confirmados. Se
+    /// pide con limite=1 para quedarse solo con el total. Si la API falla
+    /// devuelve null: el aviso no sale y el inicio se muestra igual.
+    /// </summary>
+    private async Task<int?> ContarSinCerrarAsync(int? doctorId)
+    {
+        try
+        {
+            var pagina = await _turnos.ObtenerAsync(
+                doctorId: doctorId,
+                estados: TurnosSinCerrar.Estados,
+                hasta: TurnosSinCerrar.Hasta(FechaArgentina.Hoy()),
+                limite: 1);
+            return pagina.Total;
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            return null;
+        }
     }
 
     /// <summary>Las filas del panel a partir de lo que devolvió la API.</summary>

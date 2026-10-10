@@ -1,0 +1,74 @@
+@model TurnoMarcarViewModel
+@{
+    ViewData["Title"] = Model.Titulo;
+    var turno = Model.Turno;
+}
+
+@* Confirmación antes de marcar completado o ausente, como la de cancelar.
+   El formulario manda a CambiarEstado, que vuelve a validar el turno. *@
+<a href="@(Model.Volver ?? Url.Action("Detalle", new { id = turno.IdTurno }))"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver
+</a>
+
+<div class="mt-6 max-w-xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.Titulo</h1>
+    <p class="mt-1 text-sm text-muted">
+        @Model.Pregunta <strong class="font-semibold text-ink">Después no se puede cambiar.</strong>
+    </p>
+
+    <div class="mt-6 tarjeta p-6">
+        <div class="flex items-center gap-3">
+            <partial name="_Avatar"
+                     model="new AvatarViewModel { Nombre = turno.PacienteNombre, FotoUrl = turno.PacienteFotoUrl, Tamano = TamanoAvatar.Mediano }" />
+            <span>
+                <span class="block font-medium text-ink">@turno.PacienteMostrado</span>
+                <span class="block text-sm text-muted">
+                    @turno.DoctorMostrado
+                    @if (!string.IsNullOrWhiteSpace(turno.Especialidad))
+                    {
+                        <span aria-hidden="true"> · </span>
+                        <span class="capitalize">@turno.Especialidad</span>
+                    }
+                </span>
+            </span>
+        </div>
+
+        <dl class="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-3">
+            <div>
+                <dt class="text-sm text-muted">Fecha</dt>
+                <dd class="mt-0.5 text-sm capitalize text-ink">@turno.FechaLarga</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-muted">Horario</dt>
+                <dd class="mt-0.5 text-sm font-medium tabular-nums text-ink">@turno.Horario</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-muted">Estado actual</dt>
+                <dd class="mt-1">
+                    <partial name="_BadgeEstado" model="turno.Estado" />
+                </dd>
+            </div>
+        </dl>
+
+        <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="mt-7 flex flex-wrap items-center gap-3">
+            <input type="hidden" name="estado" value="@Model.Estado" />
+            @* Desde el listado se vuelve al listado tal como estaba; si no, al detalle. *@
+            @if (Model.Volver is not null)
+            {
+                <input type="hidden" name="volverA" value="Index" />
+                <input type="hidden" name="volver" value="@Model.Volver" />
+            }
+            <button type="submit" class="boton boton-primario">@Model.TextoBoton</button>
+            <a href="@(Model.Volver ?? Url.Action("Detalle", new { id = turno.IdTurno }))"
+               class="boton boton-secundario">
+                No, volver
+            </a>
+        </form>
+    </div>
+</div>

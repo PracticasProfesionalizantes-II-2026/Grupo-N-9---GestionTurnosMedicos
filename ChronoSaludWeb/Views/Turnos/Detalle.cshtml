@@ -59,10 +59,33 @@ else
                 <partial name="_Avatar"
                          model="new AvatarViewModel { Nombre = Model.PacienteNombre, FotoUrl = Model.PacienteFotoUrl, Tamano = TamanoAvatar.Mediano }" />
                 <span>
-                    <span class="block font-medium text-ink">@Model.PacienteMostrado</span>
+                    @* El personal va de un clic a la ficha y a la historia clínica. *@
+                    @if (Auth.PuedeVerPacientes)
+                    {
+                        <a asp-controller="Pacientes" asp-action="Detalle" asp-route-id="@Model.IdPaciente"
+                           class="block rounded-badge font-medium text-primary hover:text-primary-hover hover:underline">
+                            @Model.PacienteMostrado
+                            <span class="sr-only">— ver la ficha del paciente</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="block font-medium text-ink">@Model.PacienteMostrado</span>
+                    }
                     <span class="block text-sm text-muted">Paciente</span>
                 </span>
             </div>
+            @if (Auth.PuedeVerPacientes)
+            {
+                <a asp-controller="Historial" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                   class="boton-texto mt-3">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos("historia"))
+                    </svg>
+                    Ver historia clínica
+                </a>
+            }
 
             <div class="mt-5 border-t border-border pt-5">
                 <div class="flex items-start gap-3">
@@ -171,35 +194,30 @@ else
                 }
                 @if (puedeCambiarEstado && Model.PuedeCompletarse)
                 {
-                    <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
-                        <input type="hidden" name="estado" value="completado" />
-                        <button type="submit"
-                                class="boton boton-secundario">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M21.801 10A10 10 0 1 1 17 3.335" />
-                                <path d="m9 11 3 3L22 4" />
-                            </svg>
-                            Marcar como completado
-                        </button>
-                    </form>
+                    @* Completado y ausente no se deshacen: pasan por una confirmación. *@
+                    <a asp-action="Marcar" asp-route-id="@Model.IdTurno" asp-route-estado="completado"
+                       class="boton boton-secundario">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                            <path d="m9 11 3 3L22 4" />
+                        </svg>
+                        Marcar como completado
+                    </a>
                 }
                 @if (puedeCambiarEstado && Model.PuedeMarcarAusente)
                 {
-                    <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
-                        <input type="hidden" name="estado" value="ausente" />
-                        <button type="submit"
-                                class="boton boton-secundario">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="m17 8 5 5" />
-                                <path d="m22 8-5 5" />
-                            </svg>
-                            Marcar ausente
-                        </button>
-                    </form>
+                    <a asp-action="Marcar" asp-route-id="@Model.IdTurno" asp-route-estado="ausente"
+                       class="boton boton-secundario">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="m17 8 5 5" />
+                            <path d="m22 8-5 5" />
+                        </svg>
+                        Marcar ausente
+                    </a>
                 }
                 @if (puedeCambiarEstado)
                 {

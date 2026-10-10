@@ -622,3 +622,15 @@ con la API y la Web reales: 42 chequeos.
 **Ojo:**
 - Sin migración, sin nada que correr en Azure y sin cambios en la API.
 - En los formularios con validación del navegador, jQuery Validation une el mensaje al campo al enviar, pero pone `aria-invalid` recién cuando el usuario sale del campo. Cambiarlo pide JavaScript propio y se dejó así.
+
+## 2026-10-09 — mejoras, paso 15: el doctor cierra el día
+**Hecho (solo Web):**
+- **"Completado" y "Ausente" con confirmación:** la pantalla nueva `Turnos/Marcar` pregunta antes, porque esos estados no se deshacen. El formulario manda a `CambiarEstado`, que sigue validando el ámbito, el estado real y la lista blanca.
+- **Desde la lista:** cada fila suma "Completado" y "Ausente" cuando el turno ya empezó (solo el personal), así el día se cierra sin entrar a cada detalle.
+- **Turnos sin cerrar:** `Turnos?ver=sin-cerrar` lista los pendientes o confirmados de días anteriores. El inicio del doctor y del administrador avisa cuántos hay, con el enlace "Revisarlos".
+- **Del turno al paciente:** en el detalle, el nombre del paciente lleva a su ficha y se suma "Ver historia clínica" (solo el personal).
+- **Arreglo:** en el celular, la lista de turnos dejaba correr toda la página de costado. El texto oculto "Acciones" del encabezado se ubicaba fuera del scroll de la tabla. Se arregló con `relative` en el contenedor.
+- **Arreglo:** las fechas cortas salían "9 oct. 2026" en Windows y "9 oct 2026" en Linux, y una prueba del paso 13 fallaba en Windows. Ahora todas pasan por `FechaArgentina.Corta` y `CortaConHora`, que le sacan el punto al mes. Se usan en turnos, recetas, historia clínica, actividad y notificaciones. La confirmación usa el mes completo y no el formato "D", que también cambia según el sistema.
+- **Probado** contra SQL Server 2022 con la API y la Web reales: 26 chequeos, incluidos los permisos (otro doctor no marca un turno ajeno ni mandando el POST a mano, y el paciente no ve nada de esto).
+
+**Ojo:** sin migración, sin nada que correr en Azure y sin cambios en la API.

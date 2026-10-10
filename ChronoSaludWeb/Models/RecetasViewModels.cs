@@ -161,8 +161,8 @@ public class RecetaFilaViewModel
 
     public bool Vigente => Vigencia.Date >= FechaArgentina.Hoy();
 
-    public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
-    public string VigenciaCorta => Vigencia.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
+    public string FechaCorta => FechaArgentina.Corta(Fecha);
+    public string VigenciaCorta => FechaArgentina.Corta(Vigencia);
     public string FechaLarga => Fecha.ToString("D", TurnosIndexViewModel.Cultura);
     public string VigenciaLarga => Vigencia.ToString("D", TurnosIndexViewModel.Cultura);
 

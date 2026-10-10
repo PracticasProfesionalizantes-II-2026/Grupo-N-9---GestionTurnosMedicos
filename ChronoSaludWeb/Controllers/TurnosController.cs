@@ -50,6 +50,19 @@ public class TurnosController : ControladorBase
         var verTodos = string.Equals(ver, "todos", StringComparison.OrdinalIgnoreCase);
         var descendente = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase);
 
+        // "Sin cerrar" es del personal: al paciente no le toca cerrar turnos,
+        // así que para él el valor se ignora. En ese modo no cuentan ni el
+        // estado ni las fechas de la URL.
+        var sinCerrar = _auth.PuedeCambiarEstadoTurno
+                        && string.Equals(ver, TurnosSinCerrar.Ver, StringComparison.OrdinalIgnoreCase);
+        if (sinCerrar)
+        {
+            estado = null;
+            desde = null;
+            hasta = null;
+            verTodos = false;
+        }
+
         // En "todos", si no se eligió un orden, primero lo más nuevo.
         if (verTodos && orden is null && dir is null)
             descendente = true;
@@ -63,6 +76,7 @@ public class TurnosController : ControladorBase
             Orden       = orden,
             Descendente = descendente,
             VerTodos    = verTodos,
+            SinCerrar   = sinCerrar,
             Pagina      = Math.Max(pagina, 1)
         };
 
@@ -85,6 +99,10 @@ public class TurnosController : ControladorBase
             // Al entrar, sin fechas elegidas, se ven los turnos de hoy en adelante.
             var desdeParaApi = filtros.SoloProximos ? FechaArgentina.Hoy() : filtros.Desde;
 
+            // "Sin cerrar": pendientes o confirmados hasta ayer.
+            var hastaParaApi = filtros.SinCerrar ? TurnosSinCerrar.Hasta(FechaArgentina.Hoy()) : filtros.Hasta;
+            var estadosParaApi = filtros.SinCerrar ? TurnosSinCerrar.Estados : null;
+
             // paciente_id y doctor_id salen del ámbito, no de la query string:
             // el usuario no puede ampliarse el alcance desde la URL. El filtro,
             // el orden y la página los resuelve la API.
@@ -92,8 +110,9 @@ public class TurnosController : ControladorBase
                 pacienteId:  ambito.PacienteId,
                 doctorId:    ambito.DoctorId,
                 estado:      filtros.Estado,
+                estados:     estadosParaApi,
                 desde:       desdeParaApi,
-                hasta:       filtros.Hasta,
+                hasta:       hastaParaApi,
                 orden:       filtros.OrdenParaApi,
                 descendente: filtros.Descendente,
                 pagina:      filtros.Pagina,
@@ -245,8 +264,59 @@ public class TurnosController : ControladorBase
             : $"El turno #{id} está {estado} y no se puede cancelar.";
 
     /// <summary>
-    /// Mueve el turno a "confirmado" o a "completado". La cancelación no pasa por
-    /// acá: sigue yendo por DELETE (Cancelar), así hay un solo camino para cancelar.
+    /// Pregunta antes de marcar un turno como completado o ausente, porque
+    /// después no se puede cambiar. El formulario de la confirmación manda a
+    /// CambiarEstado, que vuelve a validar todo.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Marcar(int id, string? estado, string? volver)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Marcar), new { id, estado, volver }));
+
+        if (!_auth.PuedeCambiarEstadoTurno)
+            return SinPermiso(
+                "No podés cambiar el estado de un turno con tu rol",
+                "El estado de un turno lo cambia el personal: cada doctor en sus propios turnos, " +
+                "y la administración en cualquiera.");
+
+        // Solo una URL local vuelve al listado; si no, se vuelve al detalle.
+        var volverValido = Url.IsLocalUrl(volver) ? volver : null;
+
+        if (!TurnoMarcarViewModel.EsEstadoValido(estado))
+        {
+            TempData["Error"] = "Elegí si el turno se marca como completado o como ausente.";
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+
+        try
+        {
+            var turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+            if (turno is null)
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+
+            // Mismo criterio que los botones: en pie y con la hora ya llegada.
+            if (!turno.PuedeCompletarse)
+            {
+                TempData["Error"] = turno.EstaEnPie
+                    ? $"El turno #{id} todavía no empezó: se puede marcar como {estado} recién a la hora del turno."
+                    : $"El turno #{id} está {turno.Estado} y no se puede pasar a {estado}.";
+                return volverValido is null ? RedirectToAction(nameof(Detalle), new { id }) : LocalRedirect(volverValido);
+            }
+
+            return View(new TurnoMarcarViewModel { Turno = turno, Estado = estado!, Volver = volverValido });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+    }
+
+    /// <summary>
+    /// Mueve el turno a "confirmado", "completado" o "ausente". Los dos últimos
+    /// llegan desde la confirmación (Marcar). La cancelación no pasa por acá:
+    /// sigue yendo por DELETE (Cancelar), así hay un solo camino para cancelar.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]

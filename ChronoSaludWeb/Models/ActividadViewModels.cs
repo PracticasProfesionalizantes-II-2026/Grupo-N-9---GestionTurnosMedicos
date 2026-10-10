@@ -23,7 +23,7 @@ public class MovimientoFilaViewModel
     /// <summary>El rol que tenía quien lo hizo en ese momento.</summary>
     public string Rol { get; init; } = string.Empty;
 
-    public string FechaMostrada => Fecha.ToString("d MMM yyyy, HH:mm", TurnosIndexViewModel.Cultura);
+    public string FechaMostrada => FechaArgentina.CortaConHora(Fecha);
 
     /// <summary>Para el atributo datetime de la etiqueta time.</summary>
     public string FechaIso => Fecha.ToString("yyyy-MM-dd'T'HH:mm");

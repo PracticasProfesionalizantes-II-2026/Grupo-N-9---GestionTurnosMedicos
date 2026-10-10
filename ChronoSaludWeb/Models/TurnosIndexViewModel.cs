@@ -32,8 +32,7 @@ public class TurnoFilaViewModel
     public string? EspecialidadMostrada =>
         string.IsNullOrWhiteSpace(Especialidad) ? null : Especialidad.Trim();
 
-    public string FechaCorta =>
-        FechaInicio.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
+    public string FechaCorta => FechaArgentina.Corta(FechaInicio);
 
     /// <summary>
     /// Arma la fila a partir de lo que devuelve la API.
@@ -75,6 +74,12 @@ public class TurnoFilaViewModel
     /// </summary>
     public bool PuedeConfirmarse =>
         string.Equals(Estado, "pendiente", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Se puede marcar como completado o ausente: sigue en pie y ya llegó su
+    /// hora. Es la misma regla que el detalle (TurnoDetalleViewModel).
+    /// </summary>
+    public bool PuedeCerrarse => PuedeCancelarse && YaEmpezo;
 
     /// <summary>La hora de ahora en Argentina; las pruebas pueden poner otra.</summary>
     public DateTime Ahora { get; init; } = FechaArgentina.Ahora();
@@ -134,8 +139,15 @@ public class TurnosFiltroViewModel
     /// <summary>La página que se está mirando. Empieza en 1.</summary>
     public int Pagina { get; set; } = 1;
 
+    /// <summary>
+    /// La URL trae ver=sin-cerrar (solo el personal): los turnos de días
+    /// anteriores que siguen pendientes o confirmados. En este modo no
+    /// cuentan ni las tarjetas de estado ni las fechas.
+    /// </summary>
+    public bool SinCerrar { get; set; }
+
     /// <summary>Se muestran solo los turnos de hoy en adelante: es lo que se ve al entrar.</summary>
-    public bool SoloProximos => !VerTodos && !HayFechas;
+    public bool SoloProximos => !VerTodos && !HayFechas && !SinCerrar;
 
     /// <summary>
     /// La columna con la que se le pide el orden a la API. "Hora" ordena igual
@@ -199,10 +211,18 @@ public class TurnosFiltroViewModel
     {
         var ruta = new Dictionary<string, string>();
 
-        if (!string.IsNullOrWhiteSpace(estado)) ruta["estado"] = estado;
-        if (Desde is { } desde) ruta["desde"] = desde.ToString("yyyy-MM-dd");
-        if (Hasta is { } hasta) ruta["hasta"] = hasta.ToString("yyyy-MM-dd");
-        if (verTodos) ruta["ver"] = "todos";
+        // "Sin cerrar" solo conserva el orden y la página.
+        if (SinCerrar)
+        {
+            ruta["ver"] = TurnosSinCerrar.Ver;
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(estado)) ruta["estado"] = estado;
+            if (Desde is { } desde) ruta["desde"] = desde.ToString("yyyy-MM-dd");
+            if (Hasta is { } hasta) ruta["hasta"] = hasta.ToString("yyyy-MM-dd");
+            if (verTodos) ruta["ver"] = "todos";
+        }
         if (orden is not null) ruta["orden"] = orden;
         if (descendente) ruta["dir"] = "desc";
         if (pagina > 1) ruta["pagina"] = $"{pagina}";
@@ -243,19 +263,37 @@ public class TurnosIndexViewModel
     /// <summary>Aviso no fatal, por ejemplo un usuario sin perfil asociado.</summary>
     public string? Aviso { get; init; }
 
-    public string Titulo => Rol switch
+    public string Titulo
     {
-        "paciente" => "Mis turnos",
-        "doctor"   => "Mi agenda",
-        _          => "Turnos"
-    };
+        get
+        {
+            if (Filtros.SinCerrar)
+                return "Turnos sin cerrar";
 
-    public string? Subtitulo => Rol switch
+            return Rol switch
+            {
+                "paciente" => "Mis turnos",
+                "doctor"   => "Mi agenda",
+                _          => "Turnos"
+            };
+        }
+    }
+
+    public string? Subtitulo
     {
-        "paciente" => "Solo se muestran los turnos en los que figurás como paciente.",
-        "doctor"   => "Solo se muestran los turnos que tenés asignados.",
-        _          => null
-    };
+        get
+        {
+            if (Filtros.SinCerrar)
+                return "Turnos de días anteriores que quedaron pendientes o confirmados: marcá cada uno como completado o ausente.";
+
+            return Rol switch
+            {
+                "paciente" => "Solo se muestran los turnos en los que figurás como paciente.",
+                "doctor"   => "Solo se muestran los turnos que tenés asignados.",
+                _          => null
+            };
+        }
+    }
 
     public string TextoVacio => Rol switch
     {
@@ -322,4 +360,45 @@ public class TurnosIndexViewModel
 
         return iniciales.ToUpperInvariant();
     }
+}
+
+/// <summary>
+/// Los turnos "sin cerrar": de días anteriores y todavía pendientes o
+/// confirmados, porque nadie los marcó como completados o ausentes. Los usan
+/// el listado (?ver=sin-cerrar) y el aviso del inicio del personal.
+/// </summary>
+public static class TurnosSinCerrar
+{
+    /// <summary>El valor de ?ver= en la URL del listado.</summary>
+    public const string Ver = "sin-cerrar";
+
+    /// <summary>Los estados que cuentan: los que siguen en pie.</summary>
+    public const string Estados = "pendiente,confirmado";
+
+    /// <summary>Hasta ayer: los de hoy están en la agenda del día.</summary>
+    public static DateTime Hasta(DateTime hoy) => hoy.Date.AddDays(-1);
+
+    /// <summary>
+    /// El texto del aviso del inicio. Null si no hay ninguno (no sale el
+    /// aviso). El doctor lee "Tenés" y la administración "Hay".
+    /// </summary>
+    public static string? Aviso(int? cantidad, bool esDoctor)
+    {
+        if (cantidad is null || cantidad <= 0)
+            return null;
+
+        var inicio = esDoctor ? "Tenés" : "Hay";
+        return cantidad == 1
+            ? $"{inicio} 1 turno de días anteriores sin cerrar."
+            : $"{inicio} {cantidad} turnos de días anteriores sin cerrar.";
+    }
+
+    /// <summary>El enlace del aviso: el listado en modo "sin cerrar".</summary>
+    public static EnlaceViewModel Enlace => new()
+    {
+        Controlador = "Turnos",
+        Accion = "Index",
+        Ruta = new Dictionary<string, string> { ["ver"] = Ver },
+        Descripcion = "Revisarlos"
+    };
 }

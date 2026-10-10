@@ -68,7 +68,7 @@ public class NotificacionFilaViewModel
     };
 
     /// <summary>"9 oct 2026, 10:30".</summary>
-    public string FechaTexto => Fecha.ToString("d MMM yyyy, HH:mm", TurnosIndexViewModel.Cultura);
+    public string FechaTexto => FechaArgentina.CortaConHora(Fecha);
 
     /// <summary>Las de turnos llevan el enlace "Ver mis turnos".</summary>
     public bool EsDeTurno => Tipo == "turno";

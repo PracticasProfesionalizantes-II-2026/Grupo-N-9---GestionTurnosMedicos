@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ChronoSaludWeb.Services;
 
 namespace ChronoSaludWeb.Models;
 
@@ -23,7 +24,7 @@ public class EntradaHistorialViewModel
     public bool EnlaceAlTurno { get; init; }
 
     public string FechaLarga => Fecha.ToString("D", TurnosIndexViewModel.Cultura);
-    public string FechaCorta => Fecha.ToString("d MMM yyyy", TurnosIndexViewModel.Cultura);
+    public string FechaCorta => FechaArgentina.Corta(Fecha);
 
     public string DiagnosticoMostrado =>
         string.IsNullOrWhiteSpace(Diagnostico) ? "Sin diagnóstico" : Diagnostico.Trim();

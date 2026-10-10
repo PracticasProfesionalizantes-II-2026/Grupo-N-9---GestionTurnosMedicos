@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ChronoSaludWeb.Services;
 
 /// <summary>
@@ -22,6 +24,19 @@ public static class FechaArgentina
     /// </summary>
     public static DateTime Hoy(DateTime utcAhora) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcAhora, DateTimeKind.Utc), Zona).Date;
+
+    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
+
+    /// <summary>
+    /// "9 oct 2026". El mes va sin punto: según la versión del sistema, .NET
+    /// escribe "oct" (Linux) u "oct." (Windows), y así se ve igual en todos lados.
+    /// </summary>
+    public static string Corta(DateTime fecha) =>
+        $"{fecha.Day} {fecha.ToString("MMM", Cultura).TrimEnd('.')} {fecha.Year}";
+
+    /// <summary>"9 oct 2026, 10:30".</summary>
+    public static string CortaConHora(DateTime fecha) =>
+        $"{Corta(fecha)}, {fecha.ToString("HH:mm", Cultura)}";
 
     /// <summary>
     /// El id de la zona cambia según el sistema: IANA en Linux, el nombre de
