@@ -2,7 +2,6 @@
 @{
     var titulo = ViewData["Titulo"] as string ?? "No encontrado";
     var entidad = ViewData["Entidad"] as string ?? "registro";
-    ViewData["AyudaEnLaPagina"] = true;
     ViewData["Title"] = titulo;
 }
 
@@ -38,6 +37,3 @@
         Ir al listado
     </a>
 </div>
-
-@* Una salida humana: quien llega acá suele estar trabado. *@
-<partial name="_Ayuda" model='"tarjeta"' />

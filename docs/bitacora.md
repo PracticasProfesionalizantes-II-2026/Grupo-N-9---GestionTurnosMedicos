@@ -695,3 +695,31 @@ con la API y la Web reales: 42 chequeos.
 - Para activar la ayuda, cargar en Azure `Clinica__Telefono`, `Clinica__WhatsApp`, `Clinica__Horario` y `Clinica__Direccion`.
 - Apretar A+ en medio de un formulario recarga la página y se pierde lo escrito, porque sin JavaScript no hay otra forma.
 - Falta probar con SQL Server y la API reales, y con NVDA, VoiceOver y TalkBack (paso 18).
+
+## 2026-10-10 — mejoras, paso 18: olvidé mi contraseña, ver la contraseña y ayuda en el pie
+**Hecho:**
+- **Sin la barra de letra:** se sacó la barra "Letra: A / A+ / A++" del paso 17 (`_TamanoLetra` y `AjustesController.Tamano`). El tamaño se cambia, como antes, en Ajustes.
+- **¿Necesitás ayuda? en el pie:**
+  - es un botón chico con un ícono, en la misma fila que "© 2026 ChronoSalud" y "Privacidad";
+  - abre una ventanita (`popover` del navegador, sin JavaScript) con las opciones: hoy, "Escribir por WhatsApp" y "Llamar a la clínica", todavía con "Próximamente";
+  - cierra con Escape, con un clic afuera o con la X, y devuelve el foco;
+  - la lista sale de `Models/OpcionesDeAyuda.cs`: para sumar una opción alcanza con una línea;
+  - se sacó el bloque grande del pie y la tarjeta de las pantallas de error.
+- **Olvidé mi contraseña:**
+  - **Web:** "¿Olvidaste tu contraseña?" (debajo de la contraseña, en el login) lleva a `Cuenta/Recuperar`, donde se escribe el email. Siempre muestra el mismo aviso, exista o no la cuenta. El enlace lleva a `Cuenta/Restablecer`, con la contraseña nueva y su repetición, y de ahí al login con "Listo, ya podés entrar con tu contraseña nueva".
+  - **API:** `POST /usuarios/recuperar` (202 siempre, 3 pedidos cada 15 minutos por email) y `POST /usuarios/restablecer`.
+  - **El token no se guarda en la base** (`TokenDeRecuperacion`): lleva el id, el vencimiento (una hora) y una firma HMAC que incluye el hash actual de la contraseña, así que deja de servir apenas se usa.
+  - **El email todavía no se manda:** `CorreoEnConsola` lo escribe en el log de la API. Para mandarlo de verdad hay que implementar `IEnviadorDeCorreo` y cambiar una línea en `Program.cs`.
+- **Ver la contraseña:** cada campo de contraseña tiene un botón con un ojo para mostrarla u ocultarla (`aria-pressed`).
+  - Son unas líneas de JavaScript en `site.js`, la primera excepción aprobada a "sin JavaScript". Sin JavaScript, el campo anda igual.
+  - Al enviar, el campo se vuelve a ocultar.
+- **Probado:**
+  - 21 pruebas nuevas (338 en total): el token (vencido, alterado, de otro usuario, otra clave, reusado) y el flujo completo con un enviador falso;
+  - en Chromium contra la Web real: 33 chequeos (ventanita, foco, ojo, recuperar y restablecer, sin scroll horizontal a 320 px con letra extra grande);
+  - contra la API real, la validación de los dos endpoints nuevos.
+
+**Ojo:**
+- Sin migración.
+- **Para Azure:** cargar `Recuperacion__UrlWeb` con la URL de la Web publicada (si no, el enlace apunta a `localhost:5044`). Conviene también `Recuperacion__Clave`, una clave larga propia; si falta, se usa la del JWT.
+- Hasta conectar un proveedor de correo, el enlace solo se ve en el log de la API (en Azure, en el Log stream), así que un paciente real no lo recibe. Además, el log pasa a tener enlaces que sirven para cambiar contraseñas.
+- La API conviene publicarla antes que la Web.

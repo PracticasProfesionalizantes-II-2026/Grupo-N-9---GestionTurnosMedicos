@@ -3,7 +3,6 @@
     var titulo = ViewData["Titulo"] as string ?? "No tenés permiso para esta acción";
     var motivo = ViewData["Motivo"] as string;
     var rol = string.IsNullOrWhiteSpace(Model) ? null : Model;
-    ViewData["AyudaEnLaPagina"] = true;
     ViewData["Title"] = "Permiso insuficiente";
 
     // Por defecto se vuelve al Index del controlador que la usa. Si ese
@@ -48,6 +47,3 @@
         Volver
     </a>
 </div>
-
-@* Una salida humana: quien llega acá suele estar trabado. *@
-<partial name="_Ayuda" model='"tarjeta"' />

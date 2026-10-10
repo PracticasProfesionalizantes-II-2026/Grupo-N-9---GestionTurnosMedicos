@@ -204,6 +204,20 @@ public class AuthService
         return respuesta;
     }
     /// <summary>
+    /// "Olvidé mi contraseña": POST /usuarios/recuperar. La API manda el enlace
+    /// si el email es de una cuenta activa, y contesta lo mismo si no lo es.
+    /// </summary>
+    public Task PedirRecuperacionAsync(string email) =>
+        _api.PostAsync("/usuarios/recuperar", new { email }, anonimo: true);
+
+    /// <summary>
+    /// POST /usuarios/restablecer: la contraseña nueva con el token del enlace.
+    /// Tira <see cref="ApiException"/> si el enlace venció o ya se usó.
+    /// </summary>
+    public Task RestablecerContrasenaAsync(string token, string contrasenaNueva) =>
+        _api.PostAsync("/usuarios/restablecer", new { token, contrasenaNueva }, anonimo: true);
+
+    /// <summary>
     /// Autentica contra la API y deja la sesión abierta.
     /// Tira <see cref="ApiException"/> si las credenciales no sirven o la API no responde.
     /// </summary>

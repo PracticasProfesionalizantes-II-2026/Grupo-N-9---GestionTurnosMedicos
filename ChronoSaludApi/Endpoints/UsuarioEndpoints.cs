@@ -57,6 +57,37 @@ public static class UsuarioEndpoints
         .WithSummary("Autenticar usuario")
         .AllowAnonymous();
 
+        // POST /usuarios/recuperar
+        // "Olvidé mi contraseña": si el email es de una cuenta activa, le
+        // manda el enlace para crear una nueva. Responde 202 exista o no, para
+        // no revelar qué emails están registrados.
+        grupo.MapPost("/recuperar", async (RecuperarContrasenaDto dto, IRecuperarContrasenaLogica logica, LimiteIntentos limite) =>
+        {
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return Results.BadRequest(new { error = "El email es requerido." });
+
+            if (!limite.PermiteRecuperar(dto.Email))
+                return Results.Json(new { error = LimiteIntentos.Mensaje }, statusCode: StatusCodes.Status429TooManyRequests);
+
+            await logica.Pedir(dto.Email);
+            return Results.Accepted();
+        })
+        .WithSummary("Pedir el enlace para crear una contraseña nueva")
+        .AllowAnonymous();
+
+        // POST /usuarios/restablecer
+        // La contraseña nueva, con el token del enlace del email.
+        grupo.MapPost("/restablecer", async (RestablecerContrasenaDto dto, IRecuperarContrasenaLogica logica) =>
+        {
+            var error = await logica.Restablecer(dto.Token, dto.ContrasenaNueva);
+            if (error != null)
+                return Results.BadRequest(new { error });
+
+            return Results.Ok(new { mensaje = "Contraseña actualizada." });
+        })
+        .WithSummary("Crear una contraseña nueva con el enlace del email")
+        .AllowAnonymous();
+
         // POST /usuarios/me/contrasena
         // La contraseña de quien está logueado: el usuario sale del token,
         // nunca de la URL. Pide la actual.

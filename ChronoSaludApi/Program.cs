@@ -67,6 +67,11 @@ builder.Services.AddScoped<IMovimientoRepository,     MovimientoRepository>();
 
 // ── 5. Lógica de negocio (Scoped) ─────────────────────────────────────────
 builder.Services.AddScoped<IUsuarioLogica,         UsuarioLogica>();
+builder.Services.AddScoped<IRecuperarContrasenaLogica, RecuperarContrasenaLogica>();
+
+// Por ahora los emails no se mandan: se escriben en el log (ver CorreoEnConsola).
+// Para mandarlos de verdad, reemplazar CorreoEnConsola por otra implementación.
+builder.Services.AddSingleton<IEnviadorDeCorreo, CorreoEnConsola>();
 builder.Services.AddScoped<IPacienteLogica,        PacienteLogica>();
 builder.Services.AddScoped<IDoctorLogica,          DoctorLogica>();
 builder.Services.AddScoped<ITurnoLogica,           TurnoLogica>();

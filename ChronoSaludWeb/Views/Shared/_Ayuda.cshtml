@@ -1,87 +1,80 @@
-@model string
 @using Microsoft.Extensions.Options
 @inject IOptions<ClinicaOpciones> OpcionesClinica
 @{
-    // "¿Necesitás ayuda?": una salida humana para quien se traba. Ofrece dos
-    // caminos, WhatsApp y el teléfono de la clínica. Va en el pie de todas las
-    // páginas ("pie") y, más a la vista, en las pantallas de error ("tarjeta").
+    // "¿Necesitás ayuda?": un botón chico en el pie que abre una ventanita con
+    // las formas de pedir ayuda (WhatsApp, teléfono…). La lista sale de
+    // OpcionesDeAyuda, así que sumar una opción no toca esta vista.
     var clinica = OpcionesClinica.Value;
-    var enTarjeta = Model == "tarjeta";
+    var opciones = OpcionesDeAyuda.Armar(clinica);
 
-    // Mientras los números no estén cargados en appsettings.json (sección
-    // "Clinica") los dos botones son decorativos: se ven, con "Próximamente",
-    // pero no son enlaces ni reciben foco.
-    var ningunoDisponible = !clinica.TieneWhatsApp && !clinica.TieneTelefono;
-
-    // flex-wrap: con la pantalla angosta y la letra grande, el chip baja abajo
-    // del texto en vez de salirse de la pantalla.
-    const string ClaseApagado = "inline-flex min-h-11 max-w-full flex-wrap items-center gap-2 rounded-input border-[1.5px] border-dashed border-contorno-suave px-4 py-2 text-sm font-semibold text-ink";
+    const string ClaseFila = "flex min-h-11 items-center gap-3 rounded-input px-3 py-2";
 }
 
-<section id="ayuda" aria-labelledby="ayuda-titulo"
-         class="@(enTarjeta ? "tarjeta mt-4 p-6 text-center" : null)">
-    <h2 id="ayuda-titulo" class="text-base font-semibold text-ink">¿Necesitás ayuda?</h2>
-    <p class="mt-1 text-sm text-muted">
-        Si te trabás con algo, escribinos o llamanos y te ayudamos.
-        @if (clinica.TieneHorario)
+@* El atributo popover lo maneja el navegador, igual que el menú de la
+   cuenta: abre con el botón, cierra con Escape, con un clic afuera o con
+   "Cerrar", y devuelve el foco al botón. Todo sin JavaScript.
+   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+<button type="button" popovertarget="ventana-ayuda"
+        class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-input px-2 text-sm text-muted hover:text-primary">
+    <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        @Html.Raw(IconosLucide.Trazos("ayuda"))
+    </svg>
+    ¿Necesitás ayuda?
+</button>
+
+<div id="ventana-ayuda" popover role="dialog" aria-labelledby="ventana-ayuda-titulo"
+     class="menu-flotante menu-ayuda">
+    <div class="flex items-start justify-between gap-2 px-3 pt-2">
+        <div>
+            <h2 id="ventana-ayuda-titulo" class="text-base font-semibold text-ink">¿Necesitás ayuda?</h2>
+            <p class="mt-0.5 text-sm text-muted">
+                Si te trabás con algo, escribinos o llamanos.
+                @if (clinica.TieneHorario)
+                {
+                    <span>Atendemos @clinica.Horario.</span>
+                }
+            </p>
+        </div>
+        <button type="button" popovertarget="ventana-ayuda" popovertargetaction="hide"
+                class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-input text-muted hover:bg-primary-soft hover:text-primary-hover">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos("cerrar"))
+            </svg>
+            <span class="sr-only">Cerrar</span>
+        </button>
+    </div>
+
+    <ul class="mt-2 border-t border-border pt-1 text-sm font-medium">
+        @foreach (var opcion in opciones)
         {
-            <span>Atendemos @clinica.Horario.</span>
+            <li>
+                @if (opcion.Disponible)
+                {
+                    <a href="@opcion.Url" rel="noopener"
+                       class="@ClaseFila text-ink hover:bg-primary-soft hover:text-primary-hover">
+                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            @Html.Raw(IconosLucide.Trazos(opcion.Icono))
+                        </svg>
+                        @opcion.Titulo
+                    </a>
+                }
+                else
+                {
+                    @* Todavía sin el dato en appsettings.json (sección "Clinica"):
+                       se ve, pero no es un enlace ni recibe foco. *@
+                    <span aria-disabled="true" class="@ClaseFila text-ink">
+                        <svg class="size-5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            @Html.Raw(IconosLucide.Trazos(opcion.Icono))
+                        </svg>
+                        <span class="flex-1 opacity-60">@opcion.Titulo</span>
+                        <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />
+                    </span>
+                }
+            </li>
         }
-    </p>
-
-    <ul class="mt-3 flex flex-wrap gap-3 @(enTarjeta ? "justify-center" : null)">
-        <li>
-            @if (clinica.TieneWhatsApp)
-            {
-                @* wa.me abre la conversación en la app o en WhatsApp Web. *@
-                <a href="https://wa.me/@clinica.WhatsApp" rel="noopener" class="boton boton-secundario">
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("mensaje"))
-                    </svg>
-                    Escribir por WhatsApp
-                </a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@ClaseApagado">
-                    <svg class="size-5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("mensaje"))
-                    </svg>
-                    <span class="opacity-60">Escribir por WhatsApp</span>
-                    <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />
-                </span>
-            }
-        </li>
-        <li>
-            @if (clinica.TieneTelefono)
-            {
-                @* tel: llama con un toque desde el celular. *@
-                <a href="tel:@clinica.Telefono" class="boton boton-secundario">
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("telefono"))
-                    </svg>
-                    Llamar a la clínica
-                </a>
-            }
-            else
-            {
-                <span aria-disabled="true" class="@ClaseApagado">
-                    <svg class="size-5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("telefono"))
-                    </svg>
-                    <span class="opacity-60">Llamar a la clínica</span>
-                    <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />
-                </span>
-            }
-        </li>
     </ul>
-
-    @if (ningunoDisponible)
-    {
-        <p class="mt-2 text-xs text-muted">Estas dos formas de contacto van a estar disponibles pronto.</p>
-    }
-</section>
+</div>

@@ -39,6 +39,8 @@
                 <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
                 <input asp-for="Contrasena" autocomplete="current-password" placeholder="••••••••" class="campo mt-1.5" />
                 <span asp-validation-for="Contrasena" class="mt-1 block text-xs text-status-cancelado"></span>
+                @* Donde lo busca cualquiera: debajo de la contraseña. *@
+                <a asp-action="Recuperar" class="mt-2 inline-block rounded-badge text-sm font-semibold text-primary hover:underline">¿Olvidaste tu contraseña?</a>
             </div>
 
             <button type="submit" class="boton boton-primario mt-7 w-full">Ingresar</button>
@@ -47,12 +49,6 @@
         <p class="mt-6 text-sm text-muted">
             ¿No tenés cuenta?
             <a asp-controller="Cuenta" asp-action="Registro" class="rounded-badge font-semibold text-primary hover:underline">Crear cuenta</a>
-        </p>
-        @* Todavía no hay "Olvidé mi contraseña" por email: la salida es pedir
-           ayuda a la clínica. El enlace baja a "¿Necesitás ayuda?" del pie. *@
-        <p class="mt-2 text-sm text-muted">
-            ¿Olvidaste tu contraseña?
-            <a href="#ayuda" class="rounded-badge font-semibold text-primary hover:underline">Pedí ayuda</a>
         </p>
     </div>
 </div>

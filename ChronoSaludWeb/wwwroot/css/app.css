@@ -438,6 +438,21 @@
       width: auto;
     }
 
+    /* La ventanita de "¿Necesitás ayuda?" del pie: abajo a la derecha,
+       alineada con el contenido. En el celular queda arriba de la barra
+       inferior, a la misma altura que el menú "Más". */
+    .menu-ayuda {
+      right: max(1rem, calc((100vw - 72rem) / 2 + 1.5rem));
+      bottom: 6.5rem;
+      width: min(20rem, calc(100vw - 2rem));
+    }
+
+    @media (width >= 48rem) {
+      .menu-ayuda {
+        bottom: 1.5rem;
+      }
+    }
+
     /* Mejora progresiva: donde el navegador soporta anclaje CSS, el menú de
        cuenta se pega al botón que lo abre (debajo y alineado a su borde
        derecho) en vez de ir a la posición calculada de arriba. Así queda en

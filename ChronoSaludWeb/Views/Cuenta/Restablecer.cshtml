@@ -1,0 +1,67 @@
+@model RestablecerViewModel
+@{
+    ViewData["Title"] = "Crear una contraseña nueva";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    var sinToken = string.IsNullOrWhiteSpace(Model.Token);
+    const string claseCampo = "campo mt-1.5";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+@* Misma tarjeta de acceso que el login: formulario y motivo de marca. *@
+<div class="tarjeta mx-auto max-w-md overflow-hidden md:grid md:max-w-4xl md:grid-cols-2">
+    <div class="h-24 px-6 pt-6 md:order-last md:flex md:h-auto md:items-center md:p-10">
+        <partial name="_MotivoMarca" />
+    </div>
+
+    <div class="p-6 sm:p-8">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Crear una contraseña nueva</h1>
+
+        @if (sinToken)
+        {
+            @* Se entró sin el enlace del email (o el enlace llegó cortado). *@
+            <div role="alert" class="mt-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                <p>Este enlace no es válido. Pedí uno nuevo y usalo tal como llega en el email.</p>
+            </div>
+            <a asp-action="Recuperar" class="boton boton-primario mt-7 w-full">Pedir otro enlace</a>
+        }
+        else
+        {
+            <p class="mt-2 text-sm text-muted">Tiene que tener al menos 8 caracteres.</p>
+
+            @if (erroresGenerales is { Count: > 0 })
+            {
+                <div role="alert" class="mt-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
+                    <p class="mt-2">
+                        <a asp-action="Recuperar" class="font-semibold underline">Pedir otro enlace</a>
+                    </p>
+                </div>
+            }
+
+            <form asp-action="Restablecer" method="post" novalidate class="mt-6">
+                <input type="hidden" asp-for="Token" />
+
+                <div>
+                    <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Contrasena" autocomplete="new-password" autofocus class="@claseCampo" />
+                    <span asp-validation-for="Contrasena" class="@claseError"></span>
+                </div>
+
+                <div class="mt-5">
+                    <label asp-for="Repetir" class="block text-sm font-medium text-ink"></label>
+                    <input asp-for="Repetir" autocomplete="new-password" class="@claseCampo" />
+                    <span asp-validation-for="Repetir" class="@claseError"></span>
+                </div>
+
+                <button type="submit" class="boton boton-primario mt-7 w-full">Guardar la contraseña nueva</button>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -41,6 +41,17 @@ public record CambioContrasenaDto(
     string ContrasenaNueva
 );
 
+/// <summary>Cuerpo de POST /usuarios/recuperar: el email de la cuenta.</summary>
+public record RecuperarContrasenaDto(
+    string Email
+);
+
+/// <summary>Cuerpo de POST /usuarios/restablecer: el token del enlace y la contraseña nueva.</summary>
+public record RestablecerContrasenaDto(
+    string Token,
+    string ContrasenaNueva
+);
+
 public record LoginResponseDto(
     string Token,
     string Rol,

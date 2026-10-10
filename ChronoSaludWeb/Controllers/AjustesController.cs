@@ -44,30 +44,6 @@ public class AjustesController : ControladorBase
     }
 
     /// <summary>
-    /// Los botones "A / A+ / A++" del encabezado. Cambian solo el tamaño del
-    /// texto (el tema queda como estaba) y vuelven a la misma pantalla, sin
-    /// pasar por Ajustes: quien más necesita la letra grande es quien menos
-    /// la va a buscar adentro de un menú.
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Tamano(string? escala, string? volver)
-    {
-        var actuales = Request.LeerPreferencias();
-
-        // Igual que en Guardar: un valor fuera de la lista blanca queda en el default.
-        Response.GuardarPreferencias(actuales with
-        {
-            Escala = PreferenciasExtensiones.EscalaValida(escala)
-        });
-
-        // Solo se vuelve a una dirección de este mismo sitio.
-        return Url.IsLocalUrl(volver)
-            ? Redirect(volver!)
-            : RedirectToAction("Index", "Home");
-    }
-
-    /// <summary>
     /// Ruta de la pantalla desde la que se entró a Ajustes, sacada del Referer.
     /// Se devuelve solo el path para no redirigir nunca fuera del sitio, y solo
     /// si el referer es de este mismo host.

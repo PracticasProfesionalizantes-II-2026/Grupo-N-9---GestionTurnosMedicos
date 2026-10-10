@@ -99,6 +99,82 @@ public class CuentaController : Controller
         return RedirectToAction("Editar", "MiPerfil");
     }
 
+    /// <summary>"¿Olvidaste tu contraseña?": se pide el email de la cuenta.</summary>
+    [HttpGet]
+    public IActionResult Recuperar()
+    {
+        if (_auth.HaySesion)
+            return RedirigirA(null);
+
+        return View(new RecuperarViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Recuperar(RecuperarViewModel modelo)
+    {
+        if (!ModelState.IsValid)
+            return View(modelo);
+
+        // El mismo tope por IP que el login: frena a quien pide enlaces sin parar.
+        var ip = HttpContext.Connection.RemoteIpAddress;
+        if (!_limite.PermiteIntento(ip))
+        {
+            _logger.LogWarning("Pedido de recuperación bloqueado por límite de intentos desde {Ip}", ip);
+
+            Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            ModelState.AddModelError(string.Empty, "Demasiados intentos. Esperá unos minutos y volvé a probar.");
+            return View(modelo);
+        }
+
+        try
+        {
+            await _auth.PedirRecuperacionAsync(modelo.Email);
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(modelo);
+        }
+
+        // El mismo mensaje exista o no la cuenta: así no se puede averiguar
+        // qué emails están registrados.
+        modelo.Enviado = true;
+        return View(modelo);
+    }
+
+    /// <summary>La pantalla del enlace del email: se elige la contraseña nueva.</summary>
+    [HttpGet]
+    public IActionResult Restablecer(string? token)
+    {
+        return View(new RestablecerViewModel { Token = token ?? string.Empty });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restablecer(RestablecerViewModel modelo)
+    {
+        if (!ModelState.IsValid)
+            return View(modelo);
+
+        try
+        {
+            await _auth.RestablecerContrasenaAsync(modelo.Token, modelo.Contrasena);
+        }
+        catch (ApiException ex)
+        {
+            // Enlace vencido o ya usado (400), API caída, etc.
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(modelo);
+        }
+
+        // Si había una sesión abierta en este navegador, se cierra: la
+        // contraseña cambió y conviene entrar de nuevo.
+        _auth.Logout();
+        TempData["Exito"] = "Listo, ya podés entrar con tu contraseña nueva.";
+        return RedirectToAction(nameof(Login));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Logout()

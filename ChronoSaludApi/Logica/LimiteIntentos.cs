@@ -25,6 +25,10 @@ public sealed class LimiteIntentos : IDisposable
     private readonly PartitionedRateLimiter<string> _login = Crear(10, TimeSpan.FromMinutes(15));
     private readonly PartitionedRateLimiter<string> _contrasena = Crear(5, TimeSpan.FromMinutes(15));
 
+    // "Olvidé mi contraseña": 3 pedidos cada 15 minutos por email, así nadie
+    // le llena la casilla a otro pidiendo enlaces sin parar.
+    private readonly PartitionedRateLimiter<string> _recuperar = Crear(3, TimeSpan.FromMinutes(15));
+
     /// <summary>Cuenta un intento de login con ese email y dice si entra en el cupo.</summary>
     public bool PermiteLogin(string email) =>
         Permite(_login, email.Trim().ToLowerInvariant());
@@ -32,6 +36,10 @@ public sealed class LimiteIntentos : IDisposable
     /// <summary>Cuenta un intento de cambio de contraseña de ese usuario y dice si entra en el cupo.</summary>
     public bool PermiteCambioDeContrasena(int idUsuario) =>
         Permite(_contrasena, $"{idUsuario}");
+
+    /// <summary>Cuenta un pedido de enlace de recuperación para ese email y dice si entra en el cupo.</summary>
+    public bool PermiteRecuperar(string email) =>
+        Permite(_recuperar, email.Trim().ToLowerInvariant());
 
     private static bool Permite(PartitionedRateLimiter<string> limitador, string clave)
     {
@@ -59,5 +67,6 @@ public sealed class LimiteIntentos : IDisposable
     {
         _login.Dispose();
         _contrasena.Dispose();
+        _recuperar.Dispose();
     }
 }
