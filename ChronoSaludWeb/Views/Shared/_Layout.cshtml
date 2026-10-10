@@ -49,7 +49,19 @@
        a una fila (Recetas/Crear) y un encabezado fijo taparía el ancla. Al
        imprimir (Recetas/Imprimir) no sale, como el pie y la barra del celular. *@
     <header class="barra-superior print:hidden">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-6 py-3 @(menu.HaySesion ? null : "flex-wrap")">
+        @* Barra de accesibilidad: el tamaño de la letra, siempre visible y en
+           el mismo lugar en todas las pantallas, con o sin sesión, en el
+           celular y en la compu. Va en su propia línea para no competir por
+           lugar con el menú, la campana y la cuenta. *@
+        <div class="border-b border-border">
+            <div class="mx-auto flex max-w-6xl justify-end px-6 py-1.5">
+                <partial name="_TamanoLetra" model="preferencias.Escala" />
+            </div>
+        </div>
+        @* Con sesión, en el celular la campana y la cuenta bajan a otra línea
+           si no entran al lado del logo (pasa con la letra extra grande);
+           desde md la fila no se corta, porque el menú ya se achica solo. *@
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3 @(menu.HaySesion ? "md:flex-nowrap" : null)">
             <a class="flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">
                 <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
                     <rect width="32" height="32" rx="7" class="fill-primary" />
@@ -144,6 +156,14 @@
     </main>
 
     <footer class="border-t border-border print:hidden">
+        @* "¿Necesitás ayuda?" en todas las páginas. Las pantallas de error ya
+           lo muestran más grande en el contenido, así que ahí no se repite. *@
+        @if (ViewData["AyudaEnLaPagina"] is not true)
+        {
+            <div class="mx-auto max-w-6xl px-6 pt-6">
+                <partial name="_Ayuda" model='"pie"' />
+            </div>
+        }
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-sm text-muted">
             <span>&copy; 2026 ChronoSalud</span>
             <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>

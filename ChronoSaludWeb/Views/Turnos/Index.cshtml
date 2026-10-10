@@ -8,6 +8,9 @@
     // para volver a esta vista y no al listado sin filtros.
     var volver = Url.Action("Index", "Turnos", Model.Filtros.RutaDePagina(Model.Filtros.Pagina));
 
+    // Al paciente los estados y las fechas se le dicen con palabras (A4).
+    var esPaciente = Model.Rol == "paciente";
+
     // Encabezado de una columna ordenable: un enlace que vuelve al listado
     // ordenado por ella. En la que ya ordena la tabla lleva la flecha y el
     // aria-sort, y tocarla de nuevo invierte la dirección.
@@ -238,7 +241,7 @@ else
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
-                Pendientes
+                @(esPaciente ? "Esperando confirmación" : "Pendientes")
             </span>
             <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Pendientes</span>
         </button>
@@ -253,7 +256,7 @@ else
                     <path d="M21.801 10A10 10 0 1 1 17 3.335" />
                     <path d="m9 11 3 3L22 4" />
                 </svg>
-                Completados
+                @(esPaciente ? "Atendidos" : "Completados")
             </span>
             <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</span>
         </button>
@@ -385,8 +388,10 @@ else
                                         </span>
                                     </div>
                                 </td>
+                                @* El paciente lee el día con palabras ("viernes 16 de
+                                   octubre"); el personal, la fecha corta de siempre. *@
                                 <td class="whitespace-nowrap px-5 py-4 text-sm tabular-nums text-muted">
-                                    @turno.FechaCorta
+                                    @(esPaciente ? turno.DiaParaPaciente : turno.FechaCorta)
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <partial name="_BadgeEstado" model="turno.Estado" />

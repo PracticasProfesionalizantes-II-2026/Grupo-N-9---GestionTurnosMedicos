@@ -583,13 +583,11 @@ public class HomeController : Controller
     /// </summary>
     private static string Cuando(TurnoFilaViewModel turno)
     {
-        var fecha = turno.FechaInicio.Date;
+        var dia = FechaArgentina.DiaNatural(turno.FechaInicio, FechaArgentina.Hoy());
 
-        var hoy = FechaArgentina.Hoy();
-
-        var dia = fecha == hoy ? "hoy"
-            : fecha == hoy.AddDays(1) ? "mañana"
-            : "el " + fecha.ToString("dddd d 'de' MMMM", TurnosIndexViewModel.Cultura);
+        // "el jueves 8 de octubre"; "hoy" y "mañana" van sin artículo.
+        if (dia != "hoy" && dia != "mañana")
+            dia = "el " + dia;
 
         return turno.Hora is null ? dia : $"{dia} a las {turno.Hora}";
     }

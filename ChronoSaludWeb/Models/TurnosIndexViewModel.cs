@@ -35,6 +35,12 @@ public class TurnoFilaViewModel
     public string FechaCorta => FechaArgentina.Corta(FechaInicio);
 
     /// <summary>
+    /// Para el paciente, el día como se dice: "hoy", "mañana" o "viernes 16 de
+    /// octubre". La hora va aparte, en su propia columna.
+    /// </summary>
+    public string DiaParaPaciente => FechaArgentina.DiaNatural(FechaInicio, Ahora);
+
+    /// <summary>
     /// Arma la fila a partir de lo que devuelve la API.
     /// </summary>
     public static TurnoFilaViewModel Desde(TurnoLista turno) => DesdeConFoto(turno, null);

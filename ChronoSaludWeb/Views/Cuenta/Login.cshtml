@@ -48,6 +48,12 @@
             ¿No tenés cuenta?
             <a asp-controller="Cuenta" asp-action="Registro" class="rounded-badge font-semibold text-primary hover:underline">Crear cuenta</a>
         </p>
+        @* Todavía no hay "Olvidé mi contraseña" por email: la salida es pedir
+           ayuda a la clínica. El enlace baja a "¿Necesitás ayuda?" del pie. *@
+        <p class="mt-2 text-sm text-muted">
+            ¿Olvidaste tu contraseña?
+            <a href="#ayuda" class="rounded-badge font-semibold text-primary hover:underline">Pedí ayuda</a>
+        </p>
     </div>
 </div>
 

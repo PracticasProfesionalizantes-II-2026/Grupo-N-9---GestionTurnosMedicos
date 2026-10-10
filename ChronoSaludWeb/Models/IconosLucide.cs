@@ -32,6 +32,9 @@ public static class IconosLucide
         "persona"        => """<circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />""",
         "reloj"          => """<circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />""",
         "actividad"      => """<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />""",
+        "telefono"       => """<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />""",
+        "mensaje"        => """<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />""",
+        "imprimir"       => """<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" />""",
         _              => """<circle cx="12" cy="12" r="10" />""",
     };
 }

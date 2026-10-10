@@ -1,0 +1,34 @@
+@model string
+@{
+    // Los tres tamaños de Ajustes, siempre a mano en el encabezado. Cada botón
+    // es un formulario chico que guarda la misma cookie y vuelve a esta misma
+    // pantalla, sin JavaScript. El Model es la escala que está elegida ahora.
+    var volver = $"{Context.Request.Path}{Context.Request.QueryString}";
+
+    var opciones = new[]
+    {
+        (Escala: "md", Texto: "A",   Nombre: "normal",       Clase: "text-sm"),
+        (Escala: "lg", Texto: "A+",  Nombre: "grande",       Clase: "text-base"),
+        (Escala: "xl", Texto: "A++", Nombre: "extra grande", Clase: "text-lg")
+    };
+}
+
+@* aria-pressed dice cuál está elegido; el lector de pantalla lee, por
+   ejemplo, "Letra grande, botón conmutador, presionado". *@
+<div role="group" aria-label="Tamaño de la letra" class="flex items-center gap-1">
+    <span aria-hidden="true" class="mr-1 text-xs font-medium text-muted">Letra</span>
+    @foreach (var opcion in opciones)
+    {
+        var elegida = Model == opcion.Escala;
+
+        <form asp-controller="Ajustes" asp-action="Tamano" method="post">
+            <input type="hidden" name="escala" value="@opcion.Escala" />
+            <input type="hidden" name="volver" value="@volver" />
+            <button type="submit" aria-pressed="@(elegida ? "true" : "false")"
+                    class="boton boton-secundario min-w-11 px-2 py-1 font-bold @opcion.Clase aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-on-primary aria-pressed:shadow-none aria-pressed:hover:bg-primary-hover">
+                <span aria-hidden="true">@opcion.Texto</span>
+                <span class="sr-only">Letra @opcion.Nombre</span>
+            </button>
+        </form>
+    }
+</div>

@@ -1,4 +1,5 @@
 @model string
+@inject AuthService Auth
 
 @functions {
     // El estado de un turno, como chip. Un estado que no se conoce cae en el
@@ -14,4 +15,10 @@
     };
 }
 
-<partial name="_Chip" model="new ChipViewModel { Texto = Model, Tono = Tono(Model), Capitalizar = true }" />
+@{
+    // Al paciente se le dice el estado con palabras ("Esperando confirmación");
+    // el personal sigue viendo la palabra corta.
+    var texto = EstadoTurnoTexto.Para(Model, Auth.SesionActual?.Rol == "paciente");
+}
+
+<partial name="_Chip" model="new ChipViewModel { Texto = texto, Tono = Tono(Model) }" />

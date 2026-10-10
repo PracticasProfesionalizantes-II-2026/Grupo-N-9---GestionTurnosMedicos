@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using ChronoSaludWeb.Filters;
+using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,10 @@ builder.Services.AddHttpClient<ApiClient>(cliente =>
     cliente.BaseAddress = new Uri(urlApi.TrimEnd('/') + "/");
     cliente.Timeout = TimeSpan.FromSeconds(30);
 });
+
+// Datos de contacto de la clínica (sección "Clinica" de appsettings.json).
+// Las vistas los leen con @inject IOptions<ClinicaOpciones>.
+builder.Services.Configure<ClinicaOpciones>(builder.Configuration.GetSection("Clinica"));
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TurnoService>();

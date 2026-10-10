@@ -27,7 +27,8 @@
 
                 var secundario = Model.Vista switch
                 {
-                    VistaPanel.Paciente      => turno.FechaCorta,
+                    // Al paciente, el día con palabras: "mañana", "viernes 16 de octubre".
+                    VistaPanel.Paciente      => turno.DiaParaPaciente,
                     // El panel del doctor muestra los próximos turnos, no solo
                     // los de hoy: sin la fecha no se sabe de qué día es cada uno.
                     VistaPanel.Doctor        => turno.FechaCorta,
@@ -35,7 +36,9 @@
                     _                        => null
                 };
 
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
+                @* flex-wrap: en el celular con la letra grande, el estado y
+                   "Cancelar" bajan a otra línea en vez de salirse de la pantalla. *@
+                <li class="fila-animada relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
                     style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
                     <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">@(turno.Hora ?? "—")</span>
 

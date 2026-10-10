@@ -1,4 +1,6 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ChronoSaludWeb.Models;
 using ChronoSaludWeb.Services;
 
@@ -12,6 +14,7 @@ public class TurnosController : ControladorBase
     private readonly AuthService _auth;
     private readonly PerfilService _perfil;
     private readonly UsuarioService _usuarios;
+    private readonly ClinicaOpciones _clinica;
 
     public TurnosController(
         TurnoService turnos,
@@ -19,8 +22,10 @@ public class TurnosController : ControladorBase
         DoctorService doctores,
         AuthService auth,
         PerfilService perfil,
-        UsuarioService usuarios)
+        UsuarioService usuarios,
+        IOptions<ClinicaOpciones> clinica)
     {
+        _clinica = clinica.Value;
         _turnos = turnos;
         _pacientes = pacientes;
         _doctores = doctores;
@@ -170,6 +175,74 @@ public class TurnosController : ControladorBase
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
             return View(new TurnoDetalleViewModel { IdTurno = id, Error = error.Message });
+        }
+    }
+
+    /// <summary>
+    /// "Agregar a mi calendario": descarga el turno como archivo .ics, con un
+    /// aviso el día anterior y otro una hora antes. Mismo control que el
+    /// detalle: solo se descargan los turnos que el usuario puede ver.
+    /// </summary>
+    public async Task<IActionResult> Calendario(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Detalle), new { id }));
+
+        try
+        {
+            var turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+
+            if (turno is null)
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+
+            // Un turno cancelado, completado o ausente ya no hace falta recordarlo.
+            if (!turno.EstaEnPie)
+            {
+                TempData["Error"] = "Ese turno ya no está vigente, así que no hace falta agregarlo al calendario.";
+                return RedirectToAction(nameof(Detalle), new { id });
+            }
+
+            var texto = CalendarioIcs.Armar(turno, _clinica.Direccion, DateTime.UtcNow);
+
+            // text/calendar: el celular lo abre directo con su app de calendario.
+            return File(Encoding.UTF8.GetBytes(texto), "text/calendar; charset=utf-8", $"turno-{id}.ics");
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            TempData["Error"] = error.Message;
+            return RedirectToAction(nameof(Detalle), new { id });
+        }
+    }
+
+    /// <summary>
+    /// El comprobante del turno para imprimir, con letra grande: mucha gente
+    /// prefiere tenerlo en papel o se lo lleva un familiar. Mismo control que
+    /// el detalle. Sin JavaScript: se imprime con el menú del navegador, como
+    /// la receta.
+    /// </summary>
+    public async Task<IActionResult> Comprobante(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Comprobante), new { id }));
+
+        try
+        {
+            var turno = await ArmarDetalleAsync(id, await ResolverAmbitoAsync());
+
+            if (turno is null)
+                return NoEncontrado(id, "Turno no encontrado", "turno");
+
+            return View(new TurnoComprobanteViewModel
+            {
+                IdTurno = id,
+                Turno = turno,
+                Direccion = _clinica.TieneDireccion ? _clinica.Direccion.Trim() : null,
+                GeneradoEl = FechaArgentina.Ahora()
+            });
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            return View(new TurnoComprobanteViewModel { IdTurno = id, Error = error.Message });
         }
     }
 
@@ -771,8 +844,10 @@ public class TurnosController : ControladorBase
                 return RedirectToAction(nameof(Index));
             }
 
+            // Al paciente el estado se le dice con palabras: "Queda esperando confirmación".
+            var estado = EstadoTurnoTexto.Para(creado.Estado, rol == "paciente").ToLowerInvariant();
             TempData["Exito"] =
-                $"Turno #{creado.IdTurno} reservado para el {modelo.FechaLarga}, de {modelo.Horario}. Queda {creado.Estado}.";
+                $"Turno #{creado.IdTurno} reservado para el {modelo.FechaLarga}, de {modelo.Horario}. Queda {estado}.";
             return RedirectToAction(nameof(Detalle), new { id = creado.IdTurno });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)

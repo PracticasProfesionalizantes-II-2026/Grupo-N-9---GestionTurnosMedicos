@@ -657,3 +657,41 @@ con la API y la Web reales: 42 chequeos.
 - Sin migración y sin nada que correr en Azure.
 - Conviene que la API llegue antes que la Web.
 - Subir archivos queda para más adelante: hoy el resultado es texto más un enlace opcional.
+
+## 2026-10-10 — mejoras, paso 17: accesibilidad para personas mayores
+**Hecho (solo Web, sin JavaScript nuevo):**
+- **Letra más grande a mano (A1):**
+  - una barra fina arriba del encabezado, en todas las pantallas y con o sin sesión, con "Letra: A / A+ / A++";
+  - cada botón es un formulario que guarda la misma cookie que Ajustes (`AjustesController.Tamano`), conserva el tema y vuelve a la misma pantalla;
+  - el elegido va con `aria-pressed`;
+  - solo vuelve a direcciones del propio sitio, y una escala inventada queda en la normal.
+- **Agregar a mi calendario (A2):**
+  - `Turnos/Calendario/{id}` descarga un `.ics` con un aviso el día anterior y otro una hora antes;
+  - la hora va en UTC, calculada desde la hora de Argentina (10:00 → 13:00Z);
+  - mismo control de ámbito que el detalle, y solo para turnos pendientes o confirmados;
+  - lo arma `Services/CalendarioIcs.cs`: escapa comas y punto y coma, usa CRLF y corta las líneas a 75 bytes.
+- **Comprobante para imprimir (A3):** `Turnos/Comprobante/{id}`, con letra grande:
+  - día con palabras, horario, doctor, especialidad, consultorio, estado y "Qué llevar";
+  - usa los estilos de impresión de la receta.
+  - Las dos acciones (A2 y A3) están en la tarjeta nueva "Para no olvidarte" del detalle, que es también la pantalla que se ve después de reservar.
+- **Fechas y estados con palabras para el paciente (A4):**
+  - "viernes 16 de octubre", "mañana" o "hoy" (`FechaArgentina.DiaNatural`) en el inicio, el listado, el detalle y el comprobante;
+  - "Esperando confirmación" en vez de "pendiente" y "Atendido" en vez de "completado" (`EstadoTurnoTexto`), en el chip, en las tarjetas del listado y en el aviso de turno reservado;
+  - el personal sigue viendo lo compacto.
+- **¿Necesitás ayuda? (A5):**
+  - en el pie de todas las páginas y como tarjeta en las pantallas de error, con dos opciones: "Escribir por WhatsApp" y "Llamar a la clínica";
+  - por ahora son **decorativas**: se ven con "Próximamente", no son enlaces y no reciben foco;
+  - el login suma "¿Olvidaste tu contraseña? Pedí ayuda", que lleva a ese bloque;
+  - los datos van en la sección nueva `Clinica` de `appsettings.json`, vacía a propósito. Cuando se carguen `Telefono` y `WhatsApp`, los botones pasan solos a `tel:` y `https://wa.me/`, y `Direccion` aparece en el comprobante y en el calendario.
+- **Arreglos (celular con letra extra grande):**
+  - con sesión, la campana y la cuenta se salían de la pantalla a 320 px: ahora bajan a otra línea;
+  - en "Próximos turnos" del inicio, el estado y "Cancelar" también se salían: ahora bajan debajo.
+- **Probado:**
+  - 32 pruebas nuevas (317 en total);
+  - en Chromium contra la Web real con una API falsa: 60 chequeos, entre ellos el `.ics` descargado, el ámbito (el `.ics` y el comprobante de otro paciente dan 404), la impresión y la ausencia de scroll horizontal de 320 a 1280 px con letra normal y extra grande.
+
+**Ojo:**
+- Sin migración, sin cambios en la API y sin nada obligatorio en Azure.
+- Para activar la ayuda, cargar en Azure `Clinica__Telefono`, `Clinica__WhatsApp`, `Clinica__Horario` y `Clinica__Direccion`.
+- Apretar A+ en medio de un formulario recarga la página y se pierde lo escrito, porque sin JavaScript no hay otra forma.
+- Falta probar con SQL Server y la API reales, y con NVDA, VoiceOver y TalkBack (paso 18).

@@ -39,6 +39,33 @@ public static class FechaArgentina
         $"{Corta(fecha)}, {fecha.ToString("HH:mm", Cultura)}";
 
     /// <summary>
+    /// El día como se dice: "hoy", "mañana" o "viernes 16 de octubre". Si es
+    /// de otro año se suma el año ("viernes 15 de enero de 2027"). Es para lo
+    /// que lee el paciente; el personal sigue con la fecha corta de las listas.
+    /// </summary>
+    public static string DiaNatural(DateTime fecha, DateTime hoy)
+    {
+        fecha = fecha.Date;
+        hoy = hoy.Date;
+
+        if (fecha == hoy) return "hoy";
+        if (fecha == hoy.AddDays(1)) return "mañana";
+
+        var dia = fecha.ToString("dddd d 'de' MMMM", Cultura);
+        return fecha.Year == hoy.Year ? dia : $"{dia} de {fecha.Year}";
+    }
+
+    /// <summary>
+    /// "viernes 16 de octubre, 14:00 hs" o "mañana, 9:30 hs". Sin hora (la API
+    /// no la mandó) queda solo el día.
+    /// </summary>
+    public static string DiaNaturalConHora(DateTime fecha, string? hora, DateTime hoy)
+    {
+        var dia = DiaNatural(fecha, hoy);
+        return string.IsNullOrWhiteSpace(hora) ? dia : $"{dia}, {hora.Trim()} hs";
+    }
+
+    /// <summary>
     /// El id de la zona cambia según el sistema: IANA en Linux, el nombre de
     /// Windows en Windows. Si no está ninguno de los dos se arma una fija en
     /// UTC-3, que es correcta porque Argentina no cambia la hora desde 2009.

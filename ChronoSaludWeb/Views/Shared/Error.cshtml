@@ -1,5 +1,6 @@
 @model ErrorViewModel
 @{
+    ViewData["AyudaEnLaPagina"] = true;
     ViewData["Title"] = "Algo salió mal";
 }
 
@@ -29,4 +30,9 @@
        class="boton boton-primario mt-6">
         Volver al inicio
     </a>
+</div>
+
+@* Una salida humana: quien llega acá suele estar trabado. *@
+<div class="mx-auto max-w-lg">
+    <partial name="_Ayuda" model='"tarjeta"' />
 </div>

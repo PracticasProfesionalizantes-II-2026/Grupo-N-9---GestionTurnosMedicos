@@ -26,7 +26,15 @@ else
     <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">Turno #@Model.IdTurno</h1>
-            <p class="mt-1 text-sm capitalize text-muted">@Model.FechaLarga</p>
+            @* El paciente lo lee como se dice: "mañana, 10:00 hs". *@
+            @if (Auth.SesionActual?.Rol == "paciente")
+            {
+                <p class="mt-1 text-sm text-muted first-letter:uppercase">@Model.FechaParaPaciente</p>
+            }
+            else
+            {
+                <p class="mt-1 text-sm capitalize text-muted">@Model.FechaLarga</p>
+            }
         </div>
         <partial name="_BadgeEstado" model="Model.Estado" />
     </div>
@@ -117,6 +125,38 @@ else
             </div>
         </div>
     </div>
+
+    @* Para no olvidarse del turno: agendarlo en el calendario del celular (con
+       avisos el día anterior y una hora antes) o tenerlo en papel. Solo
+       mientras el turno sigue en pie. Después de reservar se llega acá, así
+       que también es lo primero que ve el paciente con el turno recién sacado. *@
+    @if (Model.EstaEnPie)
+    {
+        <div class="mt-4 tarjeta p-6">
+            <h2 class="text-base font-semibold text-ink">Para no olvidarte</h2>
+            <p class="mt-1 text-sm text-muted">
+                Agregalo a tu calendario y te avisa el día anterior y una hora antes. O imprimí el comprobante.
+            </p>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <a asp-action="Calendario" asp-route-id="@Model.IdTurno"
+                   class="boton boton-primario">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos("calendario-mas"))
+                    </svg>
+                    Agregar a mi calendario
+                </a>
+                <a asp-action="Comprobante" asp-route-id="@Model.IdTurno"
+                   class="boton boton-secundario">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        @Html.Raw(IconosLucide.Trazos("imprimir"))
+                    </svg>
+                    Ver comprobante para imprimir
+                </a>
+            </div>
+        </div>
+    }
 
     <div class="mt-4 tarjeta p-6">
         <h2 class="text-base font-semibold text-ink">Observaciones</h2>

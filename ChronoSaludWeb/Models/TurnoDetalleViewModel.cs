@@ -35,6 +35,12 @@ public class TurnoDetalleViewModel
     public string FechaLarga =>
         FechaInicio.ToString("D", TurnosIndexViewModel.Cultura);
 
+    /// <summary>Para el paciente: "viernes 16 de octubre, 14:00 hs", o "hoy" y "mañana".</summary>
+    public string FechaParaPaciente => FechaArgentina.DiaNaturalConHora(FechaInicio, HoraInicio, Ahora);
+
+    /// <summary>Solo el día, como se dice: "hoy", "mañana" o "viernes 16 de octubre".</summary>
+    public string DiaParaPaciente => FechaArgentina.DiaNatural(FechaInicio, Ahora);
+
     /// <summary>"10:00 a 10:30", o solo el inicio si la API no mandó el fin.</summary>
     public string Horario =>
         string.IsNullOrWhiteSpace(HoraFin) ? HoraInicio : $"{HoraInicio} a {HoraFin}";
