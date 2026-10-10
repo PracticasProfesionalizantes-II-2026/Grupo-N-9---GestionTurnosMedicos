@@ -634,3 +634,26 @@ con la API y la Web reales: 42 chequeos.
 - **Probado** contra SQL Server 2022 con la API y la Web reales: 26 chequeos, incluidos los permisos (otro doctor no marca un turno ajeno ni mandando el POST a mano, y el paciente no ve nada de esto).
 
 **Ojo:** sin migración, sin nada que correr en Azure y sin cambios en la API.
+
+## 2026-10-09 — mejoras, paso 16: estudios en la Web
+**Hecho:**
+- **API:**
+  - `EstudioDto` suma la descripción y quién lo pidió (el doctor del turno);
+  - nuevo `GET /estudios/{id}`;
+  - `POST /estudios` revisa que el paciente exista y que el turno sea de ese paciente con ese doctor;
+  - la notificación del resultado nombra el estudio y ahora lleva fecha.
+- **Web:** la pantalla nueva **Estudios**.
+  - **El paciente** ve "Mis estudios": qué estudio es, quién lo pidió, "Esperando resultado" o "Resultado disponible", el resultado y el enlace al archivo si hay.
+  - **El doctor** pide estudios desde el turno ("Pedir estudio", en Atención).
+  - **El doctor y la administración** cargan o corrigen el resultado; el enlace al archivo tiene que ser `https://`.
+  - **Accesos:**
+    - "Estudios" en el menú;
+    - "Mis estudios" en el inicio del paciente;
+    - "Ver mis estudios" en las notificaciones;
+    - "Estudios" en la ficha del paciente.
+- **Probado** contra SQL Server 2022 con la API y la Web reales: 28 chequeos, incluidos los permisos (otro paciente no ve los estudios ajenos, un doctor no pide desde un turno de otro y la administración no pide estudios).
+
+**Ojo:**
+- Sin migración y sin nada que correr en Azure.
+- Conviene que la API llegue antes que la Web.
+- Subir archivos queda para más adelante: hoy el resultado es texto más un enlace opcional.

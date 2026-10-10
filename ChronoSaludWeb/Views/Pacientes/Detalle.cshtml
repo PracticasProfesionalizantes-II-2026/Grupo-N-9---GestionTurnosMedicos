@@ -193,7 +193,15 @@ else
             </svg>
             Recetas
         </a>
-        @* Agendar turno sí crea datos (a diferencia de los dos anteriores, que
+        <a asp-controller="Estudios" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+           class="boton boton-secundario">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos("estudio"))
+            </svg>
+            Estudios
+        </a>
+        @* Agendar turno sí crea datos (a diferencia de los anteriores, que
            solo navegan), por eso va con el estilo primario relleno. *@
         @if (Auth.PuedeCargarTurnos)
         {

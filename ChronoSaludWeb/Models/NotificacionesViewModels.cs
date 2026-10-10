@@ -62,7 +62,7 @@ public class NotificacionFilaViewModel
     public string Icono => Tipo switch
     {
         "turno" => "calendario",
-        "estudio" => "historia",
+        "estudio" => "estudio",
         "receta" => "pastilla",
         _ => "info"
     };
@@ -72,6 +72,9 @@ public class NotificacionFilaViewModel
 
     /// <summary>Las de turnos llevan el enlace "Ver mis turnos".</summary>
     public bool EsDeTurno => Tipo == "turno";
+
+    /// <summary>Las de estudios llevan el enlace "Ver mis estudios".</summary>
+    public bool EsDeEstudio => Tipo == "estudio";
 
     public static NotificacionFilaViewModel Desde(NotificacionLista notificacion) => new()
     {

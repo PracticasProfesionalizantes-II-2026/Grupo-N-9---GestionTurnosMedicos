@@ -82,12 +82,16 @@ else
                                 <partial name="_Chip" model='new ChipViewModel { Texto = "Nueva", Tono = TonoChip.Aviso }' />
                             }
                         </p>
-                        @if (notificacion.EsDeTurno || !notificacion.Leida)
+                        @if (notificacion.EsDeTurno || notificacion.EsDeEstudio || !notificacion.Leida)
                         {
                             <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                                 @if (notificacion.EsDeTurno)
                                 {
                                     <a asp-controller="Turnos" asp-action="Index" class="boton-texto">Ver mis turnos</a>
+                                }
+                                @if (notificacion.EsDeEstudio)
+                                {
+                                    <a asp-controller="Estudios" asp-action="Index" class="boton-texto">Ver mis estudios</a>
                                 }
                                 @if (!notificacion.Leida)
                                 {

@@ -8,7 +8,11 @@ public record EstudioDto(
     int? IdTurno,
     string? Resultado,
     string? ArchivoUrl,
-    DateTime? FechaResultado
+    DateTime? FechaResultado,
+    // Paso 16: qué estudio es y quién lo pidió (el doctor del turno
+    // vinculado; null si el estudio no tiene turno).
+    string Descripcion = "",
+    ProfesionalDto? Doctor = null
 );
 
 public record EstudioCreateDto(

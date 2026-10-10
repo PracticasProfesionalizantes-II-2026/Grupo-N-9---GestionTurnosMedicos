@@ -62,6 +62,18 @@ public class AuthService
     public bool PuedeEmitirRecetas => SesionActual?.Rol is "doctor";
 
     /// <summary>
+    /// POST /estudios lo reserva la API al rol doctor: el estudio se pide
+    /// desde un turno de su agenda.
+    /// </summary>
+    public bool PuedePedirEstudios => SesionActual?.Rol is "doctor";
+
+    /// <summary>
+    /// PUT /estudios/{id}/resultados lo aceptan doctor y administrador (por
+    /// ejemplo, cuando llega el resultado del laboratorio).
+    /// </summary>
+    public bool PuedeCargarResultados => SesionActual?.Rol is "doctor" or "administrador";
+
+    /// <summary>
     /// POST y PUT de historiales clínicos los reserva la API al rol doctor.
     /// </summary>
     public bool PuedeEscribirHistorial => SesionActual?.Rol is "doctor";

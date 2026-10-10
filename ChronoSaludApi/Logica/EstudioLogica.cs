@@ -8,18 +8,27 @@ public class EstudioLogica : IEstudioLogica
 {
     private readonly IEstudioRepository _repo;
     private readonly IPacienteRepository _pacienteRepo;
+    private readonly IDoctorRepository _doctorRepo;
+    private readonly ITurnoRepository _turnoRepo;
     private readonly INotificacionRepository _notifRepo;
+    private readonly IReloj _reloj;
     private readonly ILogger<EstudioLogica> _logger;
 
     public EstudioLogica(
         IEstudioRepository repo,
         IPacienteRepository pacienteRepo,
+        IDoctorRepository doctorRepo,
+        ITurnoRepository turnoRepo,
         INotificacionRepository notifRepo,
+        IReloj reloj,
         ILogger<EstudioLogica> logger)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
+        _doctorRepo = doctorRepo;
+        _turnoRepo = turnoRepo;
         _notifRepo = notifRepo;
+        _reloj = reloj;
         _logger = logger;
     }
 
@@ -53,7 +62,7 @@ public class EstudioLogica : IEstudioLogica
                 return (null, "Tu usuario no tiene un perfil de paciente asociado.", false);
         }
 
-        var e = await _repo.ObtenerPorId(id);
+        var e = await _repo.ObtenerConDoctor(id);
         if (e == null) return (null, "Estudio no encontrado.", false);
 
         if (propio != null && propio.Id != e.IdPaciente)
@@ -62,19 +71,41 @@ public class EstudioLogica : IEstudioLogica
         return (MapearDto(e), null, false);
     }
 
-    public async Task<(int? id, string? error)> Crear(EstudioCreateDto dto)
+    /// <summary>
+    /// Lo pide un doctor (el del token). Si viene un turno, tiene que ser de
+    /// este paciente con este doctor, como en recetas e historia clínica.
+    /// </summary>
+    public async Task<(int? id, string? error)> Crear(EstudioCreateDto dto, int idUsuarioCaller)
     {
         var tiposValidos = new[] { "sangre", "imagen", "biopsia", "otro" };
         if (!tiposValidos.Contains(dto.Tipo))
             return (null, "Tipo inválido. Valores: sangre, imagen, biopsia, otro.");
+
+        // Sin esto, un paciente inexistente se iba contra la foreign key y salía como 500.
+        var paciente = await _pacienteRepo.ObtenerPorId(dto.IdPaciente);
+        if (paciente == null)
+            return (null, $"Paciente con id {dto.IdPaciente} no encontrado.");
+
+        var doctor = await _doctorRepo.ObtenerPorIdUsuario(idUsuarioCaller);
+        if (doctor == null)
+            return (null, "Perfil de doctor no encontrado: tu usuario no tiene uno asociado.");
+
+        var errorTurno = await TurnoVinculado.Revisar(_turnoRepo, dto.IdTurno, dto.IdPaciente, doctor.Id);
+        if (errorTurno != null)
+            return (null, errorTurno);
+
+        // Si no mandan la fecha del pedido, es hoy.
+        var fecha = dto.FechaSolicitud;
+        if (fecha == default)
+            fecha = _reloj.Ahora().Date;
 
         var estudio = new Estudio
         {
             IdPaciente     = dto.IdPaciente,
             IdTurno        = dto.IdTurno,
             Tipo           = dto.Tipo,
-            Descripcion    = dto.Descripcion,
-            FechaSolicitud = dto.FechaSolicitud,
+            Descripcion    = dto.Descripcion.Trim(),
+            FechaSolicitud = fecha,
             Estado         = "pendiente"
         };
 
@@ -94,7 +125,7 @@ public class EstudioLogica : IEstudioLogica
         estudio.Resultado      = dto.Resultado;
         estudio.ArchivoUrl     = dto.ArchivoUrl;
         estudio.Estado         = dto.Estado;
-        estudio.FechaResultado = dto.FechaResultado;
+        estudio.FechaResultado = dto.FechaResultado == default ? _reloj.Ahora() : dto.FechaResultado;
 
         await _repo.Actualizar(estudio);
 
@@ -109,7 +140,8 @@ public class EstudioLogica : IEstudioLogica
                 {
                     IdUsuario = paciente.Usuario.Id,
                     Tipo      = "estudio",
-                    Mensaje   = $"El resultado de tu estudio de {estudio.Tipo} ya está disponible."
+                    Mensaje   = MensajeDeResultado(estudio),
+                    Fecha     = _reloj.Ahora()
                 });
             }
         }
@@ -121,6 +153,18 @@ public class EstudioLogica : IEstudioLogica
         return (true, null);
     }
 
+    /// <summary>
+    /// "El resultado de tu estudio «Hemograma completo» ya está disponible."
+    /// Si el estudio no tiene descripción, se nombra por el tipo.
+    /// </summary>
+    public static string MensajeDeResultado(Estudio estudio)
+    {
+        if (string.IsNullOrWhiteSpace(estudio.Descripcion))
+            return $"El resultado de tu estudio de {estudio.Tipo} ya está disponible.";
+
+        return $"El resultado de tu estudio «{estudio.Descripcion.Trim()}» ya está disponible.";
+    }
+
     private static EstudioDto MapearDto(Estudio e) => new EstudioDto(
         e.Id,
         e.Tipo,
@@ -129,6 +173,8 @@ public class EstudioLogica : IEstudioLogica
         e.IdTurno,
         e.Resultado,
         e.ArchivoUrl,
-        e.FechaResultado
+        e.FechaResultado,
+        e.Descripcion,
+        Profesional.Armar(e.Turno?.Doctor)
     );
 }

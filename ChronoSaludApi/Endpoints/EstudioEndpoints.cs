@@ -35,13 +35,35 @@ public static class EstudioEndpoints
 
         var grupo = app.MapGroup("/estudios").WithTags("Estudios").RequireAuthorization();
 
-        // POST /estudios
-        grupo.MapPost("/", async (EstudioCreateDto dto, IEstudioLogica logica) =>
+        // GET /estudios/{id}
+        // Un estudio: el staff ve cualquiera y el paciente solo los suyos.
+        grupo.MapGet("/{id:int}", async (int id, HttpContext ctx, IEstudioLogica logica) =>
         {
-            if (dto.IdPaciente == 0 || string.IsNullOrEmpty(dto.Tipo) || string.IsNullOrEmpty(dto.Descripcion))
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var callerEsStaff = ctx.User.IsInRole("doctor") || ctx.User.IsInRole("administrador");
+
+            var (estudio, error, prohibido) = await logica.ObtenerPorId(id, idUsuario, callerEsStaff);
+            if (prohibido) return Results.Forbid();
+            if (estudio == null) return Results.NotFound(new { error });
+
+            return Results.Ok(estudio);
+        })
+        .WithSummary("Ver un estudio");
+
+        // POST /estudios
+        grupo.MapPost("/", async (EstudioCreateDto dto, HttpContext ctx, IEstudioLogica logica) =>
+        {
+            if (dto.IdPaciente == 0 || string.IsNullOrEmpty(dto.Tipo) || string.IsNullOrWhiteSpace(dto.Descripcion))
                 return Results.BadRequest(new { error = "Datos inválidos o incompletos." });
 
-            var (id, error) = await logica.Crear(dto);
+            var idClaim = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idClaim, out var idUsuario))
+                return Results.Unauthorized();
+
+            var (id, error) = await logica.Crear(dto, idUsuario);
             if (error != null)
                 return error.Contains("no encontrado")
                     ? Results.NotFound(new { error })

@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 13
+# Cambios en la API — Mejoras, pasos 2 a 16
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) y `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13)
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) y `feature/agenda-y-estudios` (paso 16). Los pasos 14 y 15 no tocaron la API
 
 Un apartado por cada paso.
 
@@ -628,3 +628,57 @@ GET /usuarios/6/notificaciones/no-leidas
 | `Endpoints/NotificacionEndpoints.cs` | Los dos endpoints nuevos |
 | `Logica/NotificacionLogica.cs`, `INotificacionLogica.cs` | `ContarNoLeidas` y `MarcarTodasLeidas` |
 | `Repositorios/NotificacionRepository.cs`, `INotificacionRepository.cs` | Contar las sin leer y marcarlas todas con `ExecuteUpdateAsync` |
+
+---
+
+## Paso 16 — Estudios
+
+**No hay migración.** Todo usa columnas que ya existían.
+
+### `EstudioDto` suma dos campos
+
+| Campo (JSON) | Qué es |
+|---|---|
+| `descripcion` | Qué estudio es ("Hemograma completo"). La entidad ya lo guardaba, pero no se devolvía |
+| `doctor` | Quién lo pidió: `{ idDoctor, nombre, apellido, especialidad, matricula }`, el mismo formato que `doctor` en recetas e historia clínica. Sale del turno vinculado; `null` si el estudio no tiene turno |
+
+Son campos nuevos al final: nadie que ya use la API se rompe.
+
+### Nuevo `GET /estudios/{id}`
+
+- Devuelve un estudio, con el mismo formato que la lista.
+- **Permiso:** el personal ve cualquiera; el paciente, solo los suyos. A otro paciente le da **403**, y un id que no existe da **404**.
+
+### `POST /estudios` (solo doctor), más estricto
+
+- **Si el paciente no existe:** 404. Antes rompía con 500 por la clave foránea.
+- **Si viene `idTurno`:** tiene que ser un turno **de ese paciente con ese doctor** (el del token), como en recetas e historia clínica desde el paso 11. Si no, 404 *"Turno no encontrado: tiene que ser un turno de este paciente con este doctor."*
+- **Sin `fechaSolicitud`:** va la de hoy.
+- **Si el usuario no tiene perfil de doctor:** 404.
+
+### `PUT /estudios/{id}/resultados`
+
+- **Sin `fechaResultado`:** va el momento actual.
+- **La notificación al paciente:**
+  - nombra el estudio: *"El resultado de tu estudio «Hemograma completo» ya está disponible."*;
+  - **ahora lleva fecha**: antes se guardaba sin ella y salía como el año 1.
+
+### A quién le pega
+
+- **La Web:** la pantalla nueva **Estudios**:
+  - el paciente ve los suyos y sus resultados;
+  - el doctor los pide desde el turno;
+  - el doctor o la administración cargan el resultado.
+- **Quien use la API desde Scalar o Postman:**
+  - `POST /estudios` ahora rechaza un turno ajeno o un paciente inexistente;
+  - el resto, igual o con campos de más.
+- **Orden de despliegue:** conviene que la **API llegue antes que la Web**, porque la Web usa `GET /estudios/{id}` para cargar el resultado.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Logica/DTOs/EstudioDTOs.cs` | `Descripcion` y `Doctor` en `EstudioDto` |
+| `Endpoints/EstudioEndpoints.cs` | `GET /estudios/{id}`. `POST` pasa el usuario del token |
+| `Logica/EstudioLogica.cs`, `IEstudioLogica.cs` | `Crear` revisa el paciente, el doctor y el turno vinculado. La notificación nombra el estudio y lleva fecha |
+| `Repositorios/EstudioRepository.cs`, `IEstudioRepository.cs` | La lista trae el turno con su doctor. Nuevo `ObtenerConDoctor`, solo para leer |

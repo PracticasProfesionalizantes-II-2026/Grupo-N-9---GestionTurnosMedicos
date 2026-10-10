@@ -103,6 +103,7 @@ public class MenuViewModel
         Agregar("Doctores", "estetoscopio", "Doctores");
         Agregar("Recetas", "pastilla", "Recetas");
         Agregar("Historia clínica", "historia", "Historial", corto: "Historia");
+        Agregar("Estudios", "estudio", "Estudios");
         if (esAdministrador) Agregar("Cuentas", "persona-mas", "Admin");
 
         return new MenuViewModel

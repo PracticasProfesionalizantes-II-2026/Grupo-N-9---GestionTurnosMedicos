@@ -153,6 +153,13 @@ public class HomeController : Controller
                 },
                 new AccesoRapidoViewModel
                 {
+                    Titulo = "Mis estudios",
+                    Icono = "estudio",
+                    Controlador = "Estudios",
+                    Accion = "Index"
+                },
+                new AccesoRapidoViewModel
+                {
                     Titulo = "Mis coberturas",
                     Icono = "escudo",
                     Motivo = "Todavía no podés ver tus coberturas desde acá."

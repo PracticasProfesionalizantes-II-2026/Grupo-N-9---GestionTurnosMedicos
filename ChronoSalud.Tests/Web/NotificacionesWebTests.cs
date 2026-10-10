@@ -59,7 +59,7 @@ public class NotificacionesWebTests
 
     [Theory]
     [InlineData("turno", "calendario", true)]
-    [InlineData("estudio", "historia", false)]
+    [InlineData("estudio", "estudio", false)]
     [InlineData("receta", "pastilla", false)]
     [InlineData("general", "info", false)]
     public void Cada_tipo_tiene_su_icono_y_solo_los_turnos_llevan_enlace(string tipo, string icono, bool esDeTurno)

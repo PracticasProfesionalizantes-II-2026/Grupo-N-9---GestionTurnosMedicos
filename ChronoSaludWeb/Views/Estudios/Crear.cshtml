@@ -1,0 +1,91 @@
+@model EstudioCrearViewModel
+@{
+    ViewData["Title"] = "Pedir estudio";
+    var erroresGenerales = ViewData.ModelState[string.Empty]?.Errors;
+    const string claseCampo = "campo mt-1.5";
+    const string claseError = "mt-1 block text-xs text-status-cancelado";
+}
+
+<a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno"
+   class="boton-texto text-muted hover:text-primary">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+    </svg>
+    Volver al turno
+</a>
+
+<div class="mt-6 max-w-2xl">
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Pedir estudio</h1>
+    <p class="mt-1 text-sm text-muted">
+        Queda a tu nombre. Cuando se cargue el resultado, el paciente recibe un aviso y lo ve en "Mis estudios".
+    </p>
+
+    @if (Model.Turno is not null)
+    {
+        <p class="mt-4 flex items-start gap-3 rounded-input border border-border bg-surface px-4 py-3 text-sm text-ink">
+            <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                @Html.Raw(IconosLucide.Trazos("calendario"))
+            </svg>
+            <span>
+                Para <span class="font-medium">@(Model.NombrePaciente ?? $"el paciente #{Model.Turno.IdPaciente}")</span>,
+                desde el <span class="font-medium tabular-nums">@Model.Turno.Descripcion</span>.
+            </span>
+        </p>
+    }
+
+    <div class="mt-6 tarjeta p-8">
+        @if (erroresGenerales is { Count: > 0 })
+        {
+            <div role="alert" class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    @Html.Raw(IconosLucide.Trazos("alerta"))
+                </svg>
+                <span>
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <span class="block">@error.ErrorMessage</span>
+                    }
+                </span>
+            </div>
+        }
+
+        <form asp-action="Crear" method="post" novalidate>
+            <input type="hidden" asp-for="IdTurno" />
+
+            @* Radios y no un desplegable: son pocos tipos y se ven todos de una.
+               Con asp-for, el tag helper del paso 14 los une al error y les da
+               el foco; cada uno lleva su id para que no se repitan. *@
+            <fieldset>
+                <legend class="block text-sm font-medium text-ink">Tipo de estudio</legend>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                    @foreach (var tipo in EstudioFilaViewModel.Tipos)
+                    {
+                        <label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-input border border-control bg-field px-3 py-2 text-sm text-ink hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+                            <input asp-for="Tipo" type="radio" value="@tipo.Valor" id="tipo-@tipo.Valor"
+                                   class="size-4 accent-primary" />
+                            @tipo.Nombre
+                        </label>
+                    }
+                </div>
+                <span asp-validation-for="Tipo" class="@claseError"></span>
+            </fieldset>
+
+            <div class="mt-5">
+                <label asp-for="Descripcion" class="block text-sm font-medium text-ink"></label>
+                <textarea asp-for="Descripcion" rows="3" aria-describedby="ayuda-descripcion"
+                          placeholder="Por ejemplo: Hemograma completo y glucemia en ayunas" class="@claseCampo"></textarea>
+                <p id="ayuda-descripcion" class="mt-1 text-xs text-muted">Es lo que el paciente va a leer: escribilo claro.</p>
+                <span asp-validation-for="Descripcion" class="@claseError"></span>
+            </div>
+
+            <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button type="submit" class="boton boton-primario">Pedir estudio</button>
+                <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@Model.IdTurno" class="boton boton-secundario">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

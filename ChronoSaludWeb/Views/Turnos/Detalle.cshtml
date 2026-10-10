@@ -130,7 +130,7 @@ else
         }
     </div>
 
-    @* Atención: el doctor del turno registra la consulta o emite una receta,
+    @* Atención: el doctor del turno registra la consulta, emite una receta o pide un estudio,
        ya vinculadas a este turno. Solo doctores (la Web y la API los
        reservan a ese rol), y el detalle de un doctor ya muestra solo turnos
        de su agenda. Un turno cancelado o ausente no tuvo atención. *@
@@ -160,6 +160,17 @@ else
                     </svg>
                     Emitir receta
                 </a>
+                @if (Auth.PuedePedirEstudios)
+                {
+                    <a asp-controller="Estudios" asp-action="Crear" asp-route-turno="@Model.IdTurno"
+                       class="boton boton-secundario">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            @Html.Raw(IconosLucide.Trazos("estudio"))
+                        </svg>
+                        Pedir estudio
+                    </a>
+                }
             </div>
         </div>
     }

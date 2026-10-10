@@ -1,0 +1,140 @@
+@model EstudiosIndexViewModel
+@{
+    var titulo = Model.EsPaciente ? "Mis estudios" : "Estudios";
+    ViewData["Title"] = titulo;
+}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">@titulo</h1>
+        @if (Model.NombrePaciente is not null)
+        {
+            <p class="mt-1 text-sm text-muted">Paciente: <span class="font-medium text-ink">@Model.NombrePaciente</span></p>
+        }
+        else if (Model.EsPaciente)
+        {
+            <p class="mt-1 text-sm text-muted">Los estudios que te pidieron y sus resultados.</p>
+        }
+        else
+        {
+            <p class="mt-1 text-sm text-muted">Los estudios se piden desde el turno, en "Atención".</p>
+        }
+    </div>
+    @if (Model.IdPaciente is not null && !Model.HuboError && Model.Estudios.Count > 0)
+    {
+        <p class="text-sm text-muted">
+            <span class="font-semibold tabular-nums text-ink">@Model.Estudios.Count</span>
+            @(Model.Estudios.Count == 1 ? "estudio" : "estudios")
+            <span>· @Model.ConResultado con resultado</span>
+        </p>
+    }
+</div>
+
+@if (Model.ElegirPaciente is not null)
+{
+    @* Doctor y administrador: el buscador de pacientes, o el elegido con "Cambiar paciente". *@
+    <div class="mt-6 tarjeta p-5">
+        <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+    </div>
+}
+
+@if (Model.Aviso is not null)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "info", Tono = TonoVacio.Aviso, Nivel = 2, Titulo = "No podemos mostrarte estudios", Ayuda = Model.Aviso }' />
+    </div>
+}
+else if (Model.HuboError)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudieron cargar los estudios", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Estudios", Accion = "Index", Ruta = Model.IdPaciente is null ? null : new Dictionary<string, string> { ["paciente"] = $"{Model.IdPaciente}" }, Descripcion = "Reintentar" } }' />
+    </div>
+}
+else if (Model.SinPacienteElegido)
+{
+    @* Todavía no se eligió paciente: el buscador de arriba es el que lo pide. *@
+}
+else if (Model.Estudios.Count == 0)
+{
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "estudio", Nivel = 2, Titulo = Model.EsPaciente ? "Todavía no tenés estudios" : "Este paciente no tiene estudios", Ayuda = Model.EsPaciente ? "Cuando un doctor te pida un estudio, lo vas a ver acá, y te avisamos cuando esté el resultado." : "Se piden desde el detalle de un turno, en la tarjeta Atención." }' />
+    </div>
+}
+else
+{
+    <ul class="mt-6 grid gap-4" aria-label="@titulo">
+        @foreach (var estudio in Model.Estudios)
+        {
+            <li class="tarjeta p-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-start gap-4">
+                        <span aria-hidden="true"
+                              class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full circulo-icono">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                @Html.Raw(IconosLucide.Trazos("estudio"))
+                            </svg>
+                        </span>
+                        <div class="min-w-0">
+                            <h2 class="text-base font-semibold text-ink">@estudio.Titulo</h2>
+                            <p class="mt-0.5 text-sm text-muted">
+                                @estudio.TipoTexto
+                                <span aria-hidden="true"> · </span>
+                                pedido el <span class="tabular-nums">@estudio.FechaSolicitudTexto</span>
+                                @if (estudio.PedidoPor is not null)
+                                {
+                                    <text>por @estudio.PedidoPor.NombreCompleto</text>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                    <partial name="_Chip" model="new ChipViewModel { Texto = estudio.EstadoTexto, Tono = estudio.Tono }" />
+                </div>
+
+                @if (estudio.TieneResultado)
+                {
+                    <div class="mt-4 rounded-input border border-border bg-surface px-4 py-3">
+                        <h3 class="text-sm font-semibold text-ink">
+                            Resultado
+                            @if (estudio.FechaResultadoTexto is not null)
+                            {
+                                <span class="font-normal text-muted">· del <span class="tabular-nums">@estudio.FechaResultadoTexto</span></span>
+                            }
+                        </h3>
+                        @if (!string.IsNullOrWhiteSpace(estudio.Resultado))
+                        {
+                            <p class="mt-1 whitespace-pre-line text-sm text-ink">@estudio.Resultado</p>
+                        }
+                        @if (estudio.ArchivoSeguro is not null)
+                        {
+                            @* Se abre en otra pestaña: es un sitio de afuera (el del laboratorio). *@
+                            <a href="@estudio.ArchivoSeguro" target="_blank" rel="noopener noreferrer"
+                               class="boton-texto mt-2">
+                                Ver el archivo del resultado
+                                <span class="sr-only">(se abre en otra pestaña)</span>
+                            </a>
+                        }
+                    </div>
+                }
+                else if (Model.EsPaciente)
+                {
+                    <p class="mt-3 text-sm text-muted">Te avisamos cuando esté el resultado.</p>
+                }
+
+                @if (Model.PuedeCargarResultados)
+                {
+                    <div class="mt-4">
+                        <a asp-action="Resultado" asp-route-id="@estudio.IdEstudio" asp-route-paciente="@Model.IdPaciente"
+                           class="boton @(estudio.TieneResultado ? "boton-secundario" : "boton-primario")">
+                            @(estudio.TieneResultado ? "Corregir resultado" : "Cargar resultado")
+                            <span class="sr-only">de @estudio.Titulo</span>
+                        </a>
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
