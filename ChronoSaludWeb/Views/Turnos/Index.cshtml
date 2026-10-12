@@ -11,6 +11,57 @@
     // Al paciente los estados y las fechas se le dicen con palabras (A4).
     var esPaciente = Model.Rol == "paciente";
 
+    // Las acciones de una fila (confirmar, completado, ausente, cancelar).
+    // Las usan la tabla y las tarjetas del celular. Cada una lleva un área
+    // táctil más alta que el texto (area-tactil) y el z-10 que la deja por
+    // encima del enlace que cubre la fila.
+    async Task Acciones(TurnoFilaViewModel turno)
+    {
+        @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeConfirmarse)
+        {
+            <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="relative z-10">
+                <input type="hidden" name="estado" value="confirmado" />
+                <input type="hidden" name="volverA" value="Index" />
+                <input type="hidden" name="volver" value="@volver" />
+                <button type="submit" data-cargando="Confirmando…"
+                        class="boton-texto area-tactil px-2 py-1">
+                    Confirmar
+                    <span class="sr-only">el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
+                </button>
+            </form>
+        }
+        @* Completado y ausente, cuando ya llegó la hora: llevan a
+           una confirmación porque no se deshacen. *@
+        @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeCerrarse)
+        {
+            <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="completado" asp-route-volver="@volver"
+               class="boton-texto area-tactil relative z-10 px-2 py-1">
+                Completado
+                <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
+            </a>
+            <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="ausente" asp-route-volver="@volver"
+               class="boton-texto area-tactil relative z-10 px-2 py-1">
+                Ausente
+                <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
+            </a>
+        }
+        @* El paciente no cancela un turno que ya empezó. *@
+        @if (turno.PuedeCancelarse && (Auth.PuedeCambiarEstadoTurno || !turno.YaEmpezo))
+        {
+            <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
+               class="boton-texto area-tactil relative z-10 px-2 py-1 text-status-cancelado">
+                Cancelar
+                <span class="sr-only">el turno @(esPaciente ? $"con {turno.DoctorMostrado}" : $"de {turno.PacienteMostrado}") @turno.CuandoParaLector</span>
+            </a>
+        }
+    }
+
+    // Si una fila tiene alguna acción para mostrar.
+    bool TieneAcciones(TurnoFilaViewModel turno) =>
+        Auth.PuedeCancelarTurnos
+        && ((Auth.PuedeCambiarEstadoTurno && (turno.PuedeConfirmarse || turno.PuedeCerrarse))
+            || (turno.PuedeCancelarse && (Auth.PuedeCambiarEstadoTurno || !turno.YaEmpezo)));
+
     // Encabezado de una columna ordenable: un enlace que vuelve al listado
     // ordenado por ella. En la que ya ordena la tabla lleva la flecha y el
     // aria-sort, y tocarla de nuevo invierte la dirección.
@@ -28,19 +79,7 @@
                 <span class="sr-only">, ordenar por esta columna</span>
                 @if (activa)
                 {
-                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @if (Model.Filtros.Descendente)
-                        {
-                            <path d="M12 5v14" />
-                            <path d="m19 12-7 7-7-7" />
-                        }
-                        else
-                        {
-                            <path d="M12 19V5" />
-                            <path d="m5 12 7-7 7 7" />
-                        }
-                    </svg>
+                    <icono nombre="@(Model.Filtros.Descendente ? "flecha-abajo" : "flecha-arriba")" class="h-3.5 w-3.5" />
                 }
             </a>
         </th>
@@ -50,7 +89,7 @@
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.Titulo</h1>
-        <p class="mt-1 text-sm capitalize text-muted">@Model.FechaDeHoy</p>
+        <p class="mt-1 text-sm text-muted first-letter:uppercase">@Model.FechaDeHoy</p>
         @if (Model.Subtitulo is not null)
         {
             <p class="mt-1 text-xs text-muted">@Model.Subtitulo</p>
@@ -69,11 +108,7 @@
         {
             <a asp-action="Crear"
                class="boton boton-primario">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                </svg>
+                <icono nombre="mas" class="h-4 w-4" />
                 Nuevo turno
             </a>
         }
@@ -86,11 +121,7 @@
 {
     <p class="mt-4">
         <a asp-action="Index" class="boton-texto">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m12 19-7-7 7-7" />
-                <path d="M19 12H5" />
-            </svg>
+            <icono nombre="volver" class="h-4 w-4" />
             Volver a la agenda
         </a>
     </p>
@@ -148,7 +179,7 @@ else
     @if (Model.Filtros.RangoInvertido)
     {
         <p class="w-full text-xs text-status-pendiente">
-            La fecha "desde" es posterior a la "hasta", por eso no aparece ningún turno.
+            La fecha «desde» es posterior a la «hasta», por eso no aparece ningún turno.
         </p>
     }
 </form>
@@ -224,14 +255,10 @@ else
                 aria-pressed="@(Model.Filtros.EstaActivo("confirmado") ? "true" : "false")"
                 class="tarjeta tarjeta-filtro w-full p-5 text-left">
             <span class="flex items-center gap-2 text-sm text-muted">
-                <svg class="h-4 w-4 text-status-confirmado" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                </svg>
+                <icono nombre="check-circulo" class="h-4 w-4 text-status-confirmado" />
                 Confirmados
             </span>
-            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Confirmados</span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-status-confirmado">@Model.Confirmados</span>
         </button>
 
         <button type="submit" name="estado"
@@ -239,14 +266,10 @@ else
                 aria-pressed="@(Model.Filtros.EstaActivo("pendiente") ? "true" : "false")"
                 class="tarjeta tarjeta-filtro w-full p-5 text-left">
             <span class="flex items-center gap-2 text-sm text-muted">
-                <svg class="h-4 w-4 text-status-pendiente" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                </svg>
+                <icono nombre="reloj" class="h-4 w-4 text-status-pendiente" />
                 @(esPaciente ? "Esperando confirmación" : "Pendientes")
             </span>
-            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Pendientes</span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-status-pendiente">@Model.Pendientes</span>
         </button>
 
         <button type="submit" name="estado"
@@ -254,14 +277,10 @@ else
                 aria-pressed="@(Model.Filtros.EstaActivo("completado") ? "true" : "false")"
                 class="tarjeta tarjeta-filtro w-full p-5 text-left">
             <span class="flex items-center gap-2 text-sm text-muted">
-                <svg class="h-4 w-4 text-status-completado" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21.801 10A10 10 0 1 1 17 3.335" />
-                    <path d="m9 11 3 3L22 4" />
-                </svg>
+                <icono nombre="completado" class="h-4 w-4 text-status-completado" />
                 @(esPaciente ? "Atendidos" : "Completados")
             </span>
-            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Completados</span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-status-completado">@Model.Completados</span>
         </button>
 
         <button type="submit" name="estado"
@@ -269,32 +288,21 @@ else
                 aria-pressed="@(Model.Filtros.EstaActivo("ausente") ? "true" : "false")"
                 class="tarjeta tarjeta-filtro w-full p-5 text-left">
             <span class="flex items-center gap-2 text-sm text-muted">
-                <svg class="h-4 w-4 text-muted" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="m17 8 5 5" />
-                    <path d="m22 8-5 5" />
-                </svg>
+                <icono nombre="usuario-x" class="h-4 w-4 text-muted" />
                 Ausentes
             </span>
-            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Ausentes</span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-ink">@Model.Ausentes</span>
         </button>
 
         <button type="submit" name="estado"
                 value="@(Model.Filtros.EstaActivo("cancelado") ? "" : "cancelado")"
                 aria-pressed="@(Model.Filtros.EstaActivo("cancelado") ? "true" : "false")"
-                class="tarjeta tarjeta-filtro w-full p-5 text-left">
+                class="tarjeta tarjeta-filtro col-span-2 w-full p-5 text-left sm:col-span-1">
             <span class="flex items-center gap-2 text-sm text-muted">
-                <svg class="h-4 w-4 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m15 9-6 6" />
-                    <path d="m9 9 6 6" />
-                </svg>
+                <icono nombre="x-circulo" class="h-4 w-4 text-status-cancelado" />
                 Cancelados
             </span>
-            <span class="mt-2 block text-2xl font-bold tabular-nums text-primary-hover">@Model.Cancelados</span>
+            <span class="mt-2 block text-2xl font-bold tabular-nums text-status-cancelado">@Model.Cancelados</span>
         </button>
     </form>
     }
@@ -336,7 +344,52 @@ else
     }
     else
     {
-        <div class="mt-6 overflow-hidden tarjeta">
+        @* En el celular, tarjetas en vez de la tabla: cinco columnas no entran
+           sin desplazarse de costado. Cada tarjeta lleva el bloque de
+           calendario, a quién o con quién, la hora, el estado y las acciones. *@
+        <div class="mt-6 overflow-hidden tarjeta md:hidden">
+            <ul>
+                @{ var tarjeta = 0; }
+                @foreach (var turno in Model.Turnos)
+                {
+                    var principal = esPaciente ? turno.DoctorMostrado : turno.PacienteMostrado;
+                    var secundario = esPaciente ? turno.EspecialidadMostrada : turno.DoctorMostrado;
+
+                    <li class="fila-animada @FranjaEstado.Clase(turno.Estado) border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
+                        style="--i: @(tarjeta++)">
+                        <div class="flex items-start gap-3">
+                            <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = turno.FechaInicio }" />
+                            <div class="min-w-0 flex-1">
+                                <a asp-action="Detalle" asp-route-id="@turno.IdTurno"
+                                   class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
+                                    @principal
+                                    <span class="sr-only">— ver el turno @turno.CuandoParaLector</span>
+                                </a>
+                                <span class="block truncate text-sm text-muted">
+                                    <span class="font-semibold tabular-nums text-ink">@(turno.Hora is null ? "Sin hora" : $"{turno.Hora} hs")</span>
+                                    @if (secundario is not null)
+                                    {
+                                        <span aria-hidden="true"> · </span>
+                                        <span class="@(esPaciente ? "capitalize" : null)">@secundario</span>
+                                    }
+                                </span>
+                                <span class="mt-2 block">
+                                    <partial name="_BadgeEstado" model="turno.Estado" />
+                                </span>
+                            </div>
+                        </div>
+                        @if (TieneAcciones(turno))
+                        {
+                            <div class="mt-2 flex flex-wrap items-center justify-end gap-x-1 gap-y-2">
+                                @{ await Acciones(turno); }
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="mt-6 hidden overflow-hidden tarjeta md:block">
             @* relative: los textos sr-only (posición absoluta) quedan adentro
                del scroll de la tabla. Sin eso se ubicaban respecto de la
                página y en el celular toda la página se corría de costado. *@
@@ -373,8 +426,10 @@ else
                         @foreach (var turno in Model.Turnos)
                         {
                             <tr class="fila-animada border-b border-border last:border-0 hover:bg-primary-soft/50"
-                                style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
-                                <td class="whitespace-nowrap px-5 py-4 text-sm font-medium tabular-nums text-ink">
+                                style="--i: @(fila++)">
+                                @* La franja del color del estado va en la primera celda:
+                                   en una fila de tabla no se puede posicionar. *@
+                                <td class="@FranjaEstado.Clase(turno.Estado) whitespace-nowrap px-5 py-4 text-sm font-medium tabular-nums text-ink">
                                     @(turno.Hora ?? "—")
                                 </td>
                                 @* La celda es el contenedor posicionado y el enlace la cubre entera
@@ -431,43 +486,7 @@ else
                                        el z-10 deja esto a salvo si algún día se mueve al <tr>. *@
                                     <td class="whitespace-nowrap px-5 py-4 text-right">
                                         <div class="flex items-center justify-end gap-1">
-                                            @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeConfirmarse)
-                                            {
-                                                <form asp-action="CambiarEstado" asp-route-id="@turno.IdTurno" method="post" class="relative z-10">
-                                                    <input type="hidden" name="estado" value="confirmado" />
-                                                    <input type="hidden" name="volverA" value="Index" />
-                                                    <input type="hidden" name="volver" value="@volver" />
-                                                    <button type="submit"
-                                                            class="boton-texto px-2 py-1">
-                                                        Confirmar
-                                                        <span class="sr-only">el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
-                                                    </button>
-                                                </form>
-                                            }
-                                            @* Completado y ausente, cuando ya llegó la hora: llevan a
-                                               una confirmación porque no se deshacen. *@
-                                            @if (Auth.PuedeCambiarEstadoTurno && turno.PuedeCerrarse)
-                                            {
-                                                <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="completado" asp-route-volver="@volver"
-                                                   class="boton-texto relative z-10 px-2 py-1">
-                                                    Completado
-                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
-                                                </a>
-                                                <a asp-action="Marcar" asp-route-id="@turno.IdTurno" asp-route-estado="ausente" asp-route-volver="@volver"
-                                                   class="boton-texto relative z-10 px-2 py-1">
-                                                    Ausente
-                                                    <span class="sr-only">: marcar el turno de @turno.PacienteMostrado @turno.CuandoParaLector</span>
-                                                </a>
-                                            }
-                                            @* El paciente no cancela un turno que ya empezó. *@
-                                            @if (turno.PuedeCancelarse && (Auth.PuedeCambiarEstadoTurno || !turno.YaEmpezo))
-                                            {
-                                                <a asp-action="Cancelar" asp-route-id="@turno.IdTurno" asp-route-volver="@volver"
-                                                   class="boton-texto relative z-10 px-2 py-1 text-status-cancelado">
-                                                    Cancelar
-                                                    <span class="sr-only">el turno @(esPaciente ? $"con {turno.DoctorMostrado}" : $"de {turno.PacienteMostrado}") @turno.CuandoParaLector</span>
-                                                </a>
-                                            }
+                                            @{ await Acciones(turno); }
                                         </div>
                                     </td>
                                 }

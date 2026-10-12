@@ -7,12 +7,8 @@
 }
 
 <a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Cambiar horario
 </a>
 
@@ -21,7 +17,7 @@
     <p class="mt-1 text-sm text-muted">
         @if (Model.MostrarFormulario)
         {
-            <text>Todavía no está reservado: revisá los datos y tocá "Confirmar turno". Después queda esperando la confirmación del consultorio.</text>
+            <text>Todavía no está reservado: revisá los datos y tocá «Confirmar turno». Después queda esperando la confirmación del consultorio.</text>
         }
         else
         {
@@ -31,13 +27,8 @@
 
     @if (erroresGenerales is { Count: > 0 })
     {
-        <div role="alert" class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
+        <div role="alert" class="aviso aviso-error mt-6">
+            <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
             <span>
                 @foreach (var error in erroresGenerales)
                 {
@@ -49,86 +40,100 @@
         </div>
     }
 
-    <div class="mt-6 tarjeta p-6">
-        <dl class="grid gap-4 sm:grid-cols-3">
-            <div class="sm:col-span-3">
-                <dt class="text-sm text-muted">Doctor</dt>
-                <dd class="mt-0.5 font-medium text-ink">@Model.DoctorMostrado</dd>
-                @if (!string.IsNullOrWhiteSpace(Model.DoctorEspecialidad) || !string.IsNullOrWhiteSpace(Model.Consultorio))
-                {
-                    <dd class="text-sm text-muted">
-                        <span class="capitalize">@Model.DoctorEspecialidad</span>
-                        @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
-                        {
-                            <span aria-hidden="true"> · </span>
-                            <span>@ConsultorioTexto.Para(Model.Consultorio)</span>
-                        }
-                    </dd>
-                }
-            </div>
-            <div class="sm:col-span-2">
-                <dt class="text-sm text-muted">Fecha</dt>
-                <dd class="mt-0.5 capitalize text-ink">@Model.FechaLarga</dd>
-            </div>
-            <div>
-                <dt class="text-sm text-muted">Horario</dt>
-                <dd class="mt-0.5 font-medium tabular-nums text-ink">@Model.Horario</dd>
-            </div>
-        </dl>
-
-        @if (Model.MostrarSelectorPaciente)
-        {
-            @* El personal elige para quién es el turno. El buscador vuelve a
-               esta pantalla con el mismo horario. *@
-            <div class="mt-6 border-t border-border pt-6">
-                @if (Model.ElegirPaciente is not null)
-                {
-                    <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
-                }
-                else
-                {
-                    <p class="text-sm text-status-cancelado">No se pudo cargar el buscador de pacientes. Probá de nuevo en un rato.</p>
-                }
-            </div>
-        }
-
-        @if (Model.MostrarFormulario)
-        {
-            <form asp-action="Confirmar" method="post" novalidate class="mt-6 grid gap-5 border-t border-border pt-6">
-                @* El horario elegido viaja oculto. Si la API lo rechaza (por
-                   ejemplo, se ocupó recién), la pantalla vuelve con el aviso. *@
-                <input type="hidden" asp-for="IdDoctor" />
-                <input type="hidden" name="Fecha" value="@Model.FechaIso" />
-                <input type="hidden" asp-for="HoraInicio" />
-                <input type="hidden" asp-for="HoraFin" />
-                <input type="hidden" asp-for="Especialidad" />
-                <input type="hidden" asp-for="DoctorElegido" />
-
-                @if (Model.MostrarSelectorPaciente)
-                {
-                    <input type="hidden" asp-for="IdPaciente" />
-                }
-
+    @* El resumen tiene forma de talón: arriba el turno (bloque de
+       calendario, doctor, fecha y hora), una línea de corte con dos muescas
+       (talon-corte en app.css) y abajo lo que falta para reservarlo. *@
+    <div class="mt-6 tarjeta overflow-hidden">
+        <div class="flex flex-wrap items-start gap-4 p-5 sm:gap-5 sm:p-6">
+            @if (Model.Fecha is { } fecha)
+            {
+                <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = fecha, Grande = true }" />
+            }
+            <dl class="lista-datos min-w-0 flex-1 basis-56 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <dt><icono nombre="estetoscopio" /> Doctor</dt>
+                    <dd class="text-base">@Model.DoctorMostrado</dd>
+                    @if (!string.IsNullOrWhiteSpace(Model.DoctorEspecialidad) || !string.IsNullOrWhiteSpace(Model.Consultorio))
+                    {
+                        <dd class="mt-0 font-normal text-muted">
+                            <span class="capitalize">@Model.DoctorEspecialidad</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
+                            {
+                                <span aria-hidden="true"> · </span>
+                                <span>@ConsultorioTexto.Para(Model.Consultorio)</span>
+                            }
+                        </dd>
+                    }
+                </div>
                 <div>
-                    <label asp-for="Observaciones" class="block text-sm font-medium text-ink"></label>
-                    <textarea asp-for="Observaciones" rows="3" placeholder="Opcional: el motivo de la consulta, por ejemplo" class="@claseCampo"></textarea>
-                    <span asp-validation-for="Observaciones" class="@claseError"></span>
+                    <dt><icono nombre="calendario" /> Fecha</dt>
+                    <dd class="first-letter:uppercase">@Model.FechaLarga</dd>
                 </div>
+                <div>
+                    <dt><icono nombre="reloj" /> Horario</dt>
+                    <dd class="tabular-nums">@Model.Horario</dd>
+                </div>
+            </dl>
+        </div>
 
-                <div class="flex flex-wrap items-center gap-3">
-                    <button type="submit" class="boton boton-primario">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                        Confirmar turno
-                    </button>
-                    <a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario" class="boton boton-secundario">
-                        Cambiar horario
-                    </a>
+        <div class="talon-corte" aria-hidden="true"></div>
+
+        <div class="px-5 pt-1 pb-5 sm:px-6 sm:pb-6">
+
+            @if (Model.MostrarSelectorPaciente)
+            {
+                @* El personal elige para quién es el turno. El buscador vuelve a
+                   esta pantalla con el mismo horario. *@
+                <div class="pt-4">
+                    @if (Model.ElegirPaciente is not null)
+                    {
+                        <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
+                    }
+                    else
+                    {
+                        <p role="alert" class="aviso aviso-error">
+                            <icono nombre="alerta" />
+                            <span>No se pudo cargar el buscador de pacientes. Probá de nuevo en un rato.</span>
+                        </p>
+                    }
                 </div>
-            </form>
-        }
+            }
+
+            @if (Model.MostrarFormulario)
+            {
+                <form asp-action="Confirmar" method="post" novalidate class="grid gap-5 pt-4 @(Model.MostrarSelectorPaciente ? "mt-6 border-t border-border pt-6" : null)">
+                    @* El horario elegido viaja oculto. Si la API lo rechaza (por
+                       ejemplo, se ocupó recién), la pantalla vuelve con el aviso. *@
+                    <input type="hidden" asp-for="IdDoctor" />
+                    <input type="hidden" name="Fecha" value="@Model.FechaIso" />
+                    <input type="hidden" asp-for="HoraInicio" />
+                    <input type="hidden" asp-for="HoraFin" />
+                    <input type="hidden" asp-for="Especialidad" />
+                    <input type="hidden" asp-for="DoctorElegido" />
+
+                    @if (Model.MostrarSelectorPaciente)
+                    {
+                        <input type="hidden" asp-for="IdPaciente" />
+                    }
+
+                    <div>
+                        <label asp-for="Observaciones" class="block text-sm font-medium text-ink">Observaciones <span class="font-normal text-muted">(opcional)</span></label>
+                        <textarea asp-for="Observaciones" rows="3" placeholder="Por ejemplo: control anual, traigo estudios…" class="@claseCampo"></textarea>
+                        <span asp-validation-for="Observaciones" class="@claseError"></span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="submit" data-cargando="Agendando…" class="boton boton-primario">
+                            <icono nombre="check" class="h-4 w-4" />
+                            Confirmar turno
+                        </button>
+                        <a asp-action="Crear" asp-all-route-data="Model.RutaCambiarHorario" class="boton boton-secundario">
+                            Cambiar horario
+                        </a>
+                    </div>
+                </form>
+            }
+        </div>
     </div>
 </div>
 

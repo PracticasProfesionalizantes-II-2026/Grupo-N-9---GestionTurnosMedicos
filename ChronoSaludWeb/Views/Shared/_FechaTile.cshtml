@@ -1,0 +1,10 @@
+@model FechaTileViewModel
+
+@* Bloque de calendario: el mes en una franja teal, el día grande y el día de
+   la semana. Es decorativo (aria-hidden): la fecha completa la escribe al
+   lado la vista que lo usa. Las clases están en app.css (fecha-tile). *@
+<span aria-hidden="true" class="fecha-tile @(Model.Grande ? "fecha-tile-grande" : null)">
+    <span class="fecha-tile-mes">@Model.Mes</span>
+    <span class="fecha-tile-dia">@Model.Dia</span>
+    <span class="fecha-tile-semana">@Model.Semana</span>
+</span>

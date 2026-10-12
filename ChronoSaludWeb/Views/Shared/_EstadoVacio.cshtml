@@ -16,14 +16,10 @@
    para "no se pudo cargar", cambiando el tono. No trae tarjeta propia: va
    adentro de la que lo usa. El botón es secundario porque el primario de la
    pantalla ya está en otro lado (el banner del inicio, el encabezado de un
-   listado).
-   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+   listado). *@
 <div class="px-5 py-8 text-center">
     <span class="mx-auto flex size-14 items-center justify-center rounded-full @ClaseCirculo(Model.Tono)">
-        <svg class="size-7" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            @Html.Raw(IconosLucide.Trazos(Model.Icono))
-        </svg>
+        <icono nombre="@Model.Icono" class="size-7" />
     </span>
     @if (Model.Nivel == 2)
     {

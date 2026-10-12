@@ -12,14 +12,10 @@
 
 @* El atributo popover lo maneja el navegador, igual que el menú de la
    cuenta: abre con el botón, cierra con Escape, con un clic afuera o con
-   "Cerrar", y devuelve el foco al botón. Todo sin JavaScript.
-   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+   "Cerrar", y devuelve el foco al botón. Todo sin JavaScript. *@
 <button type="button" popovertarget="ventana-ayuda"
         class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-input px-2 text-sm text-muted hover:text-primary">
-    <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        @Html.Raw(IconosLucide.Trazos("ayuda"))
-    </svg>
+    <icono nombre="ayuda" class="size-4 shrink-0" />
     ¿Necesitás ayuda?
 </button>
 
@@ -38,10 +34,7 @@
         </div>
         <button type="button" popovertarget="ventana-ayuda" popovertargetaction="hide"
                 class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-input text-muted hover:bg-primary-soft hover:text-primary-hover">
-            <svg class="size-5" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                @Html.Raw(IconosLucide.Trazos("cerrar"))
-            </svg>
+            <icono nombre="cerrar" class="size-5" />
             <span class="sr-only">Cerrar</span>
         </button>
     </div>
@@ -54,10 +47,7 @@
                 {
                     <a href="@opcion.Url" rel="noopener"
                        class="@ClaseFila text-ink hover:bg-primary-soft hover:text-primary-hover">
-                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            @Html.Raw(IconosLucide.Trazos(opcion.Icono))
-                        </svg>
+                        <icono nombre="@opcion.Icono" class="size-5 shrink-0" />
                         @opcion.Titulo
                     </a>
                 }
@@ -66,10 +56,7 @@
                     @* Todavía sin el dato en appsettings.json (sección "Clinica"):
                        se ve, pero no es un enlace ni recibe foco. *@
                     <span aria-disabled="true" class="@ClaseFila text-ink">
-                        <svg class="size-5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            @Html.Raw(IconosLucide.Trazos(opcion.Icono))
-                        </svg>
+                        <icono nombre="@opcion.Icono" class="size-5 shrink-0 opacity-60" />
                         <span class="flex-1 opacity-60">@opcion.Titulo</span>
                         <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />
                     </span>

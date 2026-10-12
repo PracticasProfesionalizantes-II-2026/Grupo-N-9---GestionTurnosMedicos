@@ -3,16 +3,12 @@
 @* El botón de la cuenta y su menú. El atributo popover lo maneja el
    navegador: abre con el botón, cierra con Escape o con un clic afuera y
    devuelve el foco, todo sin JavaScript. Al menú no se le pone display: el
-   navegador lo oculta cerrado y lo muestra abierto.
-   Html.Raw es seguro acá: IconosLucide.Trazos devuelve literales del código. *@
+   navegador lo oculta cerrado y lo muestra abierto. *@
 <button type="button" popovertarget="menu-cuenta" class="boton boton-secundario boton-cuenta shrink-0 px-2 py-1">
     <partial name="_Avatar" model="new AvatarViewModel { Nombre = Model.Nombre }" />
     <span class="hidden max-w-40 truncate sm:inline">@Model.Nombre</span>
     <span class="sr-only">Menú de tu cuenta</span>
-    <svg class="size-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        @Html.Raw(IconosLucide.Trazos("chevron-abajo"))
-    </svg>
+    <icono nombre="chevron-abajo" class="size-4 shrink-0 text-muted" />
 </button>
 
 <div id="menu-cuenta" popover class="menu-flotante menu-cuenta">
@@ -24,20 +20,14 @@
         <li>
             <a asp-controller="MiPerfil" asp-action="Index" aria-current="@(Model.MiPerfilActivo ? "page" : null)"
                class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary">
-                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    @Html.Raw(IconosLucide.Trazos("persona"))
-                </svg>
+                <icono nombre="persona" class="size-5 shrink-0" />
                 Mi perfil
             </a>
         </li>
         <li>
             <a asp-controller="Ajustes" asp-action="Index" aria-current="@(Model.AjustesActivo ? "page" : null)"
                class="flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary">
-                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    @Html.Raw(IconosLucide.Trazos("ajustes"))
-                </svg>
+                <icono nombre="ajustes" class="size-5 shrink-0" />
                 Ajustes
             </a>
         </li>
@@ -45,10 +35,7 @@
             <form asp-controller="Cuenta" asp-action="Logout" method="post">
                 <button type="submit"
                         class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("salir"))
-                    </svg>
+                    <icono nombre="salir" class="size-5 shrink-0" />
                     Cerrar sesión
                 </button>
             </form>

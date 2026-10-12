@@ -15,9 +15,8 @@
 
     @if (Model.HuboError)
     {
-        <div class="px-5 py-8 text-center">
-            <p class="mx-auto max-w-xs text-sm text-status-pendiente">@Model.Error</p>
-        </div>
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Titulo = "No pudimos traer tu historial", Ayuda = Model.Error }' />
     }
     else if (Model.Entradas.Count == 0)
     {
@@ -26,17 +25,23 @@
     }
     else
     {
-        <ul>
-            @{ var fila = 0; }
-            @foreach (var entrada in Model.Entradas)
-            {
-                <li class="fila-animada flex items-baseline gap-2 border-b border-border px-5 py-4 last:border-0"
-                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
-                    <span class="font-medium text-ink">@entrada.Tipo</span>
-                    <span class="text-muted" aria-hidden="true">·</span>
-                    <span class="truncate text-sm text-muted">@entrada.FechaCorta</span>
-                </li>
-            }
-        </ul>
+        @* Una línea de tiempo corta: la consulta o receta más reciente con el
+           punto lleno, y un ícono que distingue una de otra además del texto. *@
+        <div class="px-5 py-4">
+            <ol class="linea-tiempo">
+                @{ var fila = 0; }
+                @foreach (var entrada in Model.Entradas)
+                {
+                    <li class="fila-animada @(fila == 0 ? "linea-tiempo-reciente" : null) flex items-center gap-3 py-1"
+                        style="--i: @(fila++)">
+                        <icono nombre="@(entrada.Tipo == "Receta" ? "pastilla" : "historia")" class="size-5 shrink-0 text-primary" />
+                        <span class="min-w-0">
+                            <span class="block font-medium text-ink">@entrada.Tipo</span>
+                            <span class="block truncate text-sm tabular-nums text-muted">@entrada.FechaCorta</span>
+                        </span>
+                    </li>
+                }
+            </ol>
+        </div>
     }
 </section>

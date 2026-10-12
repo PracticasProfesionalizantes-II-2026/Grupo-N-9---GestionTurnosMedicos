@@ -1,7 +1,9 @@
 @model PaginadorViewModel
 @{
+    // El inactivo usa el apagado de .boton[aria-disabled] de app.css, con el
+    // borde de un divisor: se ve que está, pero que no lleva a ningún lado.
     const string clasePaso = "boton boton-secundario";
-    const string clasePasoInactivo = "boton cursor-default border border-border text-muted opacity-60";
+    const string clasePasoInactivo = "boton border border-border text-muted";
 }
 
 @* Paginación con enlaces: cada listado arma las rutas con sus filtros, así
@@ -15,20 +17,20 @@
         @if (Model.HayAnterior)
         {
             <a asp-action="@Model.Accion" asp-all-route-data="Model.RutaAnterior"
-               rel="prev" class="@clasePaso">Anterior</a>
+               rel="prev" class="@clasePaso"><icono nombre="chevron-izq" class="size-4" /> Anterior</a>
         }
         else
         {
-            <span aria-disabled="true" class="@clasePasoInactivo">Anterior</span>
+            <span aria-disabled="true" class="@clasePasoInactivo"><icono nombre="chevron-izq" class="size-4" /> Anterior</span>
         }
         @if (Model.HaySiguiente)
         {
             <a asp-action="@Model.Accion" asp-all-route-data="Model.RutaSiguiente"
-               rel="next" class="@clasePaso">Siguiente</a>
+               rel="next" class="@clasePaso">Siguiente <icono nombre="chevron-der" class="size-4" /></a>
         }
         else
         {
-            <span aria-disabled="true" class="@clasePasoInactivo">Siguiente</span>
+            <span aria-disabled="true" class="@clasePasoInactivo">Siguiente <icono nombre="chevron-der" class="size-4" /></span>
         }
     </div>
 </nav>

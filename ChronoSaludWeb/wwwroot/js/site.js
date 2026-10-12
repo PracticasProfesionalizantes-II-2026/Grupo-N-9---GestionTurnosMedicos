@@ -70,3 +70,183 @@
         }
     });
 })();
+
+// ---------------------------------------------------------------------------
+// Botón que muestra que se está enviando (paso 20).
+// Solo los botones con data-cargando="Guardando…": al enviar el formulario el
+// botón cambia su texto por ese, queda bloqueado para que un segundo clic no
+// mande todo dos veces y, si la respuesta tarda más de 150 ms, muestra un
+// latido que se dibuja como en un monitor. No se usa disabled: un botón
+// deshabilitado no viaja en el formulario, y algunos llevan name y value.
+// Si la validación del cliente frena el envío, el botón no cambia.
+// ---------------------------------------------------------------------------
+(function () {
+    const latido = '<path d="M2 12h4l2.5-5 3.5 10 3-13 2.5 8H22" pathLength="1" />';
+
+    function bloquear(boton) {
+        // El ancho actual queda fijo para que el botón no salte al cambiar el texto.
+        boton.style.minWidth = boton.offsetWidth + 'px';
+        boton.dataset.textoOriginal = boton.innerHTML;
+        boton.setAttribute('aria-disabled', 'true');
+        boton.setAttribute('aria-busy', 'true');
+        boton.textContent = boton.dataset.cargando;
+
+        boton.dataset.temporizador = String(setTimeout(function () {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'latido-carga');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('stroke-width', '2');
+            svg.setAttribute('stroke-linecap', 'round');
+            svg.setAttribute('stroke-linejoin', 'round');
+            svg.setAttribute('aria-hidden', 'true');
+            svg.innerHTML = latido;
+            boton.prepend(svg);
+        }, 150));
+    }
+
+    function liberar(boton) {
+        clearTimeout(Number(boton.dataset.temporizador));
+        if (boton.dataset.textoOriginal !== undefined) boton.innerHTML = boton.dataset.textoOriginal;
+        boton.removeAttribute('aria-disabled');
+        boton.removeAttribute('aria-busy');
+        boton.style.minWidth = '';
+        delete boton.dataset.textoOriginal;
+        delete boton.dataset.temporizador;
+    }
+
+    document.addEventListener('submit', function (evento) {
+        const formulario = evento.target;
+
+        // Ya se está enviando: el segundo clic no hace nada.
+        if (formulario.dataset.enviando === 'true') {
+            evento.preventDefault();
+            return;
+        }
+
+        const boton = evento.submitter;
+        if (!boton || !boton.matches('[data-cargando]')) return;
+
+        // La validación de jQuery escucha el mismo evento y lo cancela si
+        // falta algo; se mira después de que corrieron todos.
+        setTimeout(function () {
+            if (evento.defaultPrevented) return;
+            formulario.dataset.enviando = 'true';
+            bloquear(boton);
+        }, 0);
+    });
+
+    // Al volver con el botón Atrás el navegador puede mostrar la página como
+    // quedó (con el botón bloqueado): se la deja como nueva.
+    window.addEventListener('pageshow', function (evento) {
+        if (!evento.persisted) return;
+        document.querySelectorAll('form[data-enviando]').forEach(function (formulario) {
+            delete formulario.dataset.enviando;
+        });
+        document.querySelectorAll('[data-cargando][aria-busy]').forEach(liberar);
+    });
+})();
+
+// ---------------------------------------------------------------------------
+// Foco inicial solo con mouse (paso 20).
+// En login y "olvidé mi contraseña" el email recibe el foco al cargar, pero
+// solo en una computadora: en el celular abriría el teclado y taparía media
+// pantalla. Si el servidor ya enfocó un campo con error, se respeta ese.
+// ---------------------------------------------------------------------------
+(function () {
+    const campo = document.querySelector('[data-autofoco]');
+    if (!campo || !window.matchMedia('(pointer: fine)').matches) return;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    campo.focus();
+})();
+
+// ---------------------------------------------------------------------------
+// Ctrl+Enter (⌘+Enter en Mac) envía el formulario desde un texto largo
+// (paso 20). Enter solo sigue haciendo un renglón nuevo. Se envía con el
+// botón principal del formulario, así también muestra que está enviando.
+// ---------------------------------------------------------------------------
+document.addEventListener('keydown', function (evento) {
+    const campo = evento.target;
+    if (evento.key !== 'Enter' || !(evento.ctrlKey || evento.metaKey)) return;
+    if (!(campo instanceof HTMLTextAreaElement) || !campo.form) return;
+
+    evento.preventDefault();
+    const boton = campo.form.querySelector('button[type="submit"][data-cargando]') || undefined;
+    campo.form.requestSubmit(boton);
+});
+
+// ---------------------------------------------------------------------------
+// Aviso de cambios sin guardar (paso 20).
+// En los formularios largos (data-avisar-cambios), si se escribió algo y se
+// intenta salir sin guardar, el navegador pregunta antes de irse. Al enviar
+// el formulario deja de preguntar.
+// ---------------------------------------------------------------------------
+(function () {
+    const formularios = document.querySelectorAll('form[data-avisar-cambios]');
+    if (formularios.length === 0) return;
+
+    let hayCambios = false;
+    formularios.forEach(function (formulario) {
+        formulario.addEventListener('input', function () { hayCambios = true; });
+        formulario.addEventListener('change', function () { hayCambios = true; });
+        formulario.addEventListener('submit', function () { hayCambios = false; });
+    });
+
+    window.addEventListener('beforeunload', function (evento) {
+        if (!hayCambios) return;
+        evento.preventDefault();
+        // Navegadores viejos piden returnValue además de preventDefault.
+        evento.returnValue = '';
+    });
+})();
+
+// ---------------------------------------------------------------------------
+// Cerrar los avisos de después de guardar (paso 20).
+// Los que tienen data-cerrable reciben un botón con una cruz. Sin JavaScript
+// el aviso queda como siempre, y se va solo al cambiar de pantalla.
+// ---------------------------------------------------------------------------
+(function () {
+    const cruz = '<path d="M18 6 6 18" /><path d="m6 6 12 12" />';
+
+    document.querySelectorAll('[data-cerrable]').forEach(function (aviso) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'area-tactil -my-1 -mr-2 flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-badge opacity-80 hover:opacity-100';
+        boton.setAttribute('aria-label', 'Cerrar aviso');
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'size-4');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '1.5');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.innerHTML = cruz;
+        boton.appendChild(svg);
+
+        boton.addEventListener('click', function () {
+            // El foco iba en el botón, que desaparece: pasa al contenido.
+            const contenido = document.getElementById('contenido');
+            aviso.remove();
+            if (contenido) {
+                contenido.setAttribute('tabindex', '-1');
+                contenido.focus({ preventScroll: true });
+            }
+        });
+
+        aviso.appendChild(boton);
+    });
+})();
+
+// ---------------------------------------------------------------------------
+// Tira de días (pedir y reprogramar un turno) (paso 20).
+// En el celular la tira se desplaza de costado; al cargar, el día elegido
+// queda a la vista, centrado, sin mover la página de arriba abajo.
+// ---------------------------------------------------------------------------
+document.querySelectorAll('[data-tira-dias]').forEach(function (tira) {
+    const elegido = tira.querySelector('[aria-current="date"]');
+    if (!elegido || tira.scrollWidth <= tira.clientWidth) return;
+    tira.scrollLeft = elegido.offsetLeft - (tira.clientWidth - elegido.offsetWidth) / 2;
+});

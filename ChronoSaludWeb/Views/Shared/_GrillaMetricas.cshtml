@@ -9,27 +9,44 @@
         @{ var indice = 0; }
         @foreach (var metrica in Model)
         {
-            @* El acento alterna entre los dos tokens de marca para que dos
-               tarjetas contiguas no se lean como una sola. El castaño va con
-               accent-ink, que es el que pasa contraste. *@
-            var claseIcono = indice++ % 2 == 0 ? "text-primary" : "text-accent-ink";
+            @* El círculo del ícono alterna entre el teal lleno y el castaño
+               claro para que dos tarjetas contiguas no se lean como una sola.
+               El castaño va con accent-ink, que es el que pasa contraste. *@
+            var claseCirculo = indice % 2 == 0 ? "circulo-icono" : "bg-accent-soft text-accent-ink";
+            var orden = indice++;
 
-            <div class="tarjeta p-5">
-                <div class="flex items-start justify-between gap-2">
-                    <div class="flex items-center gap-2 text-sm text-muted">
-                        <svg class="size-4 shrink-0 @claseIcono" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            @Html.Raw(IconosLucide.Trazos(metrica.Icono))
-                        </svg>
+            if (metrica.VerMas is { } verMas)
+            {
+                @* Con destino, la tarjeta entera es el enlace (tarjeta que es
+                   enlace, como los accesos rápidos): se toca en cualquier
+                   parte y no solo en el "…", que queda como pista visual. *@
+                <a asp-controller="@verMas.Controlador" asp-action="@verMas.Accion" asp-all-route-data="verMas.Ruta"
+                   class="entrada tarjeta tarjeta-enlace group block p-5" style="--i: @orden">
+                    <span class="flex items-start justify-between gap-2">
+                        <span class="flex items-center gap-2.5 text-sm text-muted">
+                            <span class="flex size-9 shrink-0 items-center justify-center rounded-full @claseCirculo">
+                                <icono nombre="@metrica.Icono" class="size-[1.125rem]" />
+                            </span>
+                            @metrica.Titulo
+                        </span>
+                        <icono nombre="puntos" class="size-5 shrink-0 text-muted group-hover:text-primary" />
+                    </span>
+                    <span class="mt-3 block text-3xl font-bold tabular-nums text-primary-hover">@metrica.Valor</span>
+                    <span class="sr-only">@verMas.Descripcion</span>
+                </a>
+            }
+            else
+            {
+                <div class="entrada tarjeta p-5" style="--i: @orden">
+                    <div class="flex items-center gap-2.5 text-sm text-muted">
+                        <span class="flex size-9 shrink-0 items-center justify-center rounded-full @claseCirculo">
+                            <icono nombre="@metrica.Icono" class="size-[1.125rem]" />
+                        </span>
                         @metrica.Titulo
                     </div>
-                    @if (metrica.VerMas is not null)
-                    {
-                        <partial name="_VerMas" model="metrica.VerMas" />
-                    }
+                    <p class="mt-3 text-3xl font-bold tabular-nums text-primary-hover">@metrica.Valor</p>
                 </div>
-                <p class="mt-2 text-3xl font-bold tabular-nums text-primary-hover">@metrica.Valor</p>
-            </div>
+            }
         }
     </div>
 }

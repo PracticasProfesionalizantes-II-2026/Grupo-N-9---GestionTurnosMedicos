@@ -29,12 +29,8 @@
 }
 
 <a asp-controller="Home" asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver al inicio
 </a>
 
@@ -113,7 +109,7 @@
     @if (Model.RangoInvertido)
     {
         <p class="w-full text-xs text-status-pendiente">
-            La fecha "desde" es posterior a la "hasta", por eso no aparece ningún movimiento.
+            La fecha «desde» es posterior a la «hasta», por eso no aparece ningún movimiento.
         </p>
     }
 </form>
@@ -140,42 +136,54 @@ else if (Model.Movimientos.Count == 0)
 }
 else
 {
-    @* Una lista y no una tabla: cada movimiento apila sus datos, así en un
-       teléfono no hay que desplazarse hacia el costado. *@
-    <div class="mt-6 overflow-hidden tarjeta">
-        <ul>
-            @{ var fila = 0; }
-            @foreach (var movimiento in Model.Movimientos)
-            {
-                <li class="fila-animada border-b border-border px-5 py-4 last:border-0"
-                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
-                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                        <h2 class="font-medium text-ink">@movimiento.Accion</h2>
-                        <time datetime="@movimiento.FechaIso" class="text-sm tabular-nums text-muted">@movimiento.FechaMostrada</time>
-                    </div>
-                    <p class="mt-1 text-sm text-ink">@movimiento.Resumen</p>
-                    <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-                        @if (movimiento.Doctor is not null)
-                        {
-                            <div class="flex min-w-0 items-center gap-1.5">
-                                <dt>Doctor:</dt>
-                                <dd class="truncate text-ink">@movimiento.Doctor</dd>
-                            </div>
-                        }
-                        <div class="flex min-w-0 items-center gap-1.5">
-                            <dt>@(Model.EsPropia ? "Lo hizo un:" : "Lo hizo:")</dt>
-                            <dd class="flex min-w-0 items-center gap-2">
-                                @if (movimiento.Usuario is not null)
-                                {
-                                    <span class="truncate text-ink">@movimiento.Usuario</span>
-                                }
-                                <partial name="_Chip" model="new ChipViewModel { Texto = movimiento.Rol, Capitalizar = true }" />
-                            </dd>
-                        </div>
-                    </dl>
-                </li>
-            }
-        </ul>
+    @* Una línea de tiempo agrupada por día y no una tabla: cada movimiento
+       apila sus datos, así en un teléfono no hay que desplazarse hacia el
+       costado. El ícono de cada acción va sobre el riel, en lugar del punto. *@
+    var dias = AgrupadorPorFecha.PorDia(Model.Movimientos, m => m.Fecha, FechaArgentina.Hoy());
+    var fila = 0;
+    <div class="mt-6 space-y-6">
+        @foreach (var dia in dias)
+        {
+            <section aria-label="@dia.Titulo">
+                <h2 class="linea-tiempo-grupo">@dia.Titulo</h2>
+                <ol class="linea-tiempo linea-tiempo-iconos">
+                    @foreach (var movimiento in dia.Elementos)
+                    {
+                        <li class="fila-animada" style="--i: @(fila++)">
+                            <span class="linea-tiempo-icono circulo-icono">
+                                <icono nombre="@movimiento.Icono" class="size-4" />
+                            </span>
+                            <article class="tarjeta tarjeta-secundaria px-4 py-3 sm:px-5">
+                                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                                    <h3 class="font-medium text-ink">@movimiento.Accion</h3>
+                                    <time datetime="@movimiento.FechaIso" class="text-sm tabular-nums text-muted">@movimiento.Hora</time>
+                                </div>
+                                <p class="mt-1 text-sm wrap-break-word text-ink">@movimiento.Resumen</p>
+                                <dl class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                                    @if (movimiento.Doctor is not null)
+                                    {
+                                        <div class="flex min-w-0 items-center gap-1.5">
+                                            <dt>Doctor:</dt>
+                                            <dd class="truncate text-ink">@movimiento.Doctor</dd>
+                                        </div>
+                                    }
+                                    <div class="flex min-w-0 items-center gap-1.5">
+                                        <dt>@(Model.EsPropia ? "Lo hizo un:" : "Lo hizo:")</dt>
+                                        <dd class="flex min-w-0 items-center gap-2">
+                                            @if (movimiento.Usuario is not null)
+                                            {
+                                                <span class="truncate text-ink">@movimiento.Usuario</span>
+                                            }
+                                            <partial name="_Chip" model="new ChipViewModel { Texto = movimiento.Rol, Capitalizar = true }" />
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </article>
+                        </li>
+                    }
+                </ol>
+            </section>
+        }
     </div>
 
     <partial name="_Paginador" model="Model.Paginador" />

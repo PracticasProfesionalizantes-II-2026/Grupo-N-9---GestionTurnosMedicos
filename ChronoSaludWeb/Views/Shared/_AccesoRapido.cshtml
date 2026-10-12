@@ -1,7 +1,5 @@
 @model AccesoRapidoViewModel
 
-@* Html.Raw es seguro acá: lo que devuelve IconosLucide.Trazos son literales
-   del propio código, nunca datos de la API ni del usuario. *@
 @if (Model.Habilitado)
 {
     @* Tarjeta secundaria: al pasar el mouse el borde pasa a teal y al
@@ -9,10 +7,7 @@
     <a asp-controller="@Model.Controlador" asp-action="@Model.Accion" asp-all-route-data="Model.Ruta"
        class="tarjeta tarjeta-enlace flex h-full flex-col items-center justify-center gap-3 px-3 py-5 text-center">
         <span class="circulo-icono flex size-12 items-center justify-center rounded-full">
-            <svg class="size-6" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                @Html.Raw(IconosLucide.Trazos(Model.Icono))
-            </svg>
+            <icono nombre="@Model.Icono" class="size-6" />
         </span>
         <span class="text-sm font-medium text-ink">@Model.Titulo</span>
     </a>
@@ -25,10 +20,7 @@ else
     <span aria-disabled="true"
           class="flex h-full flex-col items-center justify-center gap-3 rounded-card border-[1.5px] border-dashed border-contorno-suave px-3 py-5 text-center">
         <span class="circulo-icono flex size-12 items-center justify-center rounded-full opacity-60">
-            <svg class="size-6" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                @Html.Raw(IconosLucide.Trazos(Model.Icono))
-            </svg>
+            <icono nombre="@Model.Icono" class="size-6" />
         </span>
         <span class="text-sm font-medium text-ink opacity-60">@Model.Titulo</span>
         <partial name="_Chip" model='new ChipViewModel { Texto = "Próximamente", Tono = TonoChip.Proximamente }' />

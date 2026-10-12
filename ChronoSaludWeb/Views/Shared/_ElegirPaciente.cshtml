@@ -40,7 +40,8 @@ else
         <div class="w-full sm:w-auto sm:min-w-64 sm:flex-1">
             <label for="buscar-paciente" class="block text-sm font-medium text-ink">Buscar paciente</label>
             <input id="buscar-paciente" name="buscar" type="search" value="@Model.Buscar"
-                   placeholder="Nombre, apellido, DNI o email" aria-describedby="buscar-paciente-ayuda"
+                   placeholder="Nombre, apellido, DNI o email…" aria-describedby="buscar-paciente-ayuda"
+                   autocomplete="off" spellcheck="false" autocapitalize="none"
                    class="campo mt-1.5" />
             <p id="buscar-paciente-ayuda" class="mt-1 text-xs text-muted">
                 Podés escribir nombre y apellido juntos, o una parte del DNI o del email.

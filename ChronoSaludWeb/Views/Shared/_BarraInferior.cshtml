@@ -14,8 +14,7 @@
     const string ClaseOpcion = "flex min-h-11 items-center gap-3 rounded-input px-3 py-2 text-ink hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary";
 }
 
-@* Barra de navegación del celular. Html.Raw es seguro acá: IconosLucide.Trazos
-   devuelve literales del código. *@
+@* Barra de navegación del celular. *@
 <nav aria-label="Principal"
      class="fixed inset-x-0 bottom-0 z-20 border-t border-contorno-suave bg-surface shadow-barra-inferior px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] md:hidden print:hidden">
     <ul class="grid grid-cols-5 gap-1">
@@ -24,10 +23,7 @@
             <li class="min-w-0">
                 <a asp-controller="@item.Controlador" asp-action="@item.Accion"
                    aria-current="@(item.Activo ? "page" : null)" class="@ClaseItem @ClaseEnlace">
-                    <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos(item.Icono))
-                    </svg>
+                    <icono nombre="@item.Icono" class="size-6 shrink-0" />
                     @item.Etiqueta
                 </a>
             </li>
@@ -35,10 +31,7 @@
         <li class="min-w-0">
             <button type="button" popovertarget="menu-mas"
                     class="@ClaseItem @(Model.MasActivo ? "bg-primary font-bold text-on-primary" : "font-medium text-muted")">
-                <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    @Html.Raw(IconosLucide.Trazos("menu"))
-                </svg>
+                <icono nombre="menu" class="size-6 shrink-0" />
                 Más
             </button>
         </li>
@@ -54,10 +47,7 @@
             <li>
                 <a asp-controller="@item.Controlador" asp-action="@item.Accion"
                    aria-current="@(item.Activo ? "page" : null)" class="@ClaseOpcion">
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos(item.Icono))
-                    </svg>
+                    <icono nombre="@item.Icono" class="size-5 shrink-0" />
                     @item.Titulo
                 </a>
             </li>
@@ -65,20 +55,14 @@
         <li>
             <a asp-controller="MiPerfil" asp-action="Index"
                aria-current="@(Model.MiPerfilActivo ? "page" : null)" class="@ClaseOpcion">
-                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    @Html.Raw(IconosLucide.Trazos("persona"))
-                </svg>
+                <icono nombre="persona" class="size-5 shrink-0" />
                 Mi perfil
             </a>
         </li>
         <li>
             <a asp-controller="Ajustes" asp-action="Index"
                aria-current="@(Model.AjustesActivo ? "page" : null)" class="@ClaseOpcion">
-                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    @Html.Raw(IconosLucide.Trazos("ajustes"))
-                </svg>
+                <icono nombre="ajustes" class="size-5 shrink-0" />
                 Ajustes
             </a>
         </li>
@@ -86,10 +70,7 @@
             <form asp-controller="Cuenta" asp-action="Logout" method="post">
                 <button type="submit"
                         class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-input px-3 py-2 text-left text-ink hover:bg-accent-soft">
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("salir"))
-                    </svg>
+                    <icono nombre="salir" class="size-5 shrink-0" />
                     Cerrar sesión
                 </button>
             </form>

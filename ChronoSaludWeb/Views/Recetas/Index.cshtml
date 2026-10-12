@@ -23,7 +23,7 @@
                 @(Model.Recetas.Count == 1 ? "receta" : "recetas")
                 @if (Model.Recetas.Count > 0)
                 {
-                    <span>· @Model.Vigentes vigentes</span>
+                    <span>· <span class="tabular-nums">@Model.Vigentes</span> vigentes</span>
                 }
             </p>
         }
@@ -31,11 +31,7 @@
         {
             <a asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
                class="boton boton-primario">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                </svg>
+                <icono nombre="mas" class="h-4 w-4" />
                 Nueva receta
             </a>
         }
@@ -83,14 +79,10 @@ else
             @foreach (var receta in Model.Recetas)
             {
                 <li class="fila-animada relative flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
-                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                    style="--i: @(fila++)">
                     <span aria-hidden="true"
-                          class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full circulo-icono">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-                            <path d="m8.5 8.5 7 7" />
-                        </svg>
+                          class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full circulo-icono">
+                        <icono nombre="pastilla" class="size-4" />
                     </span>
 
                     <span class="min-w-0 flex-1">
@@ -116,8 +108,9 @@ else
                         }
                     </span>
 
+                    @* Si vence en una semana o menos, el chip lo dice en ámbar. *@
                     <partial name="_Chip"
-                             model='new ChipViewModel { Texto = receta.Vigente ? "vigente" : "vencida", Tono = receta.Vigente ? TonoChip.Exito : TonoChip.Neutro, Capitalizar = true }' />
+                             model='new ChipViewModel { Texto = !receta.Vigente ? "Vencida" : receta.VencePronto ? receta.TextoVigencia : "Vigente", Tono = !receta.Vigente ? TonoChip.Neutro : receta.VencePronto ? TonoChip.Aviso : TonoChip.Exito }' />
                 </li>
             }
         </ul>

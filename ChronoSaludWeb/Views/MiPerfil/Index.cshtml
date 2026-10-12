@@ -3,32 +3,38 @@
     ViewData["Title"] = "Mi perfil";
     const string claseSeccion = "text-base font-semibold text-ink";
 
-    // Un dato de la ficha, o "Sin datos" en gris si está vacío.
-    void Dato(string titulo, string? valor)
+    // Un dato de la ficha, con su ícono, o "Sin datos" en gris si está vacío.
+    async Task Dato(string titulo, string? valor, string? icono = null)
     {
         <div>
-            <dt class="text-sm text-muted">@titulo</dt>
+            <dt>
+                @if (icono is not null)
+                {
+                    <icono nombre="@icono" />
+                }
+                @titulo
+            </dt>
             @if (string.IsNullOrWhiteSpace(valor))
             {
-                <dd class="mt-0.5 text-muted">Sin datos</dd>
+                <dd class="sin-dato">Sin datos</dd>
             }
             else
             {
-                <dd class="mt-0.5 whitespace-pre-line text-ink">@valor</dd>
+                <dd class="whitespace-pre-line">@valor</dd>
             }
         </div>
     }
 }
 
-<div class="flex items-center gap-4">
+@* Encabezado con la foto (o las iniciales), el nombre y el rol. *@
+<div class="tarjeta tarjeta-hero flex flex-wrap items-center gap-4 p-5 sm:p-6">
     <partial name="_Avatar"
              model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", Tamano = TamanoAvatar.Grande }' />
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
         <h1 class="text-2xl font-bold tracking-tight text-ink">Mi perfil</h1>
-        <p class="mt-0.5 text-sm text-muted">
-            <span>@Model.NombreCompleto</span>
-            <span aria-hidden="true"> · </span>
-            <span class="capitalize">@Model.Rol</span>
+        <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+            <span class="font-medium wrap-break-word text-ink">@Model.NombreCompleto</span>
+            <partial name="_Chip" model="new ChipViewModel { Texto = Model.Rol, Capitalizar = true }" />
         </p>
     </div>
 </div>
@@ -36,14 +42,11 @@
 <div class="mt-6 grid gap-4 lg:grid-cols-3">
     <div class="tarjeta p-6 lg:col-span-2">
         <h2 class="@claseSeccion">Tu cuenta</h2>
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-            @{ Dato("Nombre", Model.Nombre); }
-            @{ Dato("Apellido", Model.Apellido); }
-            <div>
-                <dt class="text-sm text-muted">Email</dt>
-                <dd class="mt-0.5 break-all text-ink">@Model.Email</dd>
-            </div>
-            @{ Dato("Teléfono", Model.Telefono); }
+        <dl class="lista-datos mt-4 sm:grid-cols-2">
+            @{ await Dato("Nombre", Model.Nombre, "persona"); }
+            @{ await Dato("Apellido", Model.Apellido, "persona"); }
+            @{ await Dato("Email", Model.Email, "email"); }
+            @{ await Dato("Teléfono", Model.Telefono, "telefono"); }
         </dl>
         <div class="mt-6">
             <a asp-action="Editar" class="boton boton-primario">Editar mis datos</a>
@@ -75,38 +78,43 @@
 {
     <div class="mt-4 tarjeta p-6">
         <h2 class="@claseSeccion">Tu ficha</h2>
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <dl class="lista-datos mt-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-                <dt class="text-sm text-muted">Fecha de nacimiento</dt>
-                <dd class="mt-0.5 text-ink">
-                    @if (ficha.FechaNacimientoLarga is not null)
-                    {
+                <dt><icono nombre="calendario" /> Fecha de nacimiento</dt>
+                @if (ficha.FechaNacimientoLarga is not null)
+                {
+                    <dd>
                         <span>@ficha.FechaNacimientoLarga</span>
                         @if (ficha.Edad is not null)
                         {
-                            <span class="text-muted"> · @ficha.Edad años</span>
+                            <span class="font-normal tabular-nums text-muted"> · @ficha.Edad años</span>
                         }
-                    }
-                    else
-                    {
-                        <span class="text-muted">Sin datos</span>
-                    }
-                </dd>
+                    </dd>
+                }
+                else
+                {
+                    <dd class="sin-dato">Sin datos</dd>
+                }
             </div>
             <div>
-                <dt class="text-sm text-muted">Sexo</dt>
-                <dd class="mt-0.5 capitalize text-ink">
-                    @(string.IsNullOrWhiteSpace(ficha.Sexo) ? "Sin datos" : ficha.Sexo)
-                </dd>
+                <dt><icono nombre="persona" /> Sexo</dt>
+                @if (string.IsNullOrWhiteSpace(ficha.Sexo))
+                {
+                    <dd class="sin-dato">Sin datos</dd>
+                }
+                else
+                {
+                    <dd class="capitalize">@ficha.Sexo</dd>
+                }
             </div>
-            @{ Dato("Documento", ficha.Documento); }
-            @{ Dato("Nacionalidad", ficha.Nacionalidad); }
-            @{ Dato("Estado civil", ficha.EstadoCivil); }
-            @{ Dato("Grupo sanguíneo", ficha.GrupoSanguineo); }
-            @{ Dato("Dirección", ficha.DireccionCompleta); }
-            @{ Dato("Contacto de emergencia", ficha.ContactoEmergencia); }
-            @{ Dato("Alergias", ficha.Alergias); }
-            @{ Dato("Condiciones preexistentes", ficha.Condiciones); }
+            @{ await Dato("Documento", ficha.Documento, "documento"); }
+            @{ await Dato("Nacionalidad", ficha.Nacionalidad, "globo"); }
+            @{ await Dato("Estado civil", ficha.EstadoCivil, "personas"); }
+            @{ await Dato("Grupo sanguíneo", ficha.GrupoSanguineo, "gota"); }
+            @{ await Dato("Dirección", ficha.DireccionCompleta, "ubicacion"); }
+            @{ await Dato("Contacto de emergencia", ficha.ContactoEmergencia, "telefono"); }
+            @{ await Dato("Alergias", ficha.Alergias, "alerta"); }
+            @{ await Dato("Condiciones preexistentes", ficha.Condiciones, "nota"); }
         </dl>
         <div class="mt-6">
             <a asp-action="Editar" class="boton boton-secundario">Editar mi ficha</a>
@@ -118,13 +126,20 @@
 {
     <div class="mt-4 tarjeta p-6">
         <h2 class="@claseSeccion">Datos profesionales</h2>
-        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
-            @{ Dato("Especialidad", Model.Especialidad); }
+        <dl class="lista-datos mt-4 sm:grid-cols-3">
+            @{ await Dato("Especialidad", Model.Especialidad, "estetoscopio"); }
             <div>
-                <dt class="text-sm text-muted">Matrícula</dt>
-                <dd class="mt-0.5 tabular-nums text-ink">@(string.IsNullOrWhiteSpace(Model.Matricula) ? "Sin datos" : Model.Matricula)</dd>
+                <dt><icono nombre="documento" /> Matrícula</dt>
+                @if (string.IsNullOrWhiteSpace(Model.Matricula))
+                {
+                    <dd class="sin-dato">Sin datos</dd>
+                }
+                else
+                {
+                    <dd class="tabular-nums">@Model.Matricula</dd>
+                }
             </div>
-            @{ Dato("Consultorio", Model.Consultorio); }
+            @{ await Dato("Consultorio", Model.Consultorio, "ubicacion"); }
         </dl>
         <p class="mt-4 text-xs text-muted">Si hay que corregir alguno de estos datos, pedíselo a la administración.</p>
         <div class="mt-6 flex flex-wrap gap-3">

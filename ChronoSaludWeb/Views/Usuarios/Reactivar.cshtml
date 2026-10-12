@@ -4,17 +4,13 @@
 }
 
 <a asp-action="Editar" asp-route-id="@Model.IdUsuario"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver al usuario
 </a>
 
 <div class="mt-6 max-w-xl">
-    <h1 class="text-2xl font-bold tracking-tight text-ink">¿Reactivar la cuenta de @Model.NombreCompleto?</h1>
+    <h1 class="text-2xl font-bold tracking-tight wrap-break-word text-ink">¿Reactivar la cuenta de @Model.NombreCompleto?</h1>
     <p class="mt-1 text-sm text-muted">
         Vuelve a poder entrar con su email y la contraseña que tenía.
     </p>
@@ -24,7 +20,7 @@
             <partial name="_Avatar"
                      model='new AvatarViewModel { Nombre = Model.NombreCompleto, FotoUrl = Model.TieneFoto ? Url.Action("Foto", new { id = Model.IdUsuario }) : null, Tamano = TamanoAvatar.Mediano }' />
             <span class="min-w-0">
-                <span class="block font-medium text-ink">@Model.NombreCompleto</span>
+                <span class="block font-medium wrap-break-word text-ink">@Model.NombreCompleto</span>
                 <span class="block text-sm text-muted">
                     <span class="break-all">@Model.Email</span>
                     <span aria-hidden="true"> · </span>
@@ -41,7 +37,7 @@
         }
 
         <form asp-action="Reactivar" asp-route-id="@Model.IdUsuario" method="post" class="mt-7 flex flex-wrap items-center gap-3">
-            <button type="submit" class="boton boton-primario">
+            <button type="submit" data-cargando="Reactivando…" class="boton boton-primario">
                 Sí, reactivar
             </button>
             <a asp-action="Editar" asp-route-id="@Model.IdUsuario" class="boton boton-secundario">

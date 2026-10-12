@@ -1,0 +1,26 @@
+@* La columna decorativa de las pantallas de acceso (ingresar y crear cuenta):
+   el motivo de marca y, desde md, una frase con lo que se puede hacer. En el
+   celular queda solo el motivo, chico y arriba, para que el formulario
+   aparezca enseguida. El texto va debajo del motivo, nunca encima. *@
+<div class="h-16 px-6 pt-5 md:order-last md:flex md:h-auto md:flex-col md:justify-center md:gap-8 md:border-l md:border-border md:bg-hero md:p-10">
+    <div class="h-full md:h-36">
+        <partial name="_MotivoMarca" />
+    </div>
+    <div class="hidden md:block">
+        <p class="text-lg font-semibold text-ink">Tu salud, a tiempo.</p>
+        <ul class="mt-4 space-y-3 text-sm text-muted">
+            <li class="flex items-start gap-2.5">
+                <icono nombre="check" class="mt-0.5 size-4 shrink-0 text-primary" stroke-width="2" />
+                Agendá turnos sin llamar ni hacer fila.
+            </li>
+            <li class="flex items-start gap-2.5">
+                <icono nombre="check" class="mt-0.5 size-4 shrink-0 text-primary" stroke-width="2" />
+                Seguí tu historia clínica y tus estudios.
+            </li>
+            <li class="flex items-start gap-2.5">
+                <icono nombre="check" class="mt-0.5 size-4 shrink-0 text-primary" stroke-width="2" />
+                Tené tus recetas a mano, también impresas.
+            </li>
+        </ul>
+    </div>
+</div>

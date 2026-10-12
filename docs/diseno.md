@@ -6,7 +6,7 @@ Cómo se ve y cómo se comporta la interfaz de ChronoSaludWeb. Vale para cualqui
 
 1. **Superficies con borde y sombra.** El fondo de la página es más oscuro que las piezas: tarjetas, menús y campos son superficies claras (blancas en el tema claro) con borde y sombra marcados, y el teal queda como acento. La sombra tiene un significado fijo (ver "Niveles de superficie") y nunca es lo único que comunica algo.
 2. **Accesible por defecto.** Texto con contraste 4,5:1 como mínimo; bordes de campos y componentes con 3:1; foco siempre visible; nada depende solo del color.
-3. **Sin JavaScript nuevo y sin CDN.** Interacciones con HTML y CSS (`popover`, `:has()`, `:focus-visible`). Fuentes e íconos se sirven desde el propio sitio.
+3. **JavaScript solo como comodidad, y sin CDN.** Interacciones con HTML y CSS (`popover`, `:has()`, `:focus-visible`). Lo poco que hay en `site.js` es progresivo: sin él, todo funciona igual (ver "JavaScript"). Fuentes e íconos se sirven desde el propio sitio.
 4. **Una decoración grande por pantalla.** El motivo de marca aparece una vez; el resto es contenido.
 5. **Textos en voseo y en sentence case**, sin jerga técnica.
 
@@ -68,6 +68,8 @@ Los colores de las sombras son tokens (`sombra-teal`, `sombra`, `sombra-media`, 
 
 Tipografía: Plus Jakarta Sans, servida desde `wwwroot/fonts` (woff2 variable, licencia OFL). Pesos en uso: 500, 600 y 700. Títulos de pantalla en `text-2xl font-bold` (`text-3xl` en el saludo del inicio a partir de 640 px), títulos de sección en `text-base font-semibold`, cuerpo en `text-sm` o `text-base`, y `text-xs` solo en chips y en la barra inferior.
 
+Los campos van a 16 px en el celular (`text-base sm:text-sm` dentro de `.campo`): con menos, Safari de iPhone agranda la página al enfocarlos. Los títulos `h1`–`h3` reparten las palabras con `text-wrap: balance` y los párrafos evitan la palabra sola en el último renglón (`pretty`). Números que se comparan (horas, fechas, contadores, DNI) llevan `tabular-nums`.
+
 Medidas en `rem`, para que acompañen el ajuste de tamaño de texto (`data-scale`). Quedan en `px` solo los trazos finos: bordes de 1 px, el contorno de foco y el desplazamiento de las sombras.
 
 ## Niveles de superficie
@@ -100,7 +102,9 @@ En las vistas no se escribe ninguna clase de foco: ni `focus:ring-*` ni `focus:o
 | Botón primario | `class="boton boton-primario"`: relleno `primary`, borde `primary-border`, `shadow-boton`. Hover `primary-hover`, presionado `primary-deep`. Uno por bloque como máximo |
 | Botón secundario | `class="boton boton-secundario"`: fondo `card`, borde `control`, texto `ink`. El hover pasa el borde a teal y el fondo a `primary-soft` |
 | Botón de peligro | `class="boton boton-peligro"` para la acción destructiva de una pantalla de confirmación. Una acción destructiva menor va como secundario con `border-status-cancelado text-status-cancelado` |
-| Botón de texto | `class="boton-texto"`: sin relleno ni sombra, para "Volver a…" y para las acciones dentro de una fila (ahí se le suma `px-2 py-1`) |
+| Botón de peligro suave | `class="boton boton-peligro-suave"`: secundario en rojo, también en el hover. Para la acción destructiva menor (Cancelar turno desde el detalle, Dar de baja, Quitar foto) |
+| Botón de texto | `class="boton-texto"`: sin relleno ni sombra, para "Volver a…" y para las acciones dentro de una fila (ahí se le suma `px-2 py-1`). Lleva `area-tactil` para que la zona que recibe el toque mida 44 px aunque el texto sea más bajo |
+| Botón que envía | En el botón principal de cada formulario, `data-cargando="Guardando…"` (o "Agendando…", "Cancelando…"). Al enviar, `site.js` le cambia el texto, lo bloquea (`aria-busy` y `aria-disabled`, no `disabled`, para no perder su `name`) y a los 150 ms muestra un latido animado. No se pone en los botones que repintan la pantalla, como «+» y «−» de la receta |
 | Campo | `class="campo"` más su `<label>`, también en selects y textareas. Con `w-auto` cuando no tiene que ocupar todo el ancho. El error va debajo, en `text-status-cancelado`, y el campo toma borde rojo con `aria-invalid="true"` o con la clase que pone ASP.NET |
 | Tarjeta | `class="tarjeta"`. Si lleva lista, `overflow-hidden` y divisores `border-border`; las filas marcan el hover con `hover:bg-primary-soft/50` |
 | Encabezado de tarjeta | `class="tarjeta-encabezado"` en el `<header>` del panel o en la fila de títulos de una tabla: fondo `primary-soft`, borde inferior `contorno` y título en `text-primary-deep` |
@@ -112,7 +116,17 @@ En las vistas no se escribe ninguna clase de foco: ni `focus:ring-*` ni `focus:o
 | Estado vacío | Parcial `_EstadoVacio` dentro de una `tarjeta`: ícono en círculo, título, una línea de ayuda y **un botón** que lleve a la acción que lo resuelve. `Tono` distingue "no hay nada" (`Neutro`), "falta un paso" (`Aviso`) y "no se pudo cargar" (`Error`); `Nivel` es 2 cuando cuelga del `h1` de la pantalla y 3 dentro de un panel |
 | Filtro seleccionable | Radios dentro de un `label` con borde `control` y fondo `card`; elegido, `has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:checked]:inset-shadow-hundido` (Ajustes) |
 | Fila con casilla | Checkbox nativo con `accent-primary` dentro de su `label` (`min-h-11`), en una fila `rounded-input border border-control bg-card`; con la casilla tildada la fila toma `has-[:checked]:border-primary has-[:checked]:bg-primary-soft` (horario del doctor) |
-| Aviso | `rounded-input border` con `border-status-X-line bg-status-X-soft` y el texto en `status-X` (en `ink` si lleva un enlace) |
+| Aviso | `class="aviso aviso-error"` (o `aviso-exito`, `aviso-pendiente`, `aviso-info`) con un `<icono>` como primer hijo y el texto al lado. Error y éxito escriben en el color del estado; pendiente e info, en `ink` con el ícono en color, porque suelen llevar enlace. Los de después de guardar suman `aviso-entrada` (entran con un movimiento corto) y `data-cerrable` (botón para cerrarlos) |
+| Ícono | `<icono nombre="volver" class="size-4" />`: tag helper que dibuja el `<svg>` con los trazos de `IconosLucide` y los atributos de siempre. No se pegan `<svg>` en las vistas |
+| Bloque de calendario | Parcial `_FechaTile` con `FechaTileViewModel { Fecha, Grande }`: mes en franja teal, día grande y día de la semana. Es decorativo (`aria-hidden`): la fecha completa va escrita al lado. En el panel de turnos del inicio, el detalle del turno, la confirmación, el comprobante, la reprogramación y las tarjetas del listado en el celular |
+| Lista de datos | `<dl class="lista-datos">` con un `<div>` por par; el ícono va dentro del `<dt>` (`<dt><icono nombre="reloj" /> Horario</dt>`). Un dato que falta lleva `<dd class="sin-dato">` |
+| Línea de tiempo | `<ol class="linea-tiempo">` con un riel y un punto por entrada; la más reciente lleva `linea-tiempo-reciente`. La variante `linea-tiempo-iconos` pone un `circulo-icono` (`linea-tiempo-icono`) en lugar del punto. Los grupos ("Hoy", "Octubre de 2026") salen de `AgrupadorPorFecha` y su título lleva `linea-tiempo-grupo`. En historia clínica, actividad, historial reciente del inicio y notificaciones |
+| Franja de estado | `FranjaEstado.Clase(estado)` agrega una franja de 4 px a la izquierda del color del estado. Siempre acompaña al chip, que lo dice con palabras |
+| Pasos | Parcial `_Pasos` con `PasoViewModel`: número en un círculo que se vuelve un tilde al completarse; el actual lleva halo y `aria-current="step"` en su `li` |
+| Control segmentado | `<div class="segmentado">` con enlaces y `aria-current="page"` en el elegido (Usuarios, Notificaciones) |
+| Talón | `<div class="talon-corte">` dentro de una tarjeta con `overflow-hidden`: línea punteada con dos muescas en los bordes. En Confirmar turno y el comprobante |
+| Tarjeta secundaria | `class="tarjeta tarjeta-secundaria"`: el peso de una tarjeta que es enlace, pero sin hover. Para ítems que no se tocan |
+| Avatar | Parcial `_Avatar`. Sin foto, el círculo toma una de tres variantes del teal según el nombre (`AvatarViewModel.Variante`, siempre la misma para la misma persona); los doctores, terracota |
 | Barra superior | `class="barra-superior"`: fondo `surface`, borde inferior `contorno-suave` y `shadow-barra`. El ítem activo va relleno en `primary` con texto `on-primary` |
 | Menú de cuenta | `<button popovertarget>` más un `<div popover class="menu-flotante">`. Abre, cierra con Escape o clic afuera y devuelve el foco sin JavaScript. Se ubica en una posición fija bajo el encabezado y, donde el navegador soporta anclaje CSS, pegado al botón |
 | Barra inferior | Solo por debajo de 768 px. Fondo `surface`, borde `contorno-suave`. Cinco ítems como máximo, ícono y etiqueta siempre visible, `aria-current="page"` en el actual (relleno `primary`). El resto va en "Más" |
@@ -129,6 +143,7 @@ Una línea de latido que entra por la izquierda y termina en el centro de unos a
 - Una vez por pantalla: banner del inicio, portada y pantallas de acceso.
 - Nunca debajo de texto. En pantallas angostas se achica y pasa arriba del contenido.
 - En el inicio el latido se dibuja una sola vez al cargar: el contenedor lleva la clase `motivo-animado`. En login y registro queda quieto.
+- En las pantallas de error y de "no encontrado" el latido sale plano: `ViewData["MotivoPlano"] = true` antes del parcial.
 
 ## Movimiento
 
@@ -142,8 +157,34 @@ Todo el movimiento es CSS y está dentro de `@media (prefers-reduced-motion: no-
 | Menús flotantes | Entran con opacidad y un desplazamiento de 0,375rem, desde `@starting-style`. Cerrados no se les toca la opacidad |
 | Listados | Las filas entran escalonadas con `fila-animada` |
 | Motivo de marca | El latido se dibuja una vez, en 1,4 s |
+| Tarjetas y filas | `entrada` y `fila-animada` entran escalonadas; la vista solo indica el orden con `style="--i: n"` y el CSS calcula el retraso (40 ms por posición, hasta la 12) |
+| Avisos | `aviso-entrada`: bajan y aparecen en 220 ms |
+| Campana | En el inicio, con avisos sin leer, se balancea una vez y el globito aparece creciendo |
+| Logo | Al pasar el mouse, la aguja larga del reloj da una vuelta |
+| Botón que envía | El latido recorre el trazo en bucle mientras espera. Sin movimiento no aparece: queda el texto con "…" |
+| Botones | Al presionar bajan 1 px (`translate`), además de achicar la sombra |
 
 No se anima nada que mueva el layout (alto, ancho, márgenes).
+
+## JavaScript
+
+`site.js` suma comodidades que no son imprescindibles; sin JavaScript todo funciona igual.
+
+- El ojo para ver la contraseña.
+- El botón que envía (`data-cargando`): texto de espera, bloqueo del doble envío y latido.
+- El foco inicial (`data-autofoco`) solo con mouse: en el celular abriría el teclado.
+- Ctrl+Enter (⌘+Enter) envía el formulario desde un `textarea`.
+- Aviso de cambios sin guardar en los formularios largos (`data-avisar-cambios`).
+- Botón para cerrar los avisos de después de guardar (`data-cerrable`).
+- La tira de días del celular arranca con el día elegido a la vista (`data-tira-dias`).
+
+## Navegador y celular
+
+- `viewport-fit=cover` y `env(safe-area-inset-bottom)` en la barra inferior, el menú "Más" y la ventana de ayuda, para el iPhone.
+- `<meta name="theme-color">` con el `canvas` del tema elegido.
+- `touch-action: manipulation` en los controles, resaltado del toque, selección y barras de desplazamiento con la paleta.
+- Los menús flotantes tienen alto máximo, se desplazan adentro y no arrastran la página (`overscroll-behavior: contain`).
+- La marca lleva `translate="no"`.
 
 ## Textos
 
@@ -153,6 +194,9 @@ No se anima nada que mueva el layout (alto, ancho, márgenes).
 - Un verbo por acción en todo el sitio: "Ingresar" para entrar, "Agendar turno" para pedir uno.
 - Los errores dicen qué pasó y qué hacer: "No pudimos cargar tu inicio. Probá de nuevo en un momento."
 - Un enlace o botón se entiende leído solo: "Ver todos mis turnos", no "Ver más".
+- Comillas latinas («Guardar horario») y el carácter de puntos suspensivos (…), no tres puntos.
+- Lo opcional se dice en el rótulo, "Teléfono (opcional)", no en el placeholder. El placeholder lleva un ejemplo y termina en "…" cuando es texto libre.
+- Campos: `autocomplete` con el dato que corresponde (o `off` si lo carga el personal para otra persona), `spellcheck="false"` en emails, documentos y códigos, `inputmode="numeric"` en el DNI y `type="tel"` en los teléfonos.
 
 ## Tabla de contraste
 
@@ -178,6 +222,10 @@ Relaciones medidas con la fórmula de WCAG 2. Mínimos: 4,5 para texto, 3 para b
 | `ink` sobre el fondo del aviso de pendiente | 11,95 | 4,5 |
 | `status-cancelado` sobre `field` (error de campo) / blanco sobre `status-cancelado` | 6,47 / 6,47 | 4,5 |
 | Ícono `on-primary` sobre el círculo de pendiente | 6,66 | 3 |
+| Números de las tarjetas de estado (confirmado / pendiente / completado / cancelado) sobre `card` | 6,61 / 6,66 / 6,96 / 6,47 | 4,5 |
+| Los mismos sobre `primary-soft` (tarjeta de filtro activa) | 5,46 / 5,50 / 5,75 / 5,34 | 4,5 |
+| `ink` sobre el fondo del aviso de info (`status-completado-soft`) | 11,77 | 4,5 |
+| Avatar: `primary-deep` sobre `primary-soft` / `on-primary` sobre `primary` / `primary` sobre `card` | 8,73 / 6,00 / 6,00 | 4,5 |
 
 Dos cosas a recordar: dentro de un aviso los enlaces van en `ink` subrayado; y `primary-line`, `contorno`, `contorno-suave`, `accent` y `border` no llegan a 3:1 a propósito, así que no llevan información: lo que separa una tarjeta del fondo es el salto de `card` a `canvas` más la sombra.
 
@@ -197,6 +245,9 @@ Dos cosas a recordar: dentro de un aviso los enlaces van en `ink` subrayado; y `
 | Aviso de éxito / error | 4,58 / 5,04 | 4,5 |
 | `on-primary` sobre `status-cancelado` (botón de peligro) | 5,64 | 4,5 |
 | Contorno de foco (`primary`) sobre `canvas` | 5,87 | 3 |
+| Números de las tarjetas de estado sobre `card` | 5,88 / 6,86 / 6,45 / 5,35 | 4,5 |
+| Los mismos sobre `primary-soft` | 5,42 / 6,33 / 5,95 / 4,94 | 4,5 |
+| `ink` sobre el fondo del aviso de info | 11,87 | 4,5 |
 
 En oscuro no alcanza con aclarar el teal hasta 4,5:1 sobre `canvas`: en ese punto (`#178E98`) ni el blanco (3,92) ni la tinta (4,34) pasan como texto del botón. `#2A9CA6` es el primer valor en el que pasan todos los pares; `#2F9FA9` deja un poco de margen.
 

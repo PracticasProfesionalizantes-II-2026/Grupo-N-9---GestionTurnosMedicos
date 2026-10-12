@@ -16,7 +16,9 @@ public enum TamanoAvatar
 
 /// <summary>
 /// Color del círculo cuando no hay foto: teal para pacientes y usuarios en
-/// general, terracota para doctores (como se los mostró siempre).
+/// general (en tres variantes según el nombre, ver
+/// <see cref="AvatarViewModel.Variante"/>), terracota para doctores (como se
+/// los mostró siempre).
 /// </summary>
 public enum TonoAvatar
 {
@@ -40,6 +42,25 @@ public class AvatarViewModel
     public TonoAvatar Tono { get; init; } = TonoAvatar.Teal;
 
     public bool TieneFoto => !string.IsNullOrWhiteSpace(FotoUrl);
+
+    /// <summary>
+    /// Cuál de las tres variantes del teal lleva el círculo sin foto (0, 1 o
+    /// 2), para que en un listado no se vean todos iguales. Sale del nombre
+    /// y no al azar: la misma persona tiene siempre el mismo círculo en todas
+    /// las pantallas. Se suman los códigos de los caracteres en vez de usar
+    /// GetHashCode, que en .NET cambia en cada arranque.
+    /// </summary>
+    public int Variante
+    {
+        get
+        {
+            var suma = 0;
+            foreach (var caracter in (Nombre ?? string.Empty).Trim().ToUpperInvariant())
+                suma += caracter;
+
+            return suma % 3;
+        }
+    }
 
     /// <summary>
     /// "Pedro Paciente" -> "PP", "Pedro" -> "P". Toma la primera letra o dígito

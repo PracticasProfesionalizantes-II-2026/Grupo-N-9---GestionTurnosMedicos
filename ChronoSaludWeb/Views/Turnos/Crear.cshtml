@@ -3,16 +3,16 @@
     ViewData["Title"] = "Nuevo turno";
 
     // Una opción de los pasos 1 y 2: una tarjeta entera que es un enlace.
-    const string claseOpcion = "tarjeta tarjeta-enlace flex min-h-11 items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-ink no-underline";
+    const string claseOpcion = "tarjeta tarjeta-enlace flex min-h-11 items-center gap-3 px-4 py-3 text-sm font-semibold text-ink no-underline";
+
+    // Una opción que no se puede elegir: plana, con borde punteado y sin
+    // hover, como lo deshabilitado del resto del sitio.
+    const string claseOpcionApagada = "flex min-h-11 items-center gap-3 rounded-card border-[1.5px] border-dashed border-contorno-suave px-4 py-3 text-sm font-semibold text-ink";
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver al listado
 </a>
 
@@ -26,22 +26,18 @@
        días y horarios, adentro del paso 3. *@
     @if (Model.AvisoFranjas is not null && Model.Paso < 3)
     {
-        <p role="alert" class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
+        <p role="alert" class="aviso aviso-error mt-6">
+            <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
             <span>@Model.AvisoFranjas</span>
         </p>
     }
 
     @* Los tres pasos. Cada elección es un enlace que vuelve a esta pantalla
-       con lo elegido en la URL; lo ya elegido queda resumido con "Cambiar". *@
+       con lo elegido en la URL; lo ya elegido queda resumido con «Cambiar».
+       El número de cada paso se vuelve un tilde cuando está hecho (_Pasos). *@
     <ol class="mt-6 space-y-4">
-        <li class="tarjeta p-6">
-            <h2 class="text-base font-semibold text-ink">1. Especialidad</h2>
+        <li class="tarjeta p-5 sm:p-6" aria-current="@(Model.Paso == 1 ? "step" : null)">
+            <partial name="_Pasos" model='new PasoViewModel { Numero = 1, Titulo = "Especialidad", Estado = PasoViewModel.Para(1, Model.Paso) }' />
 
             @if (Model.Paso == 1)
             {
@@ -52,15 +48,16 @@
                 else
                 {
                     <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+                        @{ var orden = 0; }
                         @foreach (var especialidad in Model.Especialidades)
                         {
-                            <li>
+                            <li class="entrada" style="--i: @(orden++)">
                                 <a asp-action="Crear" asp-all-route-data="Model.Ruta(especialidad)" class="@claseOpcion">
-                                    <span class="capitalize">@especialidad</span>
-                                    <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
-                                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="m9 18 6-6-6-6" />
-                                    </svg>
+                                    <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-deep">
+                                        <icono nombre="estetoscopio" class="size-4" />
+                                    </span>
+                                    <span class="min-w-0 flex-1 capitalize">@especialidad</span>
+                                    <icono nombre="chevron-der" class="h-4 w-4 shrink-0 text-muted" />
                                 </a>
                             </li>
                         }
@@ -69,9 +66,9 @@
             }
             else
             {
-                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-sm">
                     <span class="font-medium capitalize text-ink">@Model.Especialidad</span>
-                    <a asp-action="Crear" asp-all-route-data="Model.Ruta(null)" class="boton-texto">
+                    <a asp-action="Crear" asp-all-route-data="Model.Ruta(null)" class="boton-texto area-tactil">
                         Cambiar<span class="sr-only"> la especialidad</span>
                     </a>
                 </p>
@@ -80,8 +77,8 @@
 
         @if (Model.Paso >= 2)
         {
-            <li class="tarjeta p-6">
-                <h2 class="text-base font-semibold text-ink">2. Doctor</h2>
+            <li class="tarjeta p-5 sm:p-6" aria-current="@(Model.Paso == 2 ? "step" : null)">
+                <partial name="_Pasos" model='new PasoViewModel { Numero = 2, Titulo = "Doctor", Estado = PasoViewModel.Para(2, Model.Paso) }' />
 
                 @if (Model.Doctores.Count == 0)
                 {
@@ -90,27 +87,32 @@
                 else if (Model.Paso == 2)
                 {
                     <ul class="mt-4 grid gap-2 sm:grid-cols-2">
-                        <li>
+                        <li class="entrada">
                             <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad, TurnoCrearViewModel.Cualquiera)" class="@claseOpcion">
-                                <span>
+                                <span class="flex size-9 shrink-0 items-center justify-center rounded-full circulo-icono">
+                                    <icono nombre="personas" class="size-4" />
+                                </span>
+                                <span class="min-w-0 flex-1">
                                     Cualquiera
                                     <span class="block text-xs font-normal text-muted">Los horarios de todos los doctores de la especialidad</span>
                                 </span>
-                                <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="m9 18 6-6-6-6" />
-                                </svg>
+                                <icono nombre="chevron-der" class="h-4 w-4 shrink-0 text-muted" />
                             </a>
                         </li>
+                        @{ var ordenDoctor = 1; }
                         @foreach (var doctor in Model.Doctores)
                         {
-                            <li>
+                            <li class="entrada" style="--i: @(ordenDoctor++)">
                                 @if (doctor.TieneHorario == false)
                                 {
-                                    @* Sin horario cargado no tiene días para ofrecer. *@
-                                    <span aria-disabled="true" class="@claseOpcion cursor-default opacity-60">
-                                        <span>
-                                            @doctor.Nombre.Trim()
+                                    @* Sin horario cargado no tiene días para ofrecer: plano,
+                                       sin hover y con el motivo escrito. *@
+                                    <span aria-disabled="true" class="@claseOpcionApagada">
+                                        <span class="opacity-60">
+                                            <partial name="_Avatar" model="new AvatarViewModel { Nombre = doctor.Nombre, Tamano = TamanoAvatar.Chico, Tono = TonoAvatar.Terracota }" />
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="opacity-60">@doctor.Nombre.Trim()</span>
                                             <span class="block text-xs font-normal text-muted">Todavía no tiene horario de atención</span>
                                         </span>
                                     </span>
@@ -118,11 +120,9 @@
                                 else
                                 {
                                     <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad, doctor.IdDoctor)" class="@claseOpcion">
-                                        <span>@doctor.Nombre.Trim()</span>
-                                        <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none"
-                                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="m9 18 6-6-6-6" />
-                                        </svg>
+                                        <partial name="_Avatar" model="new AvatarViewModel { Nombre = doctor.Nombre, Tamano = TamanoAvatar.Chico, Tono = TonoAvatar.Terracota }" />
+                                        <span class="min-w-0 flex-1">@doctor.Nombre.Trim()</span>
+                                        <icono nombre="chevron-der" class="h-4 w-4 shrink-0 text-muted" />
                                     </a>
                                 }
                             </li>
@@ -131,9 +131,9 @@
                 }
                 else
                 {
-                    <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-11 text-sm">
                         <span class="font-medium text-ink">@(Model.CualquierDoctor ? "Cualquiera de la especialidad" : Model.DoctorNombre)</span>
-                        <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad)" class="boton-texto">
+                        <a asp-action="Crear" asp-all-route-data="Model.Ruta(Model.Especialidad)" class="boton-texto area-tactil">
                             Cambiar<span class="sr-only"> el doctor</span>
                         </a>
                     </p>
@@ -143,12 +143,12 @@
 
         @if (Model.Paso == 3 && Model.Doctores.Count > 0)
         {
-            <li class="tarjeta p-6">
-                <h2 class="text-base font-semibold text-ink">3. Día y horario</h2>
+            <li class="tarjeta p-5 sm:p-6" aria-current="step">
+                <partial name="_Pasos" model='new PasoViewModel { Numero = 3, Titulo = "Día y horario", Estado = EstadoPaso.Actual }' />
 
                 @if (Model.HorarioDoctor is { TieneHorario: true })
                 {
-                    <section class="mt-4 rounded-input border border-border px-4 py-3" aria-labelledby="titulo-horario">
+                    <section class="mt-4 rounded-input border border-contorno-suave bg-surface px-4 py-3" aria-labelledby="titulo-horario">
                         <h3 id="titulo-horario" class="mb-1 text-sm font-semibold text-ink">Horario de atención</h3>
                         <partial name="_HorarioSemanal" model="Model.HorarioDoctor" />
                     </section>
@@ -157,20 +157,15 @@
                 @if (Model.HorarioDoctor is { TieneHorario: false })
                 {
                     <p class="mt-3 text-sm text-muted">
-                        Este doctor todavía no tiene horario de atención cargado. Elegí otro doctor o "Cualquiera".
+                        Este doctor todavía no tiene horario de atención cargado. Elegí otro doctor o «Cualquiera».
                     </p>
                 }
                 else
                 {
                     @if (Model.AvisoFranjas is not null)
                     {
-                        <p role="alert" class="mt-4 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                                <path d="M12 9v4" />
-                                <path d="M12 17h.01" />
-                            </svg>
+                        <p role="alert" class="aviso aviso-error mt-4">
+                            <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
                             <span>@Model.AvisoFranjas</span>
                         </p>
                     }
@@ -201,9 +196,10 @@
 
                             @* Cada horario es un enlace a la confirmación: todavía no reserva nada. *@
                             <ul class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                @{ var ordenFranja = 0; }
                                 @foreach (var franja in Model.Franjas)
                                 {
-                                    <li>
+                                    <li class="entrada" style="--i: @(ordenFranja++)">
                                         <a asp-action="Confirmar" asp-all-route-data="Model.RutaConfirmar(franja)"
                                            class="boton boton-secundario w-full min-w-0 flex-col items-start gap-0 px-3 text-left">
                                             <span class="text-sm font-semibold tabular-nums text-ink">
@@ -232,7 +228,7 @@
     <div class="mt-7">
         <a asp-action="Index"
            class="boton boton-secundario">
-            Cancelar
+            Salir sin agendar
         </a>
     </div>
 </div>

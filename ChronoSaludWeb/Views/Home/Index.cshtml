@@ -26,6 +26,33 @@
             </div>
         </div>
     </section>
+
+    @* Lo que se puede hacer, en tres tarjetas que entran escalonadas. No son
+       enlaces: todo pide cuenta, y para eso están los botones de arriba. *@
+    <section aria-labelledby="titulo-que-podes" class="mt-10">
+        <h2 id="titulo-que-podes" class="text-base font-semibold text-ink">Qué podés hacer con tu cuenta</h2>
+        <ul class="mt-4 grid gap-4 sm:grid-cols-3">
+            @{
+                var beneficios = new (string Icono, string Titulo, string Texto)[]
+                {
+                    ("calendario-mas", "Agendá en minutos", "Elegí especialidad, profesional y el horario libre que te quede cómodo."),
+                    ("historia", "Seguí tu historia clínica", "Tus consultas quedan registradas y las ves cuando quieras."),
+                    ("pastilla", "Tené tus recetas a mano", "Consultalas desde el celular o imprimilas para la farmacia."),
+                };
+                var orden = 0;
+            }
+            @foreach (var (icono, titulo, texto) in beneficios)
+            {
+                <li class="entrada tarjeta tarjeta-secundaria p-5" style="--i: @(orden++)">
+                    <span class="circulo-icono flex size-11 items-center justify-center rounded-full">
+                        <icono nombre="@icono" class="size-5" />
+                    </span>
+                    <h3 class="mt-4 font-semibold text-ink">@titulo</h3>
+                    <p class="mt-1 text-sm text-muted">@texto</p>
+                </li>
+            }
+        </ul>
+    </section>
 }
 else
 {
@@ -33,16 +60,9 @@ else
     {
         <h1 class="text-3xl font-bold tracking-tight text-ink">@Model.Saludo</h1>
 
-        <div class="tarjeta mt-8 p-10 text-center">
-            <svg class="mx-auto size-8 text-status-cancelado" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
-            <h2 class="mt-4 text-base font-semibold text-ink">No pudimos cargar tu inicio</h2>
-            <p class="mx-auto mt-1 max-w-sm text-sm text-muted">@Model.Error</p>
-            <a asp-action="Index" class="boton boton-secundario mt-6">Reintentar</a>
+        <div class="tarjeta mt-8">
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No pudimos cargar tu inicio", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Home", Accion = "Index", Descripcion = "Reintentar" } }' />
         </div>
     }
     else
@@ -54,13 +74,8 @@ else
             @* El texto va en tinta y no en el color del estado: el enlace
                hereda ese color y sobre el tinte del aviso tiene que seguir
                pasando 4,5:1. El estado lo marcan el ícono y el borde. *@
-            <div class="mt-6 flex items-start gap-3 rounded-input border border-status-pendiente-line bg-status-pendiente-soft px-4 py-3 text-sm text-ink">
-                <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4" />
-                    <path d="M12 8h.01" />
-                </svg>
+            <div class="aviso aviso-pendiente mt-6">
+                <icono nombre="info" />
                 <span>
                     @Model.Aviso
                     @if (Model.AvisoEnlace is { } avisoEnlace)

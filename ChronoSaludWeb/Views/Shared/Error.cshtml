@@ -1,32 +1,46 @@
 @model ErrorViewModel
 @{
     ViewData["Title"] = "Algo salió mal";
+
+    // El manejador de errores vuelve a ejecutar el pedido con el mismo
+    // método: si era un GET, se puede ofrecer probar de nuevo la misma
+    // dirección. Un POST no se repite solo, para no mandar dos veces un
+    // formulario.
+    var origen = Context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>()?.Path;
+    var puedeReintentar = HttpMethods.IsGet(Context.Request.Method) && !string.IsNullOrEmpty(origen);
 }
 
-<div class="mx-auto max-w-lg tarjeta p-10 text-center">
-    <span class="mx-auto flex size-14 items-center justify-center rounded-full circulo-icono bg-status-cancelado">
-        <svg class="size-7" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-    </span>
-    <h1 class="mt-4 text-xl font-bold tracking-tight text-ink">Algo salió mal</h1>
-    <p class="mx-auto mt-2 max-w-sm text-sm text-muted">
-        Hubo un error inesperado procesando tu pedido. Si vuelve a pasar, avisale al equipo.
-    </p>
-
-    @if (Model.ShowRequestId)
-    {
-        <p class="mt-4 text-xs text-muted">
-            Código para el reporte:
-            <code class="rounded-badge bg-surface px-1.5 py-0.5 font-mono text-ink">@Model.RequestId</code>
+@* Única decoración de la pantalla: el motivo de marca con el latido plano,
+   porque algo se cortó. *@
+@{ ViewData["MotivoPlano"] = true; }
+<div class="mx-auto max-w-lg tarjeta overflow-hidden text-center">
+    <div class="mx-auto h-20 max-w-sm px-6 pt-6 sm:h-24">
+        <partial name="_MotivoMarca" />
+    </div>
+    <div class="px-6 pt-4 pb-10 sm:px-10">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Algo salió mal</h1>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-muted">
+            Hubo un error inesperado procesando tu pedido. Probá de nuevo en un
+            momento; si vuelve a pasar, avisale al equipo.
         </p>
-    }
 
-    <a asp-controller="Home" asp-action="Index"
-       class="boton boton-primario mt-6">
-        Volver al inicio
-    </a>
+        @if (Model.ShowRequestId)
+        {
+            <p class="mt-4 text-xs text-muted">
+                Código para el reporte:
+                <code class="rounded-badge bg-surface px-1.5 py-0.5 font-mono text-ink" translate="no">@Model.RequestId</code>
+            </p>
+        }
+
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+            @if (puedeReintentar)
+            {
+                <a href="@origen" class="boton boton-primario">Probar de nuevo</a>
+            }
+            <a asp-controller="Home" asp-action="Index"
+               class="boton @(puedeReintentar ? "boton-secundario" : "boton-primario")">
+                Volver al inicio
+            </a>
+        </div>
+    </div>
 </div>

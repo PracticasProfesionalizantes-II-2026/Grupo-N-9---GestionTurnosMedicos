@@ -750,3 +750,55 @@ con la API y la Web reales: 42 chequeos.
   - en la barra del celular con letra extra grande, "Pacientes" y "Cuentas" se cortan en cualquier letra;
   - las notificaciones traen fechas como "13/10/2026" desde la API;
   - en Estudios, la fecha corta "10 oct 2026".
+
+## 2026-10-12 — mejoras, paso 20: pulido visual
+**Hecho:** se revisó toda la interfaz contra `docs/diseno.md` y las Web Interface Guidelines (Vercel). Se mantuvo la identidad (teal, arena, Plus Jakarta Sans, motivo reloj y latido) y se le sumó detalle.
+- **Piezas nuevas** (todas documentadas en `docs/diseno.md`):
+  - `<icono nombre="…">`, un tag helper sobre `IconosLucide`, reemplaza 121 `<svg>` pegados a mano. El catálogo suma 26 claves.
+  - `.aviso` y sus tonos: todos los avisos llevan ícono. Los de después de guardar entran con movimiento y se pueden cerrar.
+  - `_FechaTile`: bloque de calendario para los turnos (inicio, detalle, confirmación, comprobante, reprogramación y listado en el celular).
+  - `.linea-tiempo` y `AgrupadorPorFecha`: historia clínica agrupada por mes; actividad, notificaciones e historial reciente agrupados por día.
+  - `.lista-datos` con íconos en los detalles: turno, paciente, receta, Mi perfil y doctor.
+  - `_Pasos` para pedir turno, `.segmentado` para las pestañas, franja del color del estado, talón en Confirmar y comprobante, `.boton-peligro-suave`, `.area-tactil` y `.entrada`.
+  - Avatares sin foto en tres variantes del teal según el nombre.
+  - Error y "no encontrado" llevan el motivo de marca con el latido plano.
+- **Pantallas:**
+  - **Turnos/Index:** en el celular, tarjetas en lugar de la tabla; números de las tarjetas de estado en el color del estado.
+  - **Turnos/Detalle:** abre con el calendario y con quién es el turno, en vez de "Turno #id".
+  - **Pacientes/Detalle:** encabezado con chips y alergias como aviso destacado; teléfono como enlace `tel:`.
+  - **Recetas:** chip de vigencia ("Vence en 5 días", en ámbar si falta una semana o menos).
+  - **Portada:** suma "Qué podés hacer con tu cuenta".
+  - **Login y registro:** frase de marca al lado del formulario.
+  - **Ajustes:** muestra de cada tema y "Aa" en cada tamaño.
+  - **Métricas del inicio:** se tocan enteras.
+- **Guidelines:**
+  - `viewport-fit=cover` (el área segura de la barra inferior no funcionaba sin eso) y `theme-color`.
+  - Campos a 16 px en el celular.
+  - `autocomplete`, `inputmode`, `spellcheck` y `type="tel"` donde corresponde; "(opcional)" en el rótulo y no en el placeholder.
+  - Comillas latinas y "…".
+  - `wrap-break-word` en textos largos.
+  - Menús flotantes con alto máximo y `overscroll-behavior`.
+  - `touch-action`, `text-wrap: balance`, `::selection` y barras de desplazamiento con la paleta.
+  - Fechas largas con mayúscula solo al principio: antes salía "Lunes, 12 De Octubre De 2026".
+- **JavaScript** (en `site.js`, opcional: sin él todo anda igual):
+  - botón que envía con "Guardando…", latido y bloqueo del doble envío;
+  - foco inicial solo con mouse;
+  - Ctrl+Enter en los `textarea`;
+  - aviso de cambios sin guardar;
+  - cerrar avisos;
+  - tira de días centrada en el día elegido.
+- **Probado:**
+  - 31 pruebas nuevas (379 en total): agrupador, vigencia, avatar, calendario, pasos, franja, íconos de la actividad, campana y el tag helper.
+  - En Chromium contra la Web y la API reales, con SQL Server en Docker y los datos de `tools/Seed`:
+    - las pantallas de los tres roles en claro y oscuro, en computadora y en celular con letra extra grande, sin scroll horizontal ni errores de JavaScript;
+    - pedir un turno de punta a punta (el botón muestra "Agendando…" y un segundo clic no manda otro pedido);
+    - registrar consulta, emitir receta y pedir estudio;
+    - cerrar el aviso.
+
+**Ojo:**
+- Sin migración, sin cambios en la API y sin nada para Azure.
+- Hay que recompilar `app.build.css` con la CLI de Tailwind (ya está recompilado en este paso).
+- Se borró `_VerMas.cshtml`: las tarjetas de números ahora son enlaces enteros.
+- **Quedan para más adelante:**
+  - el menú de la cuenta sigue mostrando las iniciales y no la foto (la sesión no guarda la foto y pedirla en cada pantalla es una llamada más a la API);
+  - los mensajes de las notificaciones vienen de la API con comillas rectas ("cancelado") y fechas "13/10/2026".

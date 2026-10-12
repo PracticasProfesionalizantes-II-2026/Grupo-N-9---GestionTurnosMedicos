@@ -5,12 +5,8 @@
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver al listado
 </a>
 
@@ -23,44 +19,62 @@
 }
 else
 {
-    <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">Turno #@Model.IdTurno</h1>
+    var esPaciente = Auth.SesionActual?.Rol == "paciente";
+
+    @* Encabezado: el bloque de calendario, con quién o de quién es el turno y
+       cuándo, en vez de abrir con el número. La franja de la izquierda lleva
+       el color del estado, que también dice el chip. *@
+    <div class="mt-6 tarjeta @FranjaEstado.Clase(Model.Estado) flex flex-wrap items-center gap-4 p-5 sm:gap-5 sm:p-6">
+        <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = Model.FechaInicio, Grande = true }" />
+        <div class="min-w-0 flex-1 basis-48">
+            <p class="text-xs font-medium tabular-nums text-muted">Turno #@Model.IdTurno</p>
+            <h1 class="mt-0.5 text-2xl font-bold tracking-tight wrap-break-word text-ink">
+                @(esPaciente ? $"Turno con {Model.DoctorMostrado}" : $"Turno de {Model.PacienteMostrado}")
+            </h1>
             @* El paciente lo lee como se dice: "mañana, 10:00 hs". *@
-            @if (Auth.SesionActual?.Rol == "paciente")
+            @if (esPaciente)
             {
                 <p class="mt-1 text-sm text-muted first-letter:uppercase">@Model.FechaParaPaciente</p>
             }
             else
             {
-                <p class="mt-1 text-sm capitalize text-muted">@Model.FechaLarga</p>
+                <p class="mt-1 text-sm text-muted">
+                    <span class="inline-block first-letter:uppercase">@Model.FechaLarga</span>
+                    <span aria-hidden="true"> · </span>
+                    <span class="tabular-nums">@Model.Horario</span>
+                </p>
             }
         </div>
         <partial name="_BadgeEstado" model="Model.Estado" />
     </div>
 
     <div class="mt-6 grid gap-4 lg:grid-cols-2">
-        <div class="tarjeta p-6">
-            <h2 class="text-base font-semibold text-ink">Cuándo</h2>
-            <dl class="mt-4 space-y-4">
+        <div class="tarjeta p-5 sm:p-6">
+            <h2 class="text-base font-semibold text-ink">Cuándo y dónde</h2>
+            <dl class="lista-datos mt-4">
                 <div>
-                    <dt class="text-sm text-muted">Fecha</dt>
-                    <dd class="mt-0.5 capitalize text-ink">@Model.FechaLarga</dd>
+                    <dt><icono nombre="calendario" /> Fecha</dt>
+                    <dd class="first-letter:uppercase">@Model.FechaLarga</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Horario</dt>
-                    <dd class="mt-0.5 font-medium tabular-nums text-ink">@Model.Horario</dd>
+                    <dt><icono nombre="reloj" /> Horario</dt>
+                    <dd class="tabular-nums">@Model.Horario</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Estado</dt>
-                    <dd class="mt-1">
-                        <partial name="_BadgeEstado" model="Model.Estado" />
-                    </dd>
+                    <dt><icono nombre="ubicacion" /> Consultorio</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Consultorio))
+                    {
+                        <dd class="sin-dato">Sin asignar</dd>
+                    }
+                    else
+                    {
+                        <dd>@ConsultorioTexto.Para(Model.Consultorio)</dd>
+                    }
                 </div>
             </dl>
         </div>
 
-        <div class="tarjeta p-6">
+        <div class="tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Quiénes</h2>
 
             <div class="mt-4 flex items-center gap-3">
@@ -86,40 +100,27 @@ else
             @if (Auth.PuedeVerPacientes)
             {
                 <a asp-controller="Historial" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-                   class="boton-texto mt-3">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("historia"))
-                    </svg>
+                   class="boton-texto area-tactil mt-3">
+                    <icono nombre="historia" class="h-4 w-4" />
                     Ver historia clínica
                 </a>
             }
 
             <div class="mt-5 border-t border-border pt-5">
                 <div class="flex items-start gap-3">
-                    <svg class="mt-0.5 h-5 w-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
-                        <path d="M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4" />
-                        <circle cx="20" cy="10" r="2" />
-                    </svg>
+                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
+                        <icono nombre="estetoscopio" class="size-5" />
+                    </span>
                     <span>
                         <span class="block font-medium text-ink">@Model.DoctorMostrado</span>
                         @if (!string.IsNullOrWhiteSpace(Model.Especialidad))
                         {
                             <span class="block text-sm capitalize text-muted">@Model.Especialidad</span>
                         }
-                        <span class="mt-1 block text-sm text-muted">
-                            @if (!string.IsNullOrWhiteSpace(Model.Matricula))
-                            {
-                                <span>Matrícula @Model.Matricula</span>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(Model.Consultorio))
-                            {
-                                <span aria-hidden="true"> · </span>
-                                <span>@ConsultorioTexto.Para(Model.Consultorio)</span>
-                            }
-                        </span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Matricula))
+                        {
+                            <span class="mt-1 block text-sm tabular-nums text-muted">Matrícula @Model.Matricula</span>
+                        }
                     </span>
                 </div>
             </div>
@@ -132,7 +133,7 @@ else
        que también es lo primero que ve el paciente con el turno recién sacado. *@
     @if (Model.EstaEnPie)
     {
-        <div class="mt-4 tarjeta p-6">
+        <div class="mt-4 tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Para no olvidarte</h2>
             <p class="mt-1 text-sm text-muted">
                 Agregalo a tu calendario y te avisa el día anterior y una hora antes. O imprimí el comprobante.
@@ -140,29 +141,23 @@ else
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 <a asp-action="Calendario" asp-route-id="@Model.IdTurno"
                    class="boton boton-primario">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("calendario-mas"))
-                    </svg>
+                    <icono nombre="calendario-mas" class="h-4 w-4" />
                     Agregar a mi calendario
                 </a>
                 <a asp-action="Comprobante" asp-route-id="@Model.IdTurno"
                    class="boton boton-secundario">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        @Html.Raw(IconosLucide.Trazos("imprimir"))
-                    </svg>
+                    <icono nombre="imprimir" class="h-4 w-4" />
                     Ver comprobante para imprimir
                 </a>
             </div>
         </div>
     }
 
-    <div class="mt-4 tarjeta p-6">
+    <div class="mt-4 tarjeta p-5 sm:p-6">
         <h2 class="text-base font-semibold text-ink">Observaciones</h2>
         @if (Model.TieneObservaciones)
         {
-            <p class="mt-3 whitespace-pre-line text-ink">@Model.Observaciones</p>
+            <p class="mt-3 whitespace-pre-line wrap-break-word text-ink">@Model.Observaciones</p>
         }
         else
         {
@@ -176,38 +171,25 @@ else
        de su agenda. Un turno cancelado o ausente no tuvo atención. *@
     @if (Auth.PuedeEscribirHistorial && Auth.PuedeEmitirRecetas && Model.SePuedeAtender)
     {
-        <div class="mt-4 tarjeta p-6">
+        <div class="mt-4 tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Atención</h2>
             <p class="mt-1 text-sm text-muted">Lo que registres desde acá queda vinculado a este turno.</p>
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 <a asp-controller="Historial" asp-action="Crear" asp-route-turno="@Model.IdTurno"
                    class="boton boton-primario">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                        <path d="M9 15h6" />
-                        <path d="M12 18v-6" />
-                    </svg>
+                    <icono nombre="archivo-mas" class="h-4 w-4" />
                     Registrar consulta
                 </a>
                 <a asp-controller="Recetas" asp-action="Crear" asp-route-turno="@Model.IdTurno"
                    class="boton boton-secundario">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-                        <path d="m8.5 8.5 7 7" />
-                    </svg>
+                    <icono nombre="pastilla" class="h-4 w-4" />
                     Emitir receta
                 </a>
                 @if (Auth.PuedePedirEstudios)
                 {
                     <a asp-controller="Estudios" asp-action="Crear" asp-route-turno="@Model.IdTurno"
                        class="boton boton-secundario">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            @Html.Raw(IconosLucide.Trazos("estudio"))
-                        </svg>
+                        <icono nombre="estudio" class="h-4 w-4" />
                         Pedir estudio
                     </a>
                 }
@@ -226,19 +208,16 @@ else
 
     @if (puedeCambiarEstado || puedeCancelar)
     {
-        <div class="mt-4 tarjeta p-6">
+        <div class="mt-4 tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Acciones</h2>
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 @if (puedeCambiarEstado && Model.PuedeConfirmarse)
                 {
                     <form asp-action="CambiarEstado" asp-route-id="@Model.IdTurno" method="post">
                         <input type="hidden" name="estado" value="confirmado" />
-                        <button type="submit"
+                        <button type="submit" data-cargando="Confirmando…"
                                 class="boton boton-primario">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M20 6 9 17l-5-5" />
-                            </svg>
+                            <icono nombre="check" class="h-4 w-4" />
                             Confirmar turno
                         </button>
                     </form>
@@ -248,11 +227,7 @@ else
                     @* Completado y ausente no se deshacen: pasan por una confirmación. *@
                     <a asp-action="Marcar" asp-route-id="@Model.IdTurno" asp-route-estado="completado"
                        class="boton boton-secundario">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M21.801 10A10 10 0 1 1 17 3.335" />
-                            <path d="m9 11 3 3L22 4" />
-                        </svg>
+                        <icono nombre="completado" class="h-4 w-4" />
                         Marcar como completado
                     </a>
                 }
@@ -260,13 +235,7 @@ else
                 {
                     <a asp-action="Marcar" asp-route-id="@Model.IdTurno" asp-route-estado="ausente"
                        class="boton boton-secundario">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="m17 8 5 5" />
-                            <path d="m22 8-5 5" />
-                        </svg>
+                        <icono nombre="usuario-x" class="h-4 w-4" />
                         Marcar ausente
                     </a>
                 }
@@ -275,15 +244,7 @@ else
                     @* Otro día u hora con el mismo doctor. Lleva a elegir y después a confirmar. *@
                     <a asp-action="Reprogramar" asp-route-id="@Model.IdTurno"
                        class="boton boton-secundario">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M8 2v4" />
-                            <path d="M16 2v4" />
-                            <rect width="18" height="18" x="3" y="4" rx="2" />
-                            <path d="M3 10h18" />
-                            <path d="m14 14 2 2-2 2" />
-                            <path d="M8 16h8" />
-                        </svg>
+                        <icono nombre="calendario-flecha" class="h-4 w-4" />
                         Reprogramar
                     </a>
                 }
@@ -291,13 +252,8 @@ else
                 {
                     @* Lleva a la pantalla de confirmación: cancelar no se hace con un solo clic. *@
                     <a asp-action="Cancelar" asp-route-id="@Model.IdTurno"
-                       class="boton boton-secundario text-status-cancelado">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="m15 9-6 6" />
-                            <path d="m9 9 6 6" />
-                        </svg>
+                       class="boton boton-peligro-suave">
+                        <icono nombre="x-circulo" class="h-4 w-4" />
                         Cancelar turno
                     </a>
                 }

@@ -5,12 +5,8 @@
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver a pacientes
 </a>
 
@@ -23,129 +19,226 @@
 }
 else
 {
-    <div class="mt-6 flex items-center gap-4">
+    // Para el enlace tel: solo dígitos y el +, sin espacios ni guiones.
+    var telefonoMarcable = string.IsNullOrWhiteSpace(Model.Telefono)
+        ? null
+        : new string(Model.Telefono.Where(c => char.IsDigit(c) || c == '+').ToArray());
+
+    @* Encabezado: foto, nombre y lo que se mira primero (edad y grupo
+       sanguíneo) como chips, con las acciones al costado. *@
+    <div class="mt-6 tarjeta tarjeta-hero flex flex-wrap items-center gap-4 p-5 sm:p-6">
         <partial name="_Avatar"
-         model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", FotoUrl = Model.FotoUrl, Tamano = TamanoAvatar.Grande }' />
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
-            <p class="mt-0.5 text-sm text-muted">Paciente #@Model.IdPaciente</p>
+                 model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", FotoUrl = Model.FotoUrl, Tamano = TamanoAvatar.Grande }' />
+        <div class="min-w-0 flex-1 basis-56">
+            <p class="text-xs font-medium tabular-nums text-muted">Paciente #@Model.IdPaciente</p>
+            <h1 class="mt-0.5 text-2xl font-bold tracking-tight wrap-break-word text-ink">@Model.NombreCompleto</h1>
+            <p class="mt-2 flex flex-wrap items-center gap-2">
+                @if (Model.Edad is not null)
+                {
+                    <partial name="_Chip" model='new ChipViewModel { Texto = $"{Model.Edad} años" }' />
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.GrupoSanguineo))
+                {
+                    <partial name="_Chip" model='new ChipViewModel { Texto = $"Grupo {Model.GrupoSanguineo}", Tono = TonoChip.Info }' />
+                }
+                @if (Model.Coberturas.Count > 0)
+                {
+                    <partial name="_Chip" model='new ChipViewModel { Texto = Model.Coberturas[0].NombreCobertura }' />
+                }
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            @* Agendar turno sí crea datos (a diferencia de los enlaces de abajo,
+               que solo navegan), por eso va con el estilo primario relleno. *@
+            @if (Auth.PuedeCargarTurnos)
+            {
+                <a asp-controller="Turnos" asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
+                   class="boton boton-primario">
+                    <icono nombre="calendario-mas" class="h-4 w-4" />
+                    Agendar turno
+                </a>
+            }
+            @* Solo el administrador edita perfiles ajenos; Usuarios/Editar lo
+               vuelve a verificar en el servidor. *@
+            @if (Auth.EsAdministrador)
+            {
+                <a asp-controller="Usuarios" asp-action="Editar" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
+                   class="boton boton-secundario">
+                    <icono nombre="lapiz" class="h-4 w-4" />
+                    Editar perfil
+                </a>
+            }
         </div>
     </div>
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-3">
-        <div class="tarjeta p-6">
+    @* Las alergias van arriba de todo y como aviso: es lo que no se puede
+       pasar por alto antes de indicar algo. *@
+    @if (!string.IsNullOrWhiteSpace(Model.Alergias))
+    {
+        <div class="aviso aviso-pendiente mt-4">
+            <icono nombre="alerta" />
+            <div class="min-w-0">
+                <p class="font-semibold">Alergias</p>
+                <p class="mt-0.5 whitespace-pre-line wrap-break-word">@Model.Alergias</p>
+            </div>
+        </div>
+    }
+
+    <div class="mt-6 grid items-start gap-4 lg:grid-cols-3">
+        <div class="tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Datos personales</h2>
-            <dl class="mt-4 space-y-4">
+            <dl class="lista-datos mt-4">
                 <div>
-                    <dt class="text-sm text-muted">Fecha de nacimiento</dt>
-                    <dd class="mt-0.5 text-ink">
-                        @if (Model.FechaNacimientoLarga is not null)
-                        {
-                            <span>@Model.FechaNacimientoLarga</span>
+                    <dt><icono nombre="calendario" /> Fecha de nacimiento</dt>
+                    @if (Model.FechaNacimientoLarga is not null)
+                    {
+                        <dd>
+                            @Model.FechaNacimientoLarga
                             @if (Model.Edad is not null)
                             {
-                                <span class="text-muted"> · @Model.Edad años</span>
+                                <span class="font-normal tabular-nums text-muted"> · @Model.Edad años</span>
                             }
-                        }
-                        else
-                        {
-                            <span class="text-muted">Sin datos</span>
-                        }
-                    </dd>
+                        </dd>
+                    }
+                    else
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Sexo</dt>
-                    <dd class="mt-0.5 capitalize text-ink">
-                        @(string.IsNullOrWhiteSpace(Model.Sexo) ? "Sin datos" : Model.Sexo)
-                    </dd>
+                    <dt><icono nombre="persona" /> Sexo</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Sexo))
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd class="capitalize">@Model.Sexo</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Documento</dt>
-                    <dd class="mt-0.5 text-ink">@(Model.Documento ?? "Sin datos")</dd>
+                    <dt><icono nombre="documento" /> Documento</dt>
+                    @if (Model.Documento is null)
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd class="tabular-nums">@Model.Documento</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Nacionalidad</dt>
-                    <dd class="mt-0.5 text-ink">
-                        @(string.IsNullOrWhiteSpace(Model.Nacionalidad) ? "Sin datos" : Model.Nacionalidad)
-                    </dd>
+                    <dt><icono nombre="globo" /> Nacionalidad</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Nacionalidad))
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.Nacionalidad</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Estado civil</dt>
-                    <dd class="mt-0.5 text-ink">
-                        @(string.IsNullOrWhiteSpace(Model.EstadoCivil) ? "Sin datos" : Model.EstadoCivil)
-                    </dd>
+                    <dt><icono nombre="personas" /> Estado civil</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.EstadoCivil))
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.EstadoCivil</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Teléfono</dt>
-                    <dd class="mt-0.5 text-ink">
-                        @(string.IsNullOrWhiteSpace(Model.Telefono) ? "Sin datos" : Model.Telefono)
-                    </dd>
+                    <dt><icono nombre="telefono" /> Teléfono</dt>
+                    @if (telefonoMarcable is null)
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        @* En el celular, tocarlo llama. *@
+                        <dd>
+                            <a href="tel:@telefonoMarcable" class="rounded-badge tabular-nums text-primary underline-offset-2 hover:underline">@Model.Telefono</a>
+                        </dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Dirección</dt>
-                    <dd class="mt-0.5 text-ink">@(Model.DireccionCompleta ?? "Sin datos")</dd>
+                    <dt><icono nombre="ubicacion" /> Dirección</dt>
+                    @if (Model.DireccionCompleta is null)
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.DireccionCompleta</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Contacto de emergencia</dt>
-                    <dd class="mt-0.5 text-ink">@(Model.ContactoEmergencia ?? "Sin datos")</dd>
+                    <dt><icono nombre="telefono" /> Contacto de emergencia</dt>
+                    @if (Model.ContactoEmergencia is null)
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.ContactoEmergencia</dd>
+                    }
                 </div>
             </dl>
         </div>
 
-        <div class="tarjeta p-6">
+        <div class="tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Datos clínicos</h2>
-            <dl class="mt-4 space-y-4">
+            <dl class="lista-datos mt-4">
                 <div>
-                    <dt class="text-sm text-muted">Grupo sanguíneo</dt>
-                    <dd class="mt-1">
-                        @if (!string.IsNullOrWhiteSpace(Model.GrupoSanguineo))
-                        {
-                            <span class="inline-block rounded-badge bg-accent-soft px-2 py-1 text-sm font-semibold tabular-nums text-accent-ink">
-                                @Model.GrupoSanguineo
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-sm text-muted">Sin datos</span>
-                        }
-                    </dd>
+                    <dt><icono nombre="gota" /> Grupo sanguíneo</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.GrupoSanguineo))
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd class="tabular-nums">@Model.GrupoSanguineo</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Alergias</dt>
-                    <dd class="mt-0.5 whitespace-pre-line text-ink">
-                        @if (!string.IsNullOrWhiteSpace(Model.Alergias))
-                        {
-                            <span class="font-medium text-status-pendiente">@Model.Alergias</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">Sin alergias registradas</span>
-                        }
-                    </dd>
+                    <dt><icono nombre="alerta" /> Alergias</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Alergias))
+                    {
+                        <dd class="sin-dato">Sin alergias registradas</dd>
+                    }
+                    else
+                    {
+                        <dd class="whitespace-pre-line">@Model.Alergias</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Condiciones</dt>
-                    <dd class="mt-0.5 whitespace-pre-line text-ink">
-                        @if (!string.IsNullOrWhiteSpace(Model.Condiciones))
-                        {
-                            <span>@Model.Condiciones</span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">Sin condiciones registradas</span>
-                        }
-                    </dd>
+                    <dt><icono nombre="nota" /> Condiciones</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Condiciones))
+                    {
+                        <dd class="sin-dato">Sin condiciones registradas</dd>
+                    }
+                    else
+                    {
+                        <dd class="whitespace-pre-line">@Model.Condiciones</dd>
+                    }
                 </div>
                 <div>
-                    <dt class="text-sm text-muted">Último turno atendido</dt>
-                    <dd class="mt-0.5 text-ink">
-                        @(Model.UltimoTurnoLargo ?? "Todavía no tiene turnos atendidos")
-                    </dd>
+                    <dt><icono nombre="completado" /> Último turno atendido</dt>
+                    @if (Model.UltimoTurnoLargo is null)
+                    {
+                        <dd class="sin-dato">Todavía no tiene turnos atendidos</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.UltimoTurnoLargo</dd>
+                    }
                 </div>
             </dl>
         </div>
 
-        <div class="tarjeta p-6">
+        <div class="tarjeta p-5 sm:p-6">
             <h2 class="text-base font-semibold text-ink">Cobertura</h2>
             @if (Model.Coberturas.Count == 0)
             {
@@ -153,17 +246,17 @@ else
             }
             else
             {
-                <dl class="mt-4 space-y-4">
+                <dl class="lista-datos mt-4">
                     @foreach (var cobertura in Model.Coberturas)
                     {
                         <div>
-                            <dt class="font-medium text-ink">@cobertura.NombreCobertura</dt>
-                            <dd class="mt-0.5 text-sm text-muted">
+                            <dt><icono nombre="escudo" /> @cobertura.NombreCobertura</dt>
+                            <dd class="font-normal text-muted">
                                 @if (!string.IsNullOrWhiteSpace(cobertura.Plan))
                                 {
                                     <span>Plan @cobertura.Plan · </span>
                                 }
-                                <span>Nº de afiliado @cobertura.IdAfiliado</span>
+                                <span>Nº de afiliado <span class="tabular-nums text-ink">@cobertura.IdAfiliado</span></span>
                             </dd>
                         </div>
                     }
@@ -172,66 +265,34 @@ else
         </div>
     </div>
 
-    <div class="mt-6 flex flex-wrap gap-3">
-        <a asp-controller="Historial" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="boton boton-secundario">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <path d="M9 14h6" />
-                <path d="M9 18h4" />
-            </svg>
-            Historia clínica
-        </a>
-        <a asp-controller="Recetas" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="boton boton-secundario">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-                <path d="m8.5 8.5 7 7" />
-            </svg>
-            Recetas
-        </a>
-        <a asp-controller="Estudios" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
-           class="boton boton-secundario">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                @Html.Raw(IconosLucide.Trazos("estudio"))
-            </svg>
-            Estudios
-        </a>
-        @* Agendar turno sí crea datos (a diferencia de los anteriores, que
-           solo navegan), por eso va con el estilo primario relleno. *@
-        @if (Auth.PuedeCargarTurnos)
-        {
-            <a asp-controller="Turnos" asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
-               class="boton boton-primario">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M8 2v4" />
-                    <path d="M16 2v4" />
-                    <rect width="18" height="18" x="3" y="4" rx="2" />
-                    <path d="M3 10h18" />
-                    <path d="M12 14v4" />
-                    <path d="M10 16h4" />
-                </svg>
-                Agendar turno
-            </a>
-        }
-        @* Solo el administrador edita perfiles ajenos; Usuarios/Editar lo
-           vuelve a verificar en el servidor. *@
-        @if (Auth.EsAdministrador)
-        {
-            <a asp-controller="Usuarios" asp-action="Editar" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-               class="boton boton-secundario">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-                    <path d="m15 5 4 4" />
-                </svg>
-                Editar perfil
-            </a>
-        }
-    </div>
+    @* A dónde seguir: tarjetas que son enlaces, con su ícono. *@
+    <nav aria-label="Más sobre el paciente" class="mt-6">
+        <ul class="grid gap-4 sm:grid-cols-3">
+            @{
+                var destinos = new (string Controlador, string Icono, string Titulo, string Texto)[]
+                {
+                    ("Historial", "historia", "Historia clínica", "Consultas registradas"),
+                    ("Recetas", "pastilla", "Recetas", "Emitidas y vigentes"),
+                    ("Estudios", "estudio", "Estudios", "Pedidos y resultados"),
+                };
+                var orden = 0;
+            }
+            @foreach (var (controlador, icono, titulo, texto) in destinos)
+            {
+                <li class="entrada" style="--i: @(orden++)">
+                    <a asp-controller="@controlador" asp-action="Index" asp-route-paciente="@Model.IdPaciente"
+                       class="tarjeta tarjeta-enlace flex items-center gap-3 p-4">
+                        <span class="circulo-icono flex size-10 shrink-0 items-center justify-center rounded-full">
+                            <icono nombre="@icono" class="size-5" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block font-semibold text-ink">@titulo</span>
+                            <span class="block text-sm text-muted">@texto</span>
+                        </span>
+                        <icono nombre="chevron-der" class="size-4 shrink-0 text-muted" />
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
 }
