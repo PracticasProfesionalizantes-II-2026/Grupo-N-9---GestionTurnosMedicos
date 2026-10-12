@@ -7,18 +7,13 @@
 
     // El error de cada campo va con ícono además del texto y el borde, para
     // que no dependa solo del color.
-    void ErrorCampo(string clave)
+    async Task ErrorCampo(string clave)
     {
         if (ErrorDe(clave) is { } mensaje)
         {
             @* El id une el mensaje con su campo (ver TagHelpers/CampoConErrorTagHelper). *@
             <p id="@IdDeError.Para(clave)" class="mt-1 flex items-start gap-1 text-xs text-status-cancelado">
-                <svg class="mt-px h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4" />
-                    <path d="M12 16h.01" />
-                </svg>
+                <icono nombre="alerta-circulo" class="mt-px h-3.5 w-3.5 shrink-0" />
                 <span>@mensaje</span>
             </p>
         }
@@ -36,12 +31,8 @@
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver a mi perfil
 </a>
 
@@ -55,18 +46,13 @@
     @if (ErrorDe(string.Empty) is { } errorGeneral)
     {
         <div role="alert"
-             class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
+             class="aviso aviso-error mt-6">
+            <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
             <span>@errorGeneral</span>
         </div>
     }
 
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         @* Los campos de contraseña nunca se vuelven a llenar solos: si hay un
            error, hay que escribirlas de nuevo. *@
         <form asp-action="Contrasena" method="post" novalidate>
@@ -74,25 +60,25 @@
                 <div>
                     <label asp-for="Actual" class="@claseEtiqueta"></label>
                     <input asp-for="Actual" type="password" autocomplete="current-password" class="@claseCampo" />
-                    @{ ErrorCampo(nameof(Model.Actual)); }
+                    @{ await ErrorCampo(nameof(Model.Actual)); }
                 </div>
 
                 <div>
                     <label asp-for="Nueva" class="@claseEtiqueta"></label>
                     <input asp-for="Nueva" type="password" autocomplete="new-password" aria-describedby="ayuda-nueva" class="@claseCampo" />
                     <p id="ayuda-nueva" class="@claseAyuda">Al menos 8 caracteres, y distinta de la actual.</p>
-                    @{ ErrorCampo(nameof(Model.Nueva)); }
+                    @{ await ErrorCampo(nameof(Model.Nueva)); }
                 </div>
 
                 <div>
                     <label asp-for="Repetir" class="@claseEtiqueta"></label>
                     <input asp-for="Repetir" type="password" autocomplete="new-password" class="@claseCampo" />
-                    @{ ErrorCampo(nameof(Model.Repetir)); }
+                    @{ await ErrorCampo(nameof(Model.Repetir)); }
                 </div>
             </div>
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
-                <button type="submit" class="boton boton-primario">Cambiar contraseña</button>
+                <button type="submit" data-cargando="Guardando…" class="boton boton-primario">Cambiar contraseña</button>
                 <a asp-action="Index" class="boton boton-secundario">Cancelar</a>
             </div>
         </form>

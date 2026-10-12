@@ -11,9 +11,10 @@
     <section aria-labelledby="titulo-accesos">
         <h2 id="titulo-accesos" class="text-base font-semibold text-ink">Accesos rápidos</h2>
         <ul class="mt-3 grid grid-cols-2 gap-4 @columnas">
+            @{ var orden = 0; }
             @foreach (var acceso in Model)
             {
-                <li>
+                <li class="entrada" style="--i: @(orden++)">
                     <partial name="_AccesoRapido" model="acceso" />
                 </li>
             }

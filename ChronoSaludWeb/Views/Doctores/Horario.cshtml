@@ -13,12 +13,8 @@
 }
 
 <a asp-action="Detalle" asp-route-id="@Model.IdDoctor"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     @(Model.EsPropio ? "Volver a mi ficha" : "Volver a la ficha")
 </a>
 
@@ -35,20 +31,15 @@
             Marcá los días en que atiende y el rango de cada uno.</text>
         }
         Las horas van en punto o y media, porque los turnos duran 30 minutos.
-        Un día sin marcar queda como "No atiende".
+        Un día sin marcar queda como «No atiende».
     </p>
 
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         @if (erroresGenerales is { Count: > 0 })
         {
             <div role="alert"
-                 class="mb-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
+                 class="aviso aviso-error mb-6">
+                <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                     @foreach (var error in erroresGenerales)
                     {
@@ -63,14 +54,9 @@
             @* Lleva enlaces, así que el texto va en tinta y el rojo queda para
                el título, el ícono y el borde. *@
             <div role="alert"
-                 class="mb-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-ink">
+                 class="aviso aviso-error mb-6 block text-ink">
                 <p class="flex items-start gap-3 font-semibold text-status-cancelado">
-                    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                        <path d="M12 9v4" />
-                        <path d="M12 17h.01" />
-                    </svg>
+                    <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
                     <span>No se guardó el horario</span>
                 </p>
                 <p class="mt-1">
@@ -95,8 +81,8 @@
                             <partial name="_BadgeEstado" model="turno.Estado" />
                             <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
                                target="_blank" rel="noopener"
-                               class="rounded-badge font-semibold underline hover:no-underline">
-                                Ver turno<span class="sr-only"> de @turno.PacienteMostrado, en otra pestaña</span>
+                               class="area-tactil inline-flex items-center gap-1 rounded-badge font-semibold underline hover:no-underline">
+                                Ver turno<icono nombre="enlace-externo" class="size-3.5" /><span class="sr-only"> de @turno.PacienteMostrado, en otra pestaña</span>
                             </a>
                         </li>
                     }
@@ -111,13 +97,8 @@
             @* El texto va en tinta y no en el color del estado, como el aviso
                del inicio: el estado lo marcan el ícono y el borde. *@
             <div role="alert"
-                 class="mb-6 flex items-start gap-3 rounded-input border border-status-pendiente-line bg-status-pendiente-soft px-4 py-3 text-sm text-ink">
-                <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
+                 class="aviso aviso-pendiente mb-6">
+                <icono nombre="alerta" class="mt-0.5 size-5 shrink-0 text-status-pendiente" />
                 <span>
                     <span class="block font-semibold">
                         @(Model.EsPropio ? "Vas a quedar sin horario de atención" : "Este doctor quedará sin horario de atención")
@@ -134,7 +115,7 @@
                             poder pedir turnos hasta que se le cargue un horario.</text>
                         }
                         Todavía no se guardó nada: para confirmarlo usá el botón
-                        "Sí, dejar sin horario", al final del formulario.
+                        «Sí, dejar sin horario», al final del formulario.
                     </span>
                 </span>
             </div>
@@ -143,19 +124,14 @@
         @if (Model.EsEstandar)
         {
             <div role="status"
-                 class="mb-6 flex items-start gap-3 rounded-input border border-status-pendiente-line bg-status-pendiente-soft px-4 py-3 text-sm text-ink">
-                <svg class="mt-0.5 size-5 shrink-0 text-status-pendiente" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4" />
-                    <path d="M12 8h.01" />
-                </svg>
+                 class="aviso aviso-pendiente mb-6">
+                <icono nombre="info" />
                 <span>
                     <span class="block font-semibold">Horario estándar precargado. Todavía no está guardado</span>
                     <span class="mt-1 block">
                         Las filas muestran lunes a viernes de @HorarioEditarViewModel.EstandarDesde a
                         @HorarioEditarViewModel.EstandarHasta, no el horario que @(Model.EsPropio ? "tenés" : "el doctor tiene") hoy.
-                        Ajustá lo que haga falta y tocá "Guardar horario" para confirmarlo.
+                        Ajustá lo que haga falta y tocá «Guardar horario» para confirmarlo.
                     </span>
                 </span>
             </div>
@@ -176,7 +152,7 @@
             </a>
         </div>
 
-        <form asp-action="Horario" asp-route-id="@Model.IdDoctor" method="post" novalidate>
+        <form asp-action="Horario" asp-route-id="@Model.IdDoctor" method="post" novalidate data-avisar-cambios>
             <div class="grid gap-3">
                 @for (var i = 0; i < Model.Dias.Count; i++)
                 {
@@ -205,16 +181,16 @@
             </div>
 
             <div class="mt-7 flex flex-wrap items-center gap-3">
-                <button type="submit"
+                <button type="submit" data-cargando="Guardando…"
                         class="boton boton-primario">
                     Guardar horario
                 </button>
                 @if (Model.PideConfirmarSinHorario)
                 {
-                    @* Va después de "Guardar horario" a propósito: con Enter en
+                    @* Va después de «Guardar horario» a propósito: con Enter en
                        un campo el navegador usa el primer botón de envío del
                        formulario, y la confirmación no tiene que salir sola. *@
-                    <button type="submit" name="ConfirmaSinHorario" value="true"
+                    <button type="submit" name="ConfirmaSinHorario" value="true" data-cargando="Guardando…"
                             class="boton boton-peligro">
                         Sí, dejar sin horario
                     </button>

@@ -12,12 +12,8 @@
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver a pacientes
 </a>
 
@@ -27,30 +23,33 @@
         Crea la cuenta del paciente: con el email y la contraseña va a poder ingresar al sistema.
     </p>
 
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         @if (erroresGenerales is { Count: > 0 })
         {
-            <div role="alert" class="mb-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                @foreach (var error in erroresGenerales)
-                {
-                    <p>@error.ErrorMessage</p>
-                }
+            <div role="alert" class="aviso aviso-error mb-6">
+                <icono nombre="alerta" />
+                <div>
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
+                </div>
             </div>
         }
 
-        <form asp-action="Crear" method="post" enctype="multipart/form-data" novalidate>
+        <form asp-action="Crear" method="post" enctype="multipart/form-data" novalidate data-avisar-cambios>
             <h2 class="@claseSeccion">Datos personales</h2>
             <div class="mt-3 grid gap-6 lg:grid-cols-[1fr_auto]">
                 <div class="grid content-start gap-5 sm:grid-cols-2">
                     <div>
                         <label asp-for="Nombre" class="@claseEtiqueta"></label>
-                        <input asp-for="Nombre" autocomplete="off" class="@claseCampo" />
+                        <input asp-for="Nombre" autocomplete="off" spellcheck="false" class="@claseCampo" />
                         <span asp-validation-for="Nombre" class="@claseError"></span>
                     </div>
 
                     <div>
                         <label asp-for="Apellido" class="@claseEtiqueta"></label>
-                        <input asp-for="Apellido" autocomplete="off" class="@claseCampo" />
+                        <input asp-for="Apellido" autocomplete="off" spellcheck="false" class="@claseCampo" />
                         <span asp-validation-for="Apellido" class="@claseError"></span>
                     </div>
 
@@ -64,13 +63,13 @@
 
                     <div>
                         <label asp-for="NumeroDocumento" class="@claseEtiqueta"></label>
-                        <input asp-for="NumeroDocumento" autocomplete="off" class="@claseCampo" />
+                        <input asp-for="NumeroDocumento" autocomplete="off" inputmode="numeric" spellcheck="false" placeholder="30111222" class="@claseCampo tabular-nums" />
                         <span asp-validation-for="NumeroDocumento" class="@claseError"></span>
                     </div>
 
                     <div>
                         <label asp-for="FechaNacimiento" class="@claseEtiqueta"></label>
-                        <input asp-for="FechaNacimiento" type="date" class="@claseCampo" />
+                        <input asp-for="FechaNacimiento" type="date" autocomplete="off" class="@claseCampo tabular-nums" />
                         <span asp-validation-for="FechaNacimiento" class="@claseError"></span>
                     </div>
 
@@ -84,7 +83,7 @@
 
                     <div>
                         <label asp-for="Nacionalidad" class="@claseEtiqueta"></label>
-                        <input asp-for="Nacionalidad" class="@claseCampo" />
+                        <input asp-for="Nacionalidad" autocomplete="off" class="@claseCampo" />
                         <span asp-validation-for="Nacionalidad" class="@claseError"></span>
                     </div>
 
@@ -109,13 +108,9 @@
                    JavaScript es la única forma de ver qué archivo se eligió, y
                    así se usa con el teclado como cualquier otro campo. Acepta
                    los mismos formatos que revisa ValidadorDeImagen. *@
-                <div class="self-start rounded-card border-2 border-dashed border-control bg-field p-4 lg:w-64">
+                <div class="self-start rounded-card border-[1.5px] border-dashed border-contorno bg-surface p-4 lg:w-64">
                     <div class="flex items-center gap-3">
-                        <svg class="size-10 shrink-0 text-primary-line" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="8" r="5" />
-                            <path d="M20 21a8 8 0 0 0-16 0" />
-                        </svg>
+                        <icono nombre="persona" class="size-10 shrink-0 text-primary-line" />
                         <label asp-for="Foto" class="@claseEtiqueta">Foto del paciente (opcional)</label>
                     </div>
                     <input asp-for="Foto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="ayuda-foto"
@@ -131,7 +126,7 @@
             <div class="mt-3 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label asp-for="Email" class="@claseEtiqueta"></label>
-                    <input asp-for="Email" autocomplete="off" placeholder="paciente@@email.com" class="@claseCampo" />
+                    <input asp-for="Email" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="paciente@@email.com" class="@claseCampo" />
                     <span asp-validation-for="Email" class="@claseError"></span>
                 </div>
 
@@ -153,19 +148,19 @@
 
                 <div>
                     <label asp-for="Telefono" class="@claseEtiqueta"></label>
-                    <input asp-for="Telefono" class="@claseCampo" />
+                    <input asp-for="Telefono" type="tel" autocomplete="off" placeholder="11 2345-6789" class="@claseCampo" />
                     <span asp-validation-for="Telefono" class="@claseError"></span>
                 </div>
 
                 <div>
                     <label asp-for="Direccion" class="@claseEtiqueta"></label>
-                    <input asp-for="Direccion" class="@claseCampo" />
+                    <input asp-for="Direccion" autocomplete="off" class="@claseCampo" />
                     <span asp-validation-for="Direccion" class="@claseError"></span>
                 </div>
 
                 <div>
-                    <label asp-for="CodigoPostal" class="@claseEtiqueta"></label>
-                    <input asp-for="CodigoPostal" placeholder="Opcional" class="@claseCampo" />
+                    <label asp-for="CodigoPostal" class="@claseEtiqueta">@Html.DisplayNameFor(m => m.CodigoPostal) <span class="font-normal text-muted">(opcional)</span></label>
+                    <input asp-for="CodigoPostal" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="C1425" class="@claseCampo" />
                     <span asp-validation-for="CodigoPostal" class="@claseError"></span>
                 </div>
 
@@ -179,7 +174,7 @@
 
                 <div>
                     <label asp-for="Localidad" class="@claseEtiqueta"></label>
-                    <input asp-for="Localidad" class="@claseCampo" />
+                    <input asp-for="Localidad" autocomplete="off" class="@claseCampo" />
                     <span asp-validation-for="Localidad" class="@claseError"></span>
                 </div>
             </div>
@@ -187,31 +182,33 @@
             <h2 class="@claseSeccion mt-8 border-t border-border pt-6">Contacto de emergencia</h2>
             <div class="mt-3 grid gap-5 sm:grid-cols-2">
                 <div>
-                    <label asp-for="ContactoEmergenciaNombre" class="@claseEtiqueta"></label>
-                    <input asp-for="ContactoEmergenciaNombre" placeholder="Opcional" class="@claseCampo" />
+                    <label asp-for="ContactoEmergenciaNombre" class="@claseEtiqueta">@Html.DisplayNameFor(m => m.ContactoEmergenciaNombre) <span class="font-normal text-muted">(opcional)</span></label>
+                    <input asp-for="ContactoEmergenciaNombre" autocomplete="off" spellcheck="false" class="@claseCampo" />
                     <span asp-validation-for="ContactoEmergenciaNombre" class="@claseError"></span>
                 </div>
 
                 <div>
-                    <label asp-for="ContactoEmergenciaTelefono" class="@claseEtiqueta"></label>
-                    <input asp-for="ContactoEmergenciaTelefono" placeholder="Opcional" class="@claseCampo" />
+                    <label asp-for="ContactoEmergenciaTelefono" class="@claseEtiqueta">@Html.DisplayNameFor(m => m.ContactoEmergenciaTelefono) <span class="font-normal text-muted">(opcional)</span></label>
+                    <input asp-for="ContactoEmergenciaTelefono" type="tel" autocomplete="off" placeholder="11 2345-6789" class="@claseCampo" />
                     <span asp-validation-for="ContactoEmergenciaTelefono" class="@claseError"></span>
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label asp-for="Alergias" class="@claseEtiqueta"></label>
-                    <textarea asp-for="Alergias" rows="3" placeholder="Opcional" class="@claseCampo"></textarea>
+                    <label asp-for="Alergias" class="@claseEtiqueta">@Html.DisplayNameFor(m => m.Alergias) <span class="font-normal text-muted">(opcional)</span></label>
+                    <textarea asp-for="Alergias" rows="3" placeholder="Por ejemplo: penicilina…" class="@claseCampo"></textarea>
                     <span asp-validation-for="Alergias" class="@claseError"></span>
                 </div>
             </div>
 
-            <div class="mt-8 flex flex-wrap items-center justify-end gap-3">
-                <button type="submit"
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+                <button type="submit" data-cargando="Guardando…"
                         class="boton boton-primario">
                     Guardar
                 </button>
                 @* Enlace y no type="reset": tras un POST fallido, reset volvería a
-                   los valores enviados en lugar de vaciar el formulario. *@
+                   los valores enviados en lugar de vaciar el formulario. Si ya
+                   se escribió algo, el navegador pregunta antes de borrarlo
+                   (data-avisar-cambios). *@
                 <a asp-action="Crear" class="@claseBotonSecundario">
                     Limpiar campos
                 </a>

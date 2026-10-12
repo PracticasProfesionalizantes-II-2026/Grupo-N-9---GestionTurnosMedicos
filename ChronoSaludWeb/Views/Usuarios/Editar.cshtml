@@ -11,36 +11,26 @@
 
     // El error de cada campo va con ícono además del texto y el borde, para
     // que no dependa solo del color.
-    void ErrorCampo(string clave)
+    async Task ErrorCampo(string clave)
     {
         if (ErrorDe(clave) is { } mensaje)
         {
             @* El id une el mensaje con su campo (ver TagHelpers/CampoConErrorTagHelper). *@
             <p id="@IdDeError.Para(clave)" class="mt-1 flex items-start gap-1 text-xs text-status-cancelado">
-                <svg class="mt-px h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v4" />
-                    <path d="M12 16h.01" />
-                </svg>
+                <icono nombre="alerta-circulo" class="mt-px h-3.5 w-3.5 shrink-0" />
                 <span>@mensaje</span>
             </p>
         }
     }
 
     // Error general de una tarjeta (lo que contestó la API al guardarla).
-    void ErrorTarjeta(string clave)
+    async Task ErrorTarjeta(string clave)
     {
         if (ErrorDe(clave) is { } mensaje)
         {
             <div role="alert"
-                 class="mt-4 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
+                 class="aviso aviso-error mt-4">
+                <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
                 <span>@mensaje</span>
             </div>
         }
@@ -61,12 +51,8 @@
    el volver va al buscador y la ficha queda como enlace aparte. *@
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
     <a asp-action="Index"
-       class="boton-texto text-muted hover:text-primary">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-        </svg>
+       class="boton-texto area-tactil text-muted hover:text-primary">
+        <icono nombre="volver" class="h-4 w-4" />
         Volver a usuarios
     </a>
     @if (Model.IdPaciente is not null)
@@ -106,13 +92,8 @@
 
 @if (!Model.Activo)
 {
-    <div class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-        <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
+    <div class="aviso aviso-error mt-6">
+        <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
         <span>
             Esta cuenta está dada de baja: no puede entrar y no aparece en los listados. Sus datos
             se pueden seguir corrigiendo. Para que vuelva a entrar, usá <strong>Reactivar</strong> al final de la página.
@@ -120,29 +101,29 @@
     </div>
 }
 
-<div class="mt-6 tarjeta p-8">
+<div class="mt-6 tarjeta p-5 sm:p-8">
     <h2 class="@claseSeccion">Datos de la cuenta</h2>
-    @{ ErrorTarjeta("Cuenta"); }
+    @{ await ErrorTarjeta("Cuenta"); }
 
     <form asp-action="GuardarCuenta" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-          method="post" novalidate>
+          method="post" novalidate data-avisar-cambios>
         <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
                 <label asp-for="Cuenta.Nombre" class="@claseEtiqueta"></label>
-                <input asp-for="Cuenta.Nombre" autocomplete="off" class="@claseCampo" />
-                @{ ErrorCampo("Cuenta.Nombre"); }
+                <input asp-for="Cuenta.Nombre" autocomplete="off" spellcheck="false" class="@claseCampo" />
+                @{ await ErrorCampo("Cuenta.Nombre"); }
             </div>
 
             <div>
                 <label asp-for="Cuenta.Apellido" class="@claseEtiqueta"></label>
-                <input asp-for="Cuenta.Apellido" autocomplete="off" class="@claseCampo" />
-                @{ ErrorCampo("Cuenta.Apellido"); }
+                <input asp-for="Cuenta.Apellido" autocomplete="off" spellcheck="false" class="@claseCampo" />
+                @{ await ErrorCampo("Cuenta.Apellido"); }
             </div>
 
             <div>
                 <label asp-for="Cuenta.Telefono" class="@claseEtiqueta"></label>
                 <input asp-for="Cuenta.Telefono" type="tel" autocomplete="off" class="@claseCampo" />
-                @{ ErrorCampo("Cuenta.Telefono"); }
+                @{ await ErrorCampo("Cuenta.Telefono"); }
             </div>
 
             <div class="sm:col-span-2 lg:col-span-3">
@@ -155,14 +136,14 @@
         <p class="mt-5 text-xs text-muted">Dejar el teléfono vacío no borra el que ya está cargado.</p>
 
         <div class="mt-4 flex justify-end">
-            <button type="submit" class="@claseBoton">Guardar cuenta</button>
+            <button type="submit" data-cargando="Guardando…" class="@claseBoton">Guardar cuenta</button>
         </div>
     </form>
 </div>
 
 @* Subida con un formulario multipart común, sin vista previa: la foto nueva
    se ve en el avatar de arriba al recargar. Quitar es otro formulario. *@
-<div class="mt-6 tarjeta p-8">
+<div class="mt-6 tarjeta p-5 sm:p-8">
     <h2 class="@claseSeccion">Foto</h2>
 
     <form asp-action="SubirFoto" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
@@ -176,11 +157,11 @@
                    aria-invalid="@(errorFoto ? "true" : null)" autofocus="@(errorFoto ? "autofocus" : null)"
                    class="mt-1.5 block w-full text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-input file:border file:border-solid file:border-control file:bg-field file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-soft" />
             <p id="ayuda-foto" class="@claseAyuda">Formatos: JPG, PNG o WebP. Tamaño máximo: 2 MB.</p>
-            @{ ErrorCampo("Foto"); }
+            @{ await ErrorCampo("Foto"); }
         </div>
 
         <div class="mt-4 flex justify-end">
-            <button type="submit" class="@claseBoton">Subir</button>
+            <button type="submit" data-cargando="Subiendo…" class="@claseBoton">Subir</button>
         </div>
     </form>
 
@@ -189,8 +170,8 @@
         <form asp-action="QuitarFoto" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
               method="post" class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p class="text-sm text-muted">Sin foto, el avatar vuelve a mostrar las iniciales.</p>
-            <button type="submit"
-                    class="boton boton-secundario border-status-cancelado text-status-cancelado">
+            <button type="submit" data-cargando="Quitando…"
+                    class="boton boton-peligro-suave">
                 Quitar foto
             </button>
         </form>
@@ -199,31 +180,31 @@
 
 @if (Model.Paciente is not null && Model.IdPaciente is not null)
 {
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         <h2 class="@claseSeccion">Ficha del paciente</h2>
-        @{ ErrorTarjeta("Paciente"); }
+        @{ await ErrorTarjeta("Paciente"); }
 
         <form asp-action="GuardarPaciente" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-              method="post" novalidate>
+              method="post" novalidate data-avisar-cambios>
             <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label asp-for="Paciente.TipoDocumento" class="@claseEtiqueta"></label>
                     <select asp-for="Paciente.TipoDocumento" asp-items="Model.Paciente.TiposDocumento" class="@claseCampo">
                         <option value="">Sin especificar</option>
                     </select>
-                    @{ ErrorCampo("Paciente.TipoDocumento"); }
+                    @{ await ErrorCampo("Paciente.TipoDocumento"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.Dni" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.Dni" autocomplete="off" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.Dni"); }
+                    <input asp-for="Paciente.Dni" autocomplete="off" inputmode="numeric" spellcheck="false" class="@claseCampo tabular-nums" />
+                    @{ await ErrorCampo("Paciente.Dni"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.FechaNacimiento" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.FechaNacimiento" type="date" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.FechaNacimiento"); }
+                    <input asp-for="Paciente.FechaNacimiento" type="date" autocomplete="off" class="@claseCampo tabular-nums" />
+                    @{ await ErrorCampo("Paciente.FechaNacimiento"); }
                 </div>
 
                 <div>
@@ -231,7 +212,7 @@
                     <select asp-for="Paciente.Sexo" asp-items="Model.Paciente.Sexos" class="@claseCampo capitalize">
                         <option value="">Sin especificar</option>
                     </select>
-                    @{ ErrorCampo("Paciente.Sexo"); }
+                    @{ await ErrorCampo("Paciente.Sexo"); }
                 </div>
 
                 <div>
@@ -239,13 +220,13 @@
                     <select asp-for="Paciente.GrupoSanguineo" asp-items="Model.Paciente.GruposSanguineos" class="@claseCampo">
                         <option value="">Sin especificar</option>
                     </select>
-                    @{ ErrorCampo("Paciente.GrupoSanguineo"); }
+                    @{ await ErrorCampo("Paciente.GrupoSanguineo"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.Nacionalidad" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.Nacionalidad" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.Nacionalidad"); }
+                    <input asp-for="Paciente.Nacionalidad" autocomplete="off" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.Nacionalidad"); }
                 </div>
 
                 <div>
@@ -253,7 +234,7 @@
                     <select asp-for="Paciente.EstadoCivil" asp-items="Model.Paciente.EstadosCiviles" class="@claseCampo">
                         <option value="">Sin especificar</option>
                     </select>
-                    @{ ErrorCampo("Paciente.EstadoCivil"); }
+                    @{ await ErrorCampo("Paciente.EstadoCivil"); }
                 </div>
 
                 <div>
@@ -261,56 +242,56 @@
                     <select asp-for="Paciente.Provincia" asp-items="Model.Paciente.Provincias" class="@claseCampo">
                         <option value="">Sin especificar</option>
                     </select>
-                    @{ ErrorCampo("Paciente.Provincia"); }
+                    @{ await ErrorCampo("Paciente.Provincia"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.Localidad" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.Localidad" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.Localidad"); }
+                    <input asp-for="Paciente.Localidad" autocomplete="off" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.Localidad"); }
                 </div>
 
                 <div class="sm:col-span-2">
                     <label asp-for="Paciente.Direccion" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.Direccion" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.Direccion"); }
+                    <input asp-for="Paciente.Direccion" autocomplete="off" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.Direccion"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.CodigoPostal" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.CodigoPostal" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.CodigoPostal"); }
+                    <input asp-for="Paciente.CodigoPostal" autocomplete="off" spellcheck="false" autocapitalize="characters" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.CodigoPostal"); }
                 </div>
 
                 <div class="sm:col-span-2">
                     <label asp-for="Paciente.ContactoEmergenciaNombre" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.ContactoEmergenciaNombre" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.ContactoEmergenciaNombre"); }
+                    <input asp-for="Paciente.ContactoEmergenciaNombre" autocomplete="off" spellcheck="false" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.ContactoEmergenciaNombre"); }
                 </div>
 
                 <div>
                     <label asp-for="Paciente.ContactoEmergenciaTelefono" class="@claseEtiqueta"></label>
-                    <input asp-for="Paciente.ContactoEmergenciaTelefono" type="tel" class="@claseCampo" />
-                    @{ ErrorCampo("Paciente.ContactoEmergenciaTelefono"); }
+                    <input asp-for="Paciente.ContactoEmergenciaTelefono" type="tel" autocomplete="off" class="@claseCampo" />
+                    @{ await ErrorCampo("Paciente.ContactoEmergenciaTelefono"); }
                 </div>
 
                 <div class="sm:col-span-2 lg:col-span-3">
                     <label asp-for="Paciente.Alergias" class="@claseEtiqueta"></label>
                     <textarea asp-for="Paciente.Alergias" rows="3" class="@claseCampo"></textarea>
-                    @{ ErrorCampo("Paciente.Alergias"); }
+                    @{ await ErrorCampo("Paciente.Alergias"); }
                 </div>
 
                 <div class="sm:col-span-2 lg:col-span-3">
                     <label asp-for="Paciente.Condiciones" class="@claseEtiqueta"></label>
                     <textarea asp-for="Paciente.Condiciones" rows="3" class="@claseCampo"></textarea>
-                    @{ ErrorCampo("Paciente.Condiciones"); }
+                    @{ await ErrorCampo("Paciente.Condiciones"); }
                 </div>
             </div>
 
             <p class="mt-5 text-xs text-muted">Si vaciás un campo, el dato guardado se borra.</p>
 
             <div class="mt-4 flex justify-end">
-                <button type="submit" class="@claseBoton">Guardar ficha</button>
+                <button type="submit" data-cargando="Guardando…" class="@claseBoton">Guardar ficha</button>
             </div>
         </form>
     </div>
@@ -318,23 +299,23 @@
 
 @if (Model.Doctor is not null && Model.IdDoctor is not null)
 {
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         <h2 class="@claseSeccion">Perfil de doctor</h2>
-        @{ ErrorTarjeta("Doctor"); }
+        @{ await ErrorTarjeta("Doctor"); }
 
         <form asp-action="GuardarDoctor" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-              method="post" novalidate>
+              method="post" novalidate data-avisar-cambios>
             <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label asp-for="Doctor.Especialidad" class="@claseEtiqueta"></label>
-                    <input asp-for="Doctor.Especialidad" autocomplete="off" class="@claseCampo" />
-                    @{ ErrorCampo("Doctor.Especialidad"); }
+                    <input asp-for="Doctor.Especialidad" autocomplete="off" placeholder="Cardiología" class="@claseCampo" />
+                    @{ await ErrorCampo("Doctor.Especialidad"); }
                 </div>
 
                 <div>
                     <label asp-for="Doctor.Consultorio" class="@claseEtiqueta"></label>
                     <input asp-for="Doctor.Consultorio" autocomplete="off" class="@claseCampo" />
-                    @{ ErrorCampo("Doctor.Consultorio"); }
+                    @{ await ErrorCampo("Doctor.Consultorio"); }
                 </div>
 
                 <div>
@@ -347,7 +328,7 @@
             <p class="mt-5 text-xs text-muted">Dejar el consultorio vacío no borra el que ya está cargado.</p>
 
             <div class="mt-4 flex justify-end">
-                <button type="submit" class="@claseBoton">Guardar perfil de doctor</button>
+                <button type="submit" data-cargando="Guardando…" class="@claseBoton">Guardar perfil de doctor</button>
             </div>
         </form>
     </div>
@@ -357,40 +338,40 @@
    un alta que quedó a mitad de camino). La condición la calcula el servidor. *@
 @if (Model.FaltaPerfilDoctor)
 {
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         <h2 class="@claseSeccion">Completar perfil de doctor</h2>
         <p class="mt-2 text-sm text-muted">
             Este usuario tiene rol doctor pero todavía no tiene especialidad ni
             matrícula cargadas. Hasta completarlas no aparece en Doctores ni
             puede recibir turnos.
         </p>
-        @{ ErrorTarjeta("DoctorNuevo"); }
+        @{ await ErrorTarjeta("DoctorNuevo"); }
 
         <form asp-action="CrearPerfilDoctor" asp-route-id="@Model.IdUsuario" asp-route-idPaciente="@Model.IdPaciente"
-              method="post" novalidate>
+              method="post" novalidate data-avisar-cambios>
             <div class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                     <label asp-for="DoctorNuevo.Especialidad" class="@claseEtiqueta"></label>
-                    <input asp-for="DoctorNuevo.Especialidad" autocomplete="off" class="@claseCampo" />
-                    @{ ErrorCampo("DoctorNuevo.Especialidad"); }
+                    <input asp-for="DoctorNuevo.Especialidad" autocomplete="off" placeholder="Cardiología" class="@claseCampo" />
+                    @{ await ErrorCampo("DoctorNuevo.Especialidad"); }
                 </div>
 
                 <div>
                     <label asp-for="DoctorNuevo.Matricula" class="@claseEtiqueta"></label>
-                    <input asp-for="DoctorNuevo.Matricula" autocomplete="off" aria-describedby="ayuda-matricula" class="@claseCampo" />
+                    <input asp-for="DoctorNuevo.Matricula" autocomplete="off" spellcheck="false" placeholder="MN 123456" aria-describedby="ayuda-matricula" class="@claseCampo" />
                     <p id="ayuda-matricula" class="@claseAyuda">Después de guardarla no se puede cambiar.</p>
-                    @{ ErrorCampo("DoctorNuevo.Matricula"); }
+                    @{ await ErrorCampo("DoctorNuevo.Matricula"); }
                 </div>
 
                 <div>
-                    <label asp-for="DoctorNuevo.Consultorio" class="@claseEtiqueta"></label>
-                    <input asp-for="DoctorNuevo.Consultorio" autocomplete="off" placeholder="Opcional" class="@claseCampo" />
-                    @{ ErrorCampo("DoctorNuevo.Consultorio"); }
+                    <label asp-for="DoctorNuevo.Consultorio" class="@claseEtiqueta">Consultorio <span class="font-normal text-muted">(opcional)</span></label>
+                    <input asp-for="DoctorNuevo.Consultorio" autocomplete="off" placeholder="Consultorio 101" class="@claseCampo" />
+                    @{ await ErrorCampo("DoctorNuevo.Consultorio"); }
                 </div>
             </div>
 
             <div class="mt-5 flex justify-end">
-                <button type="submit" class="@claseBoton">Completar perfil</button>
+                <button type="submit" data-cargando="Guardando…" class="@claseBoton">Completar perfil</button>
             </div>
         </form>
     </div>
@@ -400,7 +381,7 @@
    reactivar. Las dos llevan a una pantalla de confirmación. *@
 @if (Model.Activo && !Model.EsLaPropia)
 {
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         <h2 class="@claseSeccion">Dar de baja</h2>
         <p class="mt-2 text-sm text-muted">
             La cuenta deja de poder entrar y, si es de un doctor, deja de recibir turnos. No se borra
@@ -408,7 +389,7 @@
         </p>
         <div class="mt-4 flex justify-end">
             <a asp-action="Baja" asp-route-id="@Model.IdUsuario"
-               class="boton boton-secundario border-status-cancelado text-status-cancelado">
+               class="boton boton-peligro-suave">
                 Dar de baja…
             </a>
         </div>
@@ -416,7 +397,7 @@
 }
 else if (!Model.Activo)
 {
-    <div class="mt-6 tarjeta p-8">
+    <div class="mt-6 tarjeta p-5 sm:p-8">
         <h2 class="@claseSeccion">Reactivar</h2>
         <p class="mt-2 text-sm text-muted">
             La cuenta vuelve a poder entrar con la misma contraseña y, si es de un doctor, vuelve a

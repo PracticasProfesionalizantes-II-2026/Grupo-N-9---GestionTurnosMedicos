@@ -4,30 +4,22 @@
 }
 
 <a asp-action="Reprogramar" asp-all-route-data="Model.RutaElegirOtro"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Elegir otro horario
 </a>
 
 <div class="mt-6 max-w-xl">
     <h1 class="text-2xl font-bold tracking-tight text-ink">¿Reprogramar el turno #@Model.Turno.IdTurno?</h1>
     <p class="mt-1 text-sm text-muted">
-        El turno conserva su estado (@Model.Turno.Estado) y al paciente le llega un aviso con el día y la hora nuevos.
+        El turno conserva su estado y al paciente le llega un aviso con el día y la hora nuevos.
     </p>
+    <p class="mt-2"><partial name="_BadgeEstado" model="Model.Turno.Estado" /></p>
 
     @if (Model.Error is not null)
     {
-        <div role="alert" class="mt-6 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-            </svg>
+        <div role="alert" class="aviso aviso-error mt-6">
+            <icono nombre="alerta" class="mt-0.5 h-4 w-4 shrink-0" />
             <span>
                 <span class="block">@Model.Error</span>
                 <a asp-action="Reprogramar" asp-all-route-data="Model.RutaElegirOtro"
@@ -36,23 +28,35 @@
         </div>
     }
 
-    <div class="mt-6 tarjeta p-6">
-        <p class="text-sm text-muted">
-            <span class="font-medium text-ink">@Model.Turno.PacienteMostrado</span>
-            con @Model.Turno.DoctorMostrado
-        </p>
+    <div class="mt-6 tarjeta p-5 sm:p-6">
+        <div class="flex items-center gap-3">
+            <partial name="_Avatar"
+                     model="new AvatarViewModel { Nombre = Model.Turno.PacienteNombre, FotoUrl = Model.Turno.PacienteFotoUrl, Tamano = TamanoAvatar.Mediano }" />
+            <p class="min-w-0 text-sm text-muted">
+                <span class="block font-medium text-ink">@Model.Turno.PacienteMostrado</span>
+                con @Model.Turno.DoctorMostrado
+            </p>
+        </div>
 
-        @* De dónde a dónde se mueve. *@
-        <dl class="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-            <div>
-                <dt class="text-sm text-muted">De</dt>
-                <dd class="mt-0.5 capitalize text-ink line-through decoration-muted">@Model.FechaActualLarga</dd>
-                <dd class="text-sm tabular-nums text-muted line-through">@Model.Turno.Horario</dd>
+        @* De dónde a dónde se mueve: el bloque de calendario de antes, tachado
+           y apagado, una flecha y el nuevo. Con palabras, "De" y "A". *@
+        <dl class="mt-5 grid items-center gap-4 border-t border-border pt-5 sm:grid-cols-[1fr_auto_1fr]">
+            <div class="flex items-center gap-3 opacity-70">
+                <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = Model.Turno.FechaInicio }" />
+                <div class="min-w-0">
+                    <dt class="text-xs font-medium text-muted">De</dt>
+                    <dd class="mt-0.5 first-letter:uppercase text-ink line-through decoration-muted">@Model.FechaActualLarga</dd>
+                    <dd class="text-sm tabular-nums text-muted line-through">@Model.Turno.Horario</dd>
+                </div>
             </div>
-            <div>
-                <dt class="text-sm text-muted">A</dt>
-                <dd class="mt-0.5 font-medium capitalize text-ink">@Model.FechaNuevaLarga</dd>
-                <dd class="text-sm font-semibold tabular-nums text-ink">@Model.HorarioNuevo</dd>
+            <icono nombre="flecha-der" class="hidden size-5 text-primary sm:block" />
+            <div class="flex items-center gap-3">
+                <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = Model.Fecha }" />
+                <div class="min-w-0">
+                    <dt class="text-xs font-medium text-muted">A</dt>
+                    <dd class="mt-0.5 font-medium first-letter:uppercase text-ink">@Model.FechaNuevaLarga</dd>
+                    <dd class="text-sm font-semibold tabular-nums text-ink">@Model.HorarioNuevo</dd>
+                </div>
             </div>
         </dl>
 
@@ -61,7 +65,7 @@
             <input type="hidden" name="fecha" value="@Model.FechaIso" />
             <input type="hidden" name="inicio" value="@Model.HoraInicio" />
             <input type="hidden" name="fin" value="@Model.HoraFin" />
-            <button type="submit" class="boton boton-primario">
+            <button type="submit" data-cargando="Reprogramando…" class="boton boton-primario">
                 Sí, reprogramar
             </button>
             <a asp-action="Detalle" asp-route-id="@Model.Turno.IdTurno" class="boton boton-secundario">

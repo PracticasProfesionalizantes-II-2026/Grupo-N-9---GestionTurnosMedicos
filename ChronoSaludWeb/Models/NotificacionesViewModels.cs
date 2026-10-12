@@ -14,6 +14,15 @@ public class CampanaViewModel
     public bool Activa { get; init; }
 
     /// <summary>
+    /// La campana se balancea una vez para llamar la atención sobre lo que no
+    /// se leyó. Solo en el inicio: en cada pantalla sería ruido.
+    /// </summary>
+    public bool EnElInicio { get; init; }
+
+    /// <summary>Hay que mover la campana: estamos en el inicio y hay sin leer.</summary>
+    public bool Llamar => EnElInicio && Globito is not null;
+
+    /// <summary>
     /// El número del globito rojo: null si no hay ninguna (no sale), "9+" si
     /// son más de 9, para que no se agrande.
     /// </summary>

@@ -4,12 +4,8 @@
 }
 
 <a asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver a doctores
 </a>
 
@@ -22,73 +18,93 @@
 }
 else
 {
-    <div class="mt-6 flex items-center gap-4">
+    @* Encabezado con la foto, el nombre y la especialidad como chip. *@
+    <div class="mt-6 tarjeta tarjeta-hero flex flex-wrap items-center gap-4 p-5 sm:p-6">
         <partial name="_Avatar"
-                 model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", FotoUrl = Model.FotoUrl, Tamano = TamanoAvatar.Intermedio, Tono = TonoAvatar.Terracota }' />
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.NombreCompleto</h1>
-            <p class="mt-0.5 text-sm capitalize text-muted">
-                @(string.IsNullOrWhiteSpace(Model.Especialidad) ? "Sin especialidad cargada" : Model.Especialidad)
+                 model='new AvatarViewModel { Nombre = $"{Model.Nombre} {Model.Apellido}", FotoUrl = Model.FotoUrl, Tamano = TamanoAvatar.Grande, Tono = TonoAvatar.Terracota }' />
+        <div class="min-w-0 flex-1">
+            <h1 class="text-2xl font-bold tracking-tight wrap-break-word text-ink">@Model.NombreCompleto</h1>
+            <p class="mt-1.5">
+                @if (string.IsNullOrWhiteSpace(Model.Especialidad))
+                {
+                    <span class="text-sm text-muted">Sin especialidad cargada</span>
+                }
+                else
+                {
+                    <partial name="_Chip" model="new ChipViewModel { Texto = Model.Especialidad, Capitalizar = true }" />
+                }
             </p>
         </div>
     </div>
 
-    <div class="mt-6 max-w-2xl tarjeta p-6">
-        <h2 class="text-base font-semibold text-ink">Datos profesionales</h2>
-        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
-            <div>
-                <dt class="text-sm text-muted">Matrícula</dt>
-                <dd class="mt-0.5 font-medium tabular-nums text-ink">
-                    @(string.IsNullOrWhiteSpace(Model.Matricula) ? "Sin datos" : Model.Matricula)
-                </dd>
-            </div>
-            <div>
-                <dt class="text-sm text-muted">Consultorio</dt>
-                <dd class="mt-0.5 text-ink">
-                    @(string.IsNullOrWhiteSpace(Model.Consultorio) ? "Sin asignar" : Model.Consultorio)
-                </dd>
-            </div>
-            <div>
-                <dt class="text-sm text-muted">Identificador</dt>
-                <dd class="mt-0.5 tabular-nums text-muted">#@Model.IdDoctor</dd>
-            </div>
-        </dl>
+    @* Desde lg, los datos y el horario van lado a lado: antes las dos
+       tarjetas dejaban vacía la mitad derecha de la pantalla. *@
+    <div class="mt-6 grid items-start gap-6 lg:grid-cols-5">
+        <div class="tarjeta p-5 sm:p-6 lg:col-span-2">
+            <h2 class="text-base font-semibold text-ink">Datos profesionales</h2>
+            <dl class="lista-datos mt-4">
+                <div>
+                    <dt><icono nombre="documento" /> Matrícula</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Matricula))
+                    {
+                        <dd class="sin-dato">Sin datos</dd>
+                    }
+                    else
+                    {
+                        <dd class="tabular-nums">@Model.Matricula</dd>
+                    }
+                </div>
+                <div>
+                    <dt><icono nombre="ubicacion" /> Consultorio</dt>
+                    @if (string.IsNullOrWhiteSpace(Model.Consultorio))
+                    {
+                        <dd class="sin-dato">Sin asignar</dd>
+                    }
+                    else
+                    {
+                        <dd>@Model.Consultorio</dd>
+                    }
+                </div>
+            </dl>
+        </div>
 
+        <section class="tarjeta p-5 sm:p-6 lg:col-span-3" aria-labelledby="titulo-horario">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 id="titulo-horario" class="text-base font-semibold text-ink">Horario de atención</h2>
+                <div class="flex flex-wrap items-center gap-2">
+                    @if (Model.PuedeEditarHorario)
+                    {
+                        <a asp-action="Horario" asp-route-id="@Model.IdDoctor"
+                           class="boton boton-secundario">
+                            @* «Cargar» solo cuando se sabe que no tiene ninguno; si
+                               el horario no se pudo leer, queda «Editar». *@
+                            @(Model.Horario is { TieneHorario: false } ? "Cargar horario" : "Editar horario")
+                        </a>
+                    }
+                    @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
+                    {
+                        <a asp-controller="Turnos" asp-action="Crear"
+                           asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
+                           class="boton boton-secundario">
+                            Pedir turno con este doctor
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <div class="mt-4">
+                @if (Model.Horario is not null)
+                {
+                    <partial name="_HorarioSemanal" model="Model.Horario" />
+                }
+                else
+                {
+                    <p role="alert" class="aviso aviso-error">
+                        <icono nombre="alerta" />
+                        <span>No se pudo cargar el horario: @Model.ErrorHorario</span>
+                    </p>
+                }
+            </div>
+        </section>
     </div>
-
-    <section class="mt-6 max-w-2xl tarjeta p-6" aria-labelledby="titulo-horario">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="titulo-horario" class="text-base font-semibold text-ink">Horario de atención</h2>
-            <div class="flex flex-wrap items-center gap-2">
-                @if (Model.PuedeEditarHorario)
-                {
-                    <a asp-action="Horario" asp-route-id="@Model.IdDoctor"
-                       class="boton boton-secundario">
-                        @* "Cargar" solo cuando se sabe que no tiene ninguno; si
-                           el horario no se pudo leer, queda "Editar". *@
-                        @(Model.Horario is { TieneHorario: false } ? "Cargar horario" : "Editar horario")
-                    </a>
-                }
-                @if (Model.PuedePedirTurno && Model.Horario is { TieneHorario: true })
-                {
-                    <a asp-controller="Turnos" asp-action="Crear"
-                       asp-route-especialidad="@Model.Especialidad" asp-route-idDoctor="@Model.IdDoctor"
-                       class="boton boton-secundario">
-                        Pedir turno con este doctor
-                    </a>
-                }
-            </div>
-        </div>
-
-        <div class="mt-4">
-            @if (Model.Horario is not null)
-            {
-                <partial name="_HorarioSemanal" model="Model.Horario" />
-            }
-            else
-            {
-                <p class="text-sm text-status-cancelado">No se pudo cargar el horario: @Model.ErrorHorario</p>
-            }
-        </div>
-    </section>
 }

@@ -8,9 +8,7 @@
 
 @* Misma tarjeta de acceso que el login: formulario y motivo de marca. *@
 <div class="tarjeta mx-auto max-w-md overflow-hidden md:grid md:max-w-4xl md:grid-cols-2">
-    <div class="h-24 px-6 pt-6 md:order-last md:flex md:h-auto md:items-center md:p-10">
-        <partial name="_MotivoMarca" />
-    </div>
+    <partial name="_PanelAcceso" />
 
     <div class="p-6 sm:p-8">
         <h1 class="text-2xl font-bold tracking-tight text-ink">Crear cuenta</h1>
@@ -21,11 +19,14 @@
 
         @if (erroresGenerales is { Count: > 0 })
         {
-            <div role="alert" class="mt-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                @foreach (var error in erroresGenerales)
-                {
-                    <p>@error.ErrorMessage</p>
-                }
+            <div role="alert" class="aviso aviso-error mt-6">
+                <icono nombre="alerta" />
+                <div>
+                    @foreach (var error in erroresGenerales)
+                    {
+                        <p>@error.ErrorMessage</p>
+                    }
+                </div>
             </div>
         }
 
@@ -33,42 +34,44 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
                     <label asp-for="Nombre" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Nombre" autocomplete="given-name" autofocus class="@claseCampo" />
+                    <input asp-for="Nombre" autocomplete="given-name" spellcheck="false" class="@claseCampo" />
                     <span asp-validation-for="Nombre" class="@claseError"></span>
                 </div>
 
                 <div>
                     <label asp-for="Apellido" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Apellido" autocomplete="family-name" class="@claseCampo" />
+                    <input asp-for="Apellido" autocomplete="family-name" spellcheck="false" class="@claseCampo" />
                     <span asp-validation-for="Apellido" class="@claseError"></span>
                 </div>
 
                 <div class="sm:col-span-2">
                     <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Email" autocomplete="email" placeholder="tu@@email.com" class="@claseCampo" />
+                    <input asp-for="Email" autocomplete="email" spellcheck="false" autocapitalize="none" placeholder="tu@@email.com" class="@claseCampo" />
                     <span asp-validation-for="Email" class="@claseError"></span>
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label asp-for="Telefono" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Telefono" autocomplete="tel" placeholder="Opcional" class="@claseCampo" />
+                    <label asp-for="Telefono" class="block text-sm font-medium text-ink">Teléfono <span class="font-normal text-muted">(opcional)</span></label>
+                    <input asp-for="Telefono" type="tel" autocomplete="tel" placeholder="11 2345-6789" class="@claseCampo" />
                     <span asp-validation-for="Telefono" class="@claseError"></span>
                 </div>
 
-                <div>
+                @* Las contraseñas van una debajo de la otra: con el botón del ojo,
+                   dos por renglón quedaban angostas. *@
+                <div class="sm:col-span-2">
                     <label asp-for="Contrasena" class="block text-sm font-medium text-ink"></label>
                     <input asp-for="Contrasena" autocomplete="new-password" placeholder="••••••••" class="@claseCampo" />
                     <span asp-validation-for="Contrasena" class="@claseError"></span>
                 </div>
 
-                <div>
+                <div class="sm:col-span-2">
                     <label asp-for="ConfirmarContrasena" class="block text-sm font-medium text-ink"></label>
                     <input asp-for="ConfirmarContrasena" autocomplete="new-password" placeholder="••••••••" class="@claseCampo" />
                     <span asp-validation-for="ConfirmarContrasena" class="@claseError"></span>
                 </div>
             </div>
 
-            <button type="submit" class="boton boton-primario mt-7 w-full">Crear cuenta</button>
+            <button type="submit" data-cargando="Creando tu cuenta…" class="boton boton-primario mt-7 w-full">Crear cuenta</button>
         </form>
 
         <p class="mt-6 text-sm text-muted">

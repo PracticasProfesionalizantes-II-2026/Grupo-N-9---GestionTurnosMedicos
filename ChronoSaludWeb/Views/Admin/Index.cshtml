@@ -12,8 +12,11 @@
 
 <div class="mt-6 grid gap-5 sm:grid-cols-3">
     <a asp-controller="Pacientes" asp-action="Crear"
-       class="tarjeta tarjeta-enlace block p-6">
-        <h2 class="text-base font-semibold text-ink">Paciente</h2>
+       class="entrada tarjeta tarjeta-enlace block p-6">
+        <span class="circulo-icono flex size-11 items-center justify-center rounded-full">
+            <icono nombre="persona-mas" class="size-5" />
+        </span>
+        <h2 class="mt-4 text-base font-semibold text-ink">Paciente</h2>
         <p class="mt-1 text-sm text-muted">
             Agenda y consulta sus propios turnos. Un solo paso: la cuenta y la
             ficha de paciente quedan listas de una.
@@ -21,8 +24,11 @@
     </a>
 
     <a asp-controller="Admin" asp-action="NuevoDoctor"
-       class="tarjeta tarjeta-enlace block p-6">
-        <h2 class="text-base font-semibold text-ink">Doctor</h2>
+       class="entrada tarjeta tarjeta-enlace block p-6">
+        <span class="circulo-icono flex size-11 items-center justify-center rounded-full">
+            <icono nombre="estetoscopio" class="size-5" />
+        </span>
+        <h2 class="mt-4 text-base font-semibold text-ink">Doctor</h2>
         <p class="mt-1 text-sm text-muted">
             Atiende turnos, carga historia clínica y emite recetas. Pide
             además especialidad y matrícula.
@@ -30,8 +36,11 @@
     </a>
 
     <a asp-controller="Admin" asp-action="NuevoAdministrador"
-       class="tarjeta tarjeta-enlace block p-6">
-        <h2 class="text-base font-semibold text-ink">Administrador</h2>
+       class="entrada tarjeta tarjeta-enlace block p-6">
+        <span class="circulo-icono flex size-11 items-center justify-center rounded-full">
+            <icono nombre="escudo" class="size-5" />
+        </span>
+        <h2 class="mt-4 text-base font-semibold text-ink">Administrador</h2>
         <p class="mt-1 text-sm text-muted">
             Gestiona turnos, pacientes y cuentas del sistema, como esta misma
             pantalla.
@@ -41,7 +50,10 @@
 
 <a asp-controller="Usuarios" asp-action="Index"
    class="tarjeta tarjeta-enlace mt-5 block p-6">
-    <h2 class="text-base font-semibold text-ink">Buscar y editar usuarios</h2>
+    <span class="circulo-icono flex size-11 items-center justify-center rounded-full">
+        <icono nombre="lupa" class="size-5" />
+    </span>
+    <h2 class="mt-4 text-base font-semibold text-ink">Buscar y editar usuarios</h2>
     <p class="mt-1 text-sm text-muted">
         Encontrá a un paciente, doctor o administrador por nombre o email y
         corregí los datos de su cuenta y de su perfil.

@@ -27,11 +27,7 @@
         {
             <a asp-action="Crear" asp-route-paciente="@Model.IdPaciente"
                class="boton boton-primario">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" />
-                    <path d="M12 5v14" />
-                </svg>
+                <icono nombre="mas" class="h-4 w-4" />
                 Nueva entrada
             </a>
         }
@@ -82,7 +78,7 @@
         @if (Model.Filtros.RangoInvertido)
         {
             <p class="w-full text-xs text-status-pendiente">
-                La fecha "desde" es posterior a la "hasta", por eso no aparece ninguna entrada.
+                La fecha «desde» es posterior a la «hasta», por eso no aparece ninguna entrada.
             </p>
         }
     </form>
@@ -124,71 +120,79 @@ else if (Model.Entradas.Count == 0)
 else
 {
     @* Cada entrada se muestra completa: la API no tiene endpoint de detalle y
-       el listado ya trae todo lo que hay para mostrar. *@
-    <ol class="mt-6 space-y-4">
-        @{ var fila = 0; }
-        @foreach (var entrada in Model.Entradas)
+       el listado ya trae todo lo que hay para mostrar. Van en una línea de
+       tiempo agrupada por mes (la API las manda de la más nueva a la más
+       vieja); el punto de la más reciente va lleno. *@
+    var meses = AgrupadorPorFecha.PorMes(Model.Entradas, e => e.Fecha);
+    var fila = 0;
+    <div class="mt-6 space-y-6">
+        @foreach (var mes in meses)
         {
-            <li class="fila-animada tarjeta p-6"
-                style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
-                <div class="flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 class="font-semibold text-ink">@entrada.DiagnosticoMostrado</h2>
-                    <p class="text-sm capitalize tabular-nums text-muted">@entrada.FechaLarga</p>
-                </div>
-
-                @if (entrada.TieneDescripcion)
-                {
-                    <p class="mt-3 whitespace-pre-line text-ink">@entrada.Descripcion</p>
-                }
-                else
-                {
-                    <p class="mt-3 text-sm text-muted">Sin descripción cargada.</p>
-                }
-
-                <div class="mt-4 border-t border-border pt-3">
-                    @if (entrada.Firma is not null)
+            <section aria-label="@mes.Titulo">
+                <h2 class="linea-tiempo-grupo">@mes.Titulo</h2>
+                <ol class="linea-tiempo">
+                    @foreach (var entrada in mes.Elementos)
                     {
-                        <p class="text-sm text-muted">
-                            Escrita por <span class="font-medium text-ink">@entrada.Firma.NombreCompleto</span>
-                            @if (entrada.Firma.Detalle is not null)
+                        <li class="fila-animada @(fila == 0 ? "linea-tiempo-reciente" : null)" style="--i: @(fila++)">
+                            <article class="tarjeta p-5 sm:p-6">
+                            <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                <h3 class="font-semibold wrap-break-word text-ink">@entrada.DiagnosticoMostrado</h3>
+                                <p class="text-sm first-letter:uppercase tabular-nums text-muted">@entrada.FechaLarga</p>
+                            </div>
+
+                            @if (entrada.TieneDescripcion)
                             {
-                                <span aria-hidden="true"> · </span>
-                                <span>@entrada.Firma.Detalle</span>
+                                <p class="mt-3 whitespace-pre-line wrap-break-word text-ink">@entrada.Descripcion</p>
                             }
-                        </p>
+                            else
+                            {
+                                <p class="mt-3 text-sm text-muted">Sin descripción cargada.</p>
+                            }
+
+                            <div class="mt-4 border-t border-border pt-3">
+                                @if (entrada.Firma is not null)
+                                {
+                                    <p class="text-sm text-muted">
+                                        Escrita por <span class="font-medium text-ink">@entrada.Firma.NombreCompleto</span>
+                                        @if (entrada.Firma.Detalle is not null)
+                                        {
+                                            <span aria-hidden="true"> · </span>
+                                            <span>@entrada.Firma.Detalle</span>
+                                        }
+                                    </p>
+                                }
+                                <div class="@(entrada.Firma is null ? null : "mt-1") flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                                    <p class="text-xs text-muted">
+                                        Entrada #@entrada.IdHistorial
+                                        @if (entrada.IdTurno is not null)
+                                        {
+                                            <span aria-hidden="true"> · </span>
+                                            @if (entrada.EnlaceAlTurno)
+                                            {
+                                                <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@entrada.IdTurno"
+                                                   class="underline hover:text-primary">consulta del turno #@entrada.IdTurno</a>
+                                            }
+                                            else
+                                            {
+                                                <span>consulta del turno #@entrada.IdTurno</span>
+                                            }
+                                        }
+                                    </p>
+                                    @if (entrada.PuedeEditar)
+                                    {
+                                        <a asp-action="Editar" asp-route-id="@entrada.IdHistorial" asp-route-paciente="@Model.IdPaciente"
+                                           class="boton-texto area-tactil">
+                                            <icono nombre="lapiz" class="h-4 w-4" />
+                                            Editar<span class="sr-only"> la entrada #@entrada.IdHistorial</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            </article>
+                        </li>
                     }
-                    <div class="@(entrada.Firma is null ? null : "mt-1") flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                        <p class="text-xs text-muted">
-                            Entrada #@entrada.IdHistorial
-                            @if (entrada.IdTurno is not null)
-                            {
-                                <span aria-hidden="true"> · </span>
-                                @if (entrada.EnlaceAlTurno)
-                                {
-                                    <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@entrada.IdTurno"
-                                       class="underline hover:text-primary">consulta del turno #@entrada.IdTurno</a>
-                                }
-                                else
-                                {
-                                    <span>consulta del turno #@entrada.IdTurno</span>
-                                }
-                            }
-                        </p>
-                        @if (entrada.PuedeEditar)
-                        {
-                            <a asp-action="Editar" asp-route-id="@entrada.IdHistorial" asp-route-paciente="@Model.IdPaciente"
-                               class="boton-texto text-sm text-primary">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-                                    <path d="m15 5 4 4" />
-                                </svg>
-                                Editar<span class="sr-only"> la entrada #@entrada.IdHistorial</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            </li>
+                </ol>
+            </section>
         }
-    </ol>
+    </div>
 }

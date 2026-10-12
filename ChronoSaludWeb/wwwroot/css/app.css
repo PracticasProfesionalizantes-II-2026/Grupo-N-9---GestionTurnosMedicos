@@ -251,6 +251,54 @@
   --color-sombra-boton: rgba(0, 0, 0, 0.40);
 }
 
+/* Detalles de base que el navegador no trae como corresponde (Web Interface
+   Guidelines). Van en la capa base, así cualquier utilidad les gana.
+   - El resaltado del toque en el celular, la selección de texto y las barras
+     de desplazamiento siguen la paleta, también en el tema oscuro.
+   - touch-action: manipulation saca la demora del doble toque para hacer zoom
+     en los controles (el zoom con dos dedos sigue andando).
+   - Con mouse, la página no rebota al llegar al borde; en el celular se deja
+     el comportamiento normal, que trae "tirar para actualizar".
+   - Los títulos reparten las palabras entre renglones y los párrafos evitan
+     dejar una palabra sola en el último. */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    scrollbar-color: var(--color-control) var(--color-canvas);
+  }
+
+  @media (pointer: fine) {
+    html {
+      overscroll-behavior: none;
+    }
+  }
+
+  a,
+  button,
+  label,
+  summary,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-primary-soft);
+    color: var(--color-ink);
+  }
+}
+
 /* Superficies con borde y sombra: las piezas son más claras que el fondo de
    la página (blancas en claro) y se separan de él por el salto de color, un
    borde de 1,5 px y una sombra. Hay dos pesos: la tarjeta principal
@@ -326,13 +374,21 @@
      porque la sombra sola no cuenta para el 3:1. Los dos llevan borde de
      1 px para medir lo mismo. min-h-11 son 44 px de área táctil con el
      texto en tamaño normal, y acompaña la escala. */
+  /* Al presionar, el botón baja un píxel además de achicar la sombra: es un
+     translate, así que no mueve nada alrededor. */
   .boton {
-    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-input px-4 py-2.5 text-center text-sm font-semibold no-underline;
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-input px-4 py-2.5 text-center text-sm font-semibold no-underline active:translate-y-px;
   }
 
   .boton:disabled,
   .boton[aria-disabled="true"] {
-    @apply cursor-not-allowed opacity-60 shadow-none;
+    @apply cursor-not-allowed opacity-60 shadow-none active:translate-y-0;
+  }
+
+  /* Botón enviando (lo pone site.js): queda bloqueado pero sin apagarse
+     del todo, porque es una espera y no algo que no se pueda usar. */
+  .boton[aria-busy="true"] {
+    @apply cursor-progress opacity-85;
   }
 
   .boton-primario {
@@ -351,6 +407,15 @@
     @apply border border-status-cancelado-ink bg-status-cancelado text-on-primary shadow-elevado-xs hover:bg-status-cancelado-ink active:shadow-none active:inset-shadow-presionado;
   }
 
+  /* Acción destructiva menor (cancelar un turno desde su detalle, dar de
+     baja desde la edición): botón secundario en rojo. Va aparte porque
+     "boton-secundario text-status-cancelado" mezclaba el rojo del texto con
+     el hover teal del secundario. Rojo sobre card: 6,47:1; tinta roja sobre
+     el fondo rojo claro del hover: 6,02:1. */
+  .boton-peligro-suave {
+    @apply border border-status-cancelado bg-card text-status-cancelado shadow-elevado-xs hover:border-status-cancelado-ink hover:bg-status-cancelado-soft hover:text-status-cancelado-ink active:shadow-none active:inset-shadow-hundido;
+  }
+
   /* Botón de texto: sin relleno ni sombra, para acciones de poco peso
      (volver, acciones dentro de una fila). No lleva padding horizontal para
      que un "Volver" quede alineado con el título de abajo; quien lo use
@@ -364,11 +429,18 @@
      con aria-invalid o con la clase que ASP.NET le pone al campo que no
      validó en el servidor, así no depende de JavaScript. Deshabilitado baja
      al color del fondo de página. */
+  /* En el celular el texto del campo va a 16 px (text-base): con menos,
+     Safari de iPhone agranda la página al enfocarlo. Desde sm vuelve al
+     text-sm del resto de la interfaz. */
   .campo {
-    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-sm text-ink inset-shadow-hundido placeholder:text-muted hover:border-primary;
+    @apply w-full rounded-input border border-control bg-field px-3 py-2.5 text-base text-ink inset-shadow-hundido placeholder:text-muted hover:border-primary sm:text-sm;
   }
 
+  /* :user-invalid marca lo que el propio navegador sabe que está mal (un
+     email sin arroba), pero recién después de que la persona tocó el
+     campo, no al cargar la página. */
   .campo.input-validation-error,
+  .campo:user-invalid,
   .campo[aria-invalid="true"] {
     @apply border-status-cancelado bg-status-cancelado-soft/40;
   }
@@ -410,8 +482,10 @@
      La posición fija va dentro del @supports: en un navegador sin popover
      el menú queda en el flujo de la página, feo pero usable, en vez de
      flotar para siempre encima del contenido. */
+  /* Con letra grande o el celular acostado el menú puede no entrar: se
+     desplaza adentro y el desplazamiento no pasa a la página de atrás. */
   .menu-flotante {
-    @apply rounded-card border-[1.5px] border-contorno-suave bg-card p-2 text-ink shadow-flotante;
+    @apply max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain rounded-card border-[1.5px] border-contorno-suave bg-card p-2 text-ink shadow-flotante;
   }
 
   @supports selector(:popover-open) {
@@ -430,11 +504,13 @@
       width: min(18rem, calc(100vw - 2rem));
     }
 
-    /* Arriba de la barra inferior, de lado a lado. */
+    /* Arriba de la barra inferior, de lado a lado. La barra crece con el
+       área segura del iPhone (la franja del gesto de inicio), así que el
+       menú sube lo mismo. */
     .menu-mas {
       left: 0.75rem;
       right: 0.75rem;
-      bottom: 6.5rem;
+      bottom: calc(6.5rem + env(safe-area-inset-bottom));
       width: auto;
     }
 
@@ -443,7 +519,7 @@
        inferior, a la misma altura que el menú "Más". */
     .menu-ayuda {
       right: max(1rem, calc((100vw - 72rem) / 2 + 1.5rem));
-      bottom: 6.5rem;
+      bottom: calc(6.5rem + env(safe-area-inset-bottom));
       width: min(20rem, calc(100vw - 2rem));
     }
 
@@ -482,9 +558,49 @@
     .tarjeta-enlace,
     .tarjeta-filtro,
     .dia,
-    .campo {
+    .campo,
+    .segmentado a {
       transition: box-shadow 150ms ease-out, background-color 150ms ease-out,
-                  color 150ms ease-out, border-color 150ms ease-out;
+                  color 150ms ease-out, border-color 150ms ease-out,
+                  translate 100ms ease-out;
+    }
+
+    /* Los avisos de después de guardar entran desde arriba, una sola vez. */
+    .aviso-entrada {
+      animation: aparecer 220ms ease-out both;
+    }
+
+    /* La campana con avisos sin leer se balancea una vez al cargar, y el
+       globito con el número aparece creciendo. El giro sale del borde de
+       arriba de la campana, que es de donde cuelga. */
+    .campana-con-avisos svg {
+      transform-box: fill-box;
+      transform-origin: 50% 8%;
+      animation: balanceo 900ms ease-in-out 400ms 1 both;
+    }
+
+    .campana-con-avisos .globito {
+      animation: crecer 260ms cubic-bezier(.34, 1.56, .64, 1) 300ms both;
+    }
+
+    /* La aguja larga del reloj del logo da una vuelta al pasar el mouse.
+       transform-box: view-box hace que el origen se mida en las
+       coordenadas del dibujo (el centro del reloj está en 16,16). */
+    .logo-aguja {
+      transform-box: view-box;
+      transform-origin: 16px 16px;
+      transition: rotate 700ms cubic-bezier(.65, 0, .35, 1);
+    }
+
+    .logo:hover .logo-aguja {
+      rotate: 360deg;
+    }
+
+    /* El latido del botón que está enviando: el trazo recorre el camino y
+       vuelve a empezar, como un monitor. */
+    .latido-carga path {
+      stroke-dasharray: 0.35 0.65;
+      animation: recorrer 1.1s linear infinite;
     }
 
     /* Entrada de los menús flotantes. Solo se anima el estado abierto y el
@@ -527,6 +643,273 @@
   }
 }
 
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    translate: 0 -0.375rem;
+  }
+}
+
+@keyframes balanceo {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: 14deg; }
+  40% { rotate: -11deg; }
+  60% { rotate: 7deg; }
+  80% { rotate: -4deg; }
+}
+
+@keyframes crecer {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
+}
+
+@keyframes recorrer {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Componentes del pulido visual (paso 20). Van en su propia capa de
+   componentes, igual que los de arriba, para que las utilidades de las
+   vistas les ganen. */
+@layer components {
+  /* Aviso: una caja con ícono y texto, en el tono de su estado. Siempre
+     lleva ícono (<icono> como primer hijo), así el tipo de aviso no
+     depende solo del color. Error y éxito escriben en el color del estado
+     (4,70:1 y 5,02:1 sobre su fondo); pendiente e info escriben en tinta y
+     dejan el color al ícono y al borde, porque suelen llevar un enlace. */
+  .aviso {
+    @apply flex items-start gap-3 rounded-input border px-4 py-3 text-sm;
+  }
+
+  .aviso > svg {
+    @apply mt-0.5 size-4 shrink-0;
+  }
+
+  .aviso-error {
+    @apply border-status-cancelado-line bg-status-cancelado-soft text-status-cancelado;
+  }
+
+  .aviso-exito {
+    @apply border-status-confirmado-line bg-status-confirmado-soft text-status-confirmado;
+  }
+
+  .aviso-pendiente {
+    @apply border-status-pendiente-line bg-status-pendiente-soft text-ink;
+  }
+
+  .aviso-pendiente > svg {
+    @apply text-status-pendiente;
+  }
+
+  .aviso-info {
+    @apply border-status-completado-line bg-status-completado-soft text-ink;
+  }
+
+  .aviso-info > svg {
+    @apply text-status-completado;
+  }
+
+  /* Área táctil más grande que el dibujo: las acciones de texto dentro de
+     una fila (Cancelar, Marcar como leída) miden menos de 44 px de alto.
+     El ::before agranda la zona que recibe el toque sin mover nada. */
+  .area-tactil {
+    position: relative;
+  }
+
+  .area-tactil::before {
+    content: "";
+    position: absolute;
+    inset: -0.5rem 0;
+  }
+
+  /* Bloque de calendario de un turno: el mes en una franja teal, el día
+     grande y el día de la semana abajo. Es solo para la vista: el texto
+     completo de la fecha va al lado, en sr-only. */
+  .fecha-tile {
+    @apply flex w-14 shrink-0 flex-col overflow-hidden rounded-input border-[1.5px] border-contorno bg-card text-center shadow-elevado-xs;
+  }
+
+  .fecha-tile-mes {
+    @apply bg-primary py-0.5 text-[0.6875rem] font-bold tracking-wide text-on-primary uppercase;
+  }
+
+  .fecha-tile-dia {
+    @apply pt-1 text-xl leading-none font-bold text-ink tabular-nums;
+  }
+
+  .fecha-tile-semana {
+    @apply pb-1 text-[0.6875rem] font-medium text-muted;
+  }
+
+  .fecha-tile-grande {
+    @apply w-18;
+  }
+
+  .fecha-tile-grande .fecha-tile-dia {
+    @apply pt-1.5 text-3xl;
+  }
+
+  /* Lista de datos (rótulo y valor) de los detalles. Cada par va en un
+     div adentro del dl. El ícono, si lo hay, va dentro del dt, al lado del
+     rótulo (en un dl solo pueden ir dt y dd). El valor corta palabras largas
+     (un email, una dirección pegada) en vez de salirse de la tarjeta. */
+  .lista-datos {
+    @apply grid gap-x-6 gap-y-4;
+  }
+
+  .lista-datos > div {
+    @apply min-w-0;
+  }
+
+  .lista-datos dt {
+    @apply flex items-center gap-1.5 text-xs font-medium text-muted;
+  }
+
+  .lista-datos dt > svg {
+    @apply size-4 shrink-0 text-primary;
+  }
+
+  .lista-datos dd {
+    @apply mt-1 text-sm font-medium wrap-break-word text-ink;
+  }
+
+  /* Un dato que falta ("Sin datos"): en gris y sin negrita. */
+  .lista-datos dd.sin-dato {
+    @apply font-normal text-muted;
+  }
+
+  /* Línea de tiempo (historial clínico, actividad): un riel vertical con un
+     punto por entrada. El riel es del ol, así no se corta entre una
+     entrada y otra; el punto de la más reciente va lleno y con halo. */
+  .linea-tiempo {
+    @apply relative space-y-3;
+  }
+
+  .linea-tiempo::before {
+    content: "";
+    @apply absolute top-3 bottom-3 left-[0.6875rem] w-0.5 rounded-full bg-contorno;
+  }
+
+  .linea-tiempo > li {
+    @apply relative pl-8;
+  }
+
+  .linea-tiempo > li::after {
+    content: "";
+    @apply absolute top-5 left-1.5 size-3 rounded-full border-2 border-primary bg-card;
+  }
+
+  .linea-tiempo > li.linea-tiempo-reciente::after {
+    @apply bg-primary ring-4 ring-primary-soft;
+  }
+
+  /* Variante con un ícono por entrada en lugar del punto (actividad): el
+     círculo va sobre el riel, con un aro del color del fondo para que el
+     riel no lo atraviese. */
+  .linea-tiempo-iconos::before {
+    @apply left-[1.0625rem];
+  }
+
+  .linea-tiempo-iconos > li {
+    @apply pl-12;
+  }
+
+  .linea-tiempo-iconos > li::after {
+    @apply hidden;
+  }
+
+  .linea-tiempo-icono {
+    @apply absolute top-2.5 left-0 flex size-9 items-center justify-center rounded-full ring-4 ring-canvas;
+  }
+
+  /* Tarjeta secundaria que no es un enlace (cada entrada de la actividad):
+     el peso de una tarjeta-enlace pero sin hover. Va junto con .tarjeta. */
+  .tarjeta-secundaria {
+    @apply border-contorno-suave shadow-elevado-sm;
+  }
+
+  /* Encabezado de un grupo de la línea de tiempo ("Hoy", "Octubre de
+     2026"). No es fijo: con fondo propio tapaba la sombra de la tarjeta de
+     abajo y quedaba una franja. */
+  .linea-tiempo-grupo {
+    @apply mb-3 text-sm font-semibold text-muted;
+  }
+
+  /* Control segmentado: pestañas que son enlaces (Usuarios, Notificaciones).
+     La elegida va rellena en teal y en negrita, igual que el menú. El radio
+     de adentro es el de afuera menos el relleno, para que las curvas
+     queden paralelas. */
+  .segmentado {
+    @apply inline-flex max-w-full flex-wrap gap-1 rounded-input border border-control bg-card p-1 shadow-elevado-xs;
+  }
+
+  .segmentado a {
+    @apply inline-flex min-h-10 items-center rounded-badge px-3 text-sm font-medium text-muted no-underline hover:bg-primary-soft hover:text-primary-hover aria-[current=page]:bg-primary aria-[current=page]:font-semibold aria-[current=page]:text-on-primary;
+  }
+
+  /* Franja de color a la izquierda de una fila o tarjeta según el estado
+     del turno. Acompaña al chip, que es el que dice el estado con
+     palabras: el color solo nunca alcanza. */
+  .franja {
+    @apply relative;
+  }
+
+  .franja::before {
+    content: "";
+    @apply absolute inset-y-0 left-0 w-1 rounded-l-[inherit] bg-(--franja,var(--color-primary));
+  }
+
+  .franja-exito { --franja: var(--color-status-confirmado); }
+  .franja-aviso { --franja: var(--color-status-pendiente); }
+  .franja-info { --franja: var(--color-status-completado); }
+  .franja-peligro { --franja: var(--color-status-cancelado); }
+  .franja-neutro { --franja: var(--color-control); }
+
+  /* Corte de talón (confirmar un turno, comprobante): una línea punteada
+     de lado a lado con dos muescas en los bordes de la tarjeta, como un
+     ticket para cortar. Las muescas son círculos del color del fondo
+     montados sobre el borde; la tarjeta lleva overflow-hidden y los corta
+     a la mitad. */
+  .talon-corte {
+    @apply relative h-6;
+    background: linear-gradient(to right, var(--color-border) 55%, transparent 0) center / 0.75rem 2px repeat-x;
+    background-clip: content-box;
+    padding-inline: 1.25rem;
+  }
+
+  .talon-corte::before,
+  .talon-corte::after {
+    content: "";
+    @apply absolute top-0 size-6 rounded-full border-[1.5px] border-contorno bg-canvas;
+  }
+
+  .talon-corte::before {
+    left: -0.8125rem;
+  }
+
+  .talon-corte::after {
+    right: -0.8125rem;
+  }
+
+  /* El indicador del botón que está enviando. Sin movimiento no se
+     muestra: alcanza con el texto, que ya dice "Guardando…". */
+  .latido-carga {
+    @apply size-5 shrink-0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .latido-carga {
+      display: none;
+    }
+  }
+}
+
 /* Fundido corto entre páginas, sin JavaScript: el navegador cruza la página
    que se va con la que llega. Las dos tienen que pedirlo, así que una vista
    puede quedar afuera declarando navigation: none en su sección Head (lo
@@ -559,8 +942,11 @@
   outline-offset: 2px;
 }
 
-/* Entrada escalonada de las filas de los listados. El retraso de cada fila lo
-   calcula la vista con animation-delay en línea. */
+/* Entrada escalonada de las filas de los listados y de las tarjetas del
+   inicio. La vista solo dice el orden de cada una con style="--i: n"; el
+   retraso sale de acá, 40 ms por posición y con tope en la 12, para que un
+   listado largo no tarde en terminar de aparecer. fila-animada y entrada
+   son la misma animación: la primera para filas, la segunda para tarjetas. */
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -572,14 +958,17 @@
   }
 }
 
-.fila-animada {
+.fila-animada,
+.entrada {
   animation: slide-up 260ms ease-out both;
+  animation-delay: calc(min(var(--i, 0), 12) * 40ms);
 }
 
 /* Quien pidió menos movimiento no ve ninguno: las filas aparecen ya puestas.
    El bloque general cubre también las transiciones de hover del resto del sitio. */
 @media (prefers-reduced-motion: reduce) {
-  .fila-animada {
+  .fila-animada,
+  .entrada {
     animation: none;
   }
 

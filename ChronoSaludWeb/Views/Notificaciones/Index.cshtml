@@ -16,24 +16,28 @@
             {
                 <input type="hidden" name="ver" value="sin-leer" />
             }
-            <button type="submit" class="boton boton-secundario">Marcar todas como leídas</button>
+            <button type="submit" data-cargando="Marcando…" class="boton boton-secundario">Marcar todas como leídas</button>
         </form>
     }
 </div>
 
-@* Todas o solo las sin leer: dos enlaces. La pestaña elegida va rellena y
-   con aria-current. *@
-<nav aria-label="Qué notificaciones ver" class="mt-6 flex flex-wrap gap-2">
-    <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(false)"
-       aria-current="@(Model.SoloNoLeidas ? null : "page")"
-       class="boton @(Model.SoloNoLeidas ? "boton-secundario" : "boton-primario")">
-        Todas
-    </a>
-    <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(true)"
-       aria-current="@(Model.SoloNoLeidas ? "page" : null)"
-       class="boton @(Model.SoloNoLeidas ? "boton-primario" : "boton-secundario")">
-        @(!Model.HuboError && Model.NoLeidas > 0 ? $"Sin leer ({Model.NoLeidas})" : "Sin leer")
-    </a>
+@* Todas o solo las sin leer: un control segmentado con dos enlaces. La
+   pestaña elegida va rellena y con aria-current. *@
+<nav aria-label="Qué notificaciones ver" class="mt-6">
+    <div class="segmentado">
+        <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(false)"
+           aria-current="@(Model.SoloNoLeidas ? null : "page")">
+            Todas
+        </a>
+        <a asp-action="Index" asp-all-route-data="NotificacionesIndexViewModel.RutaPestana(true)"
+           aria-current="@(Model.SoloNoLeidas ? "page" : null)">
+            Sin leer
+            @if (!Model.HuboError && Model.NoLeidas > 0)
+            {
+                <span class="tabular-nums">&nbsp;(@Model.NoLeidas)</span>
+            }
+        </a>
+    </div>
 </nav>
 
 @if (Model.HuboError)
@@ -60,62 +64,79 @@ else if (Model.Notificaciones.Count == 0)
 }
 else
 {
-    <div class="mt-6 overflow-hidden tarjeta">
-        <ul aria-label="Notificaciones">
-            @foreach (var notificacion in Model.Notificaciones)
-            {
-                @* Las sin leer llevan fondo teal claro y el chip "Nueva": el
-                   estado no depende solo del color. *@
-                <li class="flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 @(notificacion.Leida ? null : "bg-primary-soft/40")">
-                    <span class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full circulo-icono">
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            @Html.Raw(IconosLucide.Trazos(notificacion.Icono))
-                        </svg>
-                    </span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-ink @(notificacion.Leida ? null : "font-semibold")">@notificacion.Mensaje</p>
-                        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                            <time datetime="@notificacion.Fecha.ToString("yyyy-MM-ddTHH:mm")" class="tabular-nums">@notificacion.FechaTexto</time>
-                            @if (!notificacion.Leida)
-                            {
-                                <partial name="_Chip" model='new ChipViewModel { Texto = "Nueva", Tono = TonoChip.Aviso }' />
-                            }
-                        </p>
-                        @if (notificacion.EsDeTurno || notificacion.EsDeEstudio || !notificacion.Leida)
+    @* Agrupadas por día ("Hoy", "Ayer", "Lunes 12 de octubre"): la hora va
+       en cada una y el día en el título del grupo. *@
+    var dias = AgrupadorPorFecha.PorDia(Model.Notificaciones, n => n.Fecha, FechaArgentina.Hoy());
+    var fila = 0;
+    <div class="mt-6 space-y-6">
+        @foreach (var dia in dias)
+        {
+            <section aria-label="@dia.Titulo">
+                <h2 class="linea-tiempo-grupo">@dia.Titulo</h2>
+                <div class="overflow-hidden tarjeta">
+                    <ul>
+                        @foreach (var notificacion in dia.Elementos)
                         {
-                            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                                @if (notificacion.EsDeTurno)
-                                {
-                                    <a asp-controller="Turnos" asp-action="Index" class="boton-texto">Ver mis turnos</a>
-                                }
-                                @if (notificacion.EsDeEstudio)
-                                {
-                                    <a asp-controller="Estudios" asp-action="Index" class="boton-texto">Ver mis estudios</a>
-                                }
-                                @if (!notificacion.Leida)
-                                {
-                                    <form method="post" asp-action="MarcarLeida" asp-route-id="@notificacion.Id">
-                                        @if (Model.SoloNoLeidas)
+                            @* Las sin leer llevan fondo teal claro, la franja de la
+                               izquierda y el chip "Nueva": el estado no depende
+                               solo del color. *@
+                            <li class="fila-animada flex items-start gap-4 border-b border-border px-5 py-4 last:border-0 @(notificacion.Leida ? null : "franja bg-primary-soft/40")"
+                                style="--i: @(fila++)">
+                                @* Sin leer, el círculo lleva un punto en la esquina, como en
+                                   cualquier bandeja de entrada (además del chip "Nueva"). *@
+                                <span class="relative mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full @(notificacion.Leida ? "bg-primary-soft text-primary-deep" : "circulo-icono")">
+                                    <icono nombre="@notificacion.Icono" class="size-5" />
+                                    @if (!notificacion.Leida)
+                                    {
+                                        <span aria-hidden="true" class="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-card bg-status-pendiente"></span>
+                                    }
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="wrap-break-word text-ink @(notificacion.Leida ? null : "font-semibold")">@notificacion.Mensaje</p>
+                                    <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                                        <time datetime="@notificacion.Fecha.ToString("yyyy-MM-ddTHH:mm")" class="tabular-nums">@notificacion.Fecha.ToString("HH:mm") hs</time>
+                                        @if (!notificacion.Leida)
                                         {
-                                            <input type="hidden" name="ver" value="sin-leer" />
+                                            <partial name="_Chip" model='new ChipViewModel { Texto = "Nueva", Tono = TonoChip.Aviso }' />
                                         }
-                                        @if (Model.Pagina > 1)
-                                        {
-                                            <input type="hidden" name="pagina" value="@Model.Pagina" />
-                                        }
-                                        @* El sr-only dice cuál: con varias, "Marcar como leída" solo no alcanza. *@
-                                        <button type="submit" class="boton-texto">
-                                            Marcar como leída<span class="sr-only">: @notificacion.Mensaje</span>
-                                        </button>
-                                    </form>
-                                }
-                            </div>
+                                    </p>
+                                    @if (notificacion.EsDeTurno || notificacion.EsDeEstudio || !notificacion.Leida)
+                                    {
+                                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                            @if (notificacion.EsDeTurno)
+                                            {
+                                                <a asp-controller="Turnos" asp-action="Index" class="boton-texto area-tactil">Ver mis turnos</a>
+                                            }
+                                            @if (notificacion.EsDeEstudio)
+                                            {
+                                                <a asp-controller="Estudios" asp-action="Index" class="boton-texto area-tactil">Ver mis estudios</a>
+                                            }
+                                            @if (!notificacion.Leida)
+                                            {
+                                                <form method="post" asp-action="MarcarLeida" asp-route-id="@notificacion.Id">
+                                                    @if (Model.SoloNoLeidas)
+                                                    {
+                                                        <input type="hidden" name="ver" value="sin-leer" />
+                                                    }
+                                                    @if (Model.Pagina > 1)
+                                                    {
+                                                        <input type="hidden" name="pagina" value="@Model.Pagina" />
+                                                    }
+                                                    @* El sr-only dice cuál: con varias, "Marcar como leída" solo no alcanza. *@
+                                                    <button type="submit" class="boton-texto area-tactil">
+                                                        Marcar como leída<span class="sr-only">: @notificacion.Mensaje</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </li>
                         }
-                    </div>
-                </li>
-            }
-        </ul>
+                    </ul>
+                </div>
+            </section>
+        }
     </div>
 
     <partial name="_Paginador" model="Model.Paginador" />

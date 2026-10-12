@@ -4,17 +4,13 @@
 }
 
 <a asp-action="Editar" asp-route-id="@Model.IdUsuario"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver al usuario
 </a>
 
 <div class="mt-6 max-w-xl">
-    <h1 class="text-2xl font-bold tracking-tight text-ink">¿Dar de baja la cuenta de @Model.NombreCompleto?</h1>
+    <h1 class="text-2xl font-bold tracking-tight wrap-break-word text-ink">¿Dar de baja la cuenta de @Model.NombreCompleto?</h1>
     <p class="mt-1 text-sm text-muted">
         No se borra nada y la podés reactivar cuando quieras.
     </p>
@@ -24,7 +20,7 @@
             <partial name="_Avatar"
                      model='new AvatarViewModel { Nombre = Model.NombreCompleto, FotoUrl = Model.TieneFoto ? Url.Action("Foto", new { id = Model.IdUsuario }) : null, Tamano = TamanoAvatar.Mediano }' />
             <span class="min-w-0">
-                <span class="block font-medium text-ink">@Model.NombreCompleto</span>
+                <span class="block font-medium wrap-break-word text-ink">@Model.NombreCompleto</span>
                 <span class="block text-sm text-muted">
                     <span class="break-all">@Model.Email</span>
                     <span aria-hidden="true"> · </span>
@@ -47,13 +43,16 @@
         {
             @* Los turnos en pie frenan la baja: primero hay que resolverlos. *@
             <div role="alert"
-                 class="mt-5 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <p class="font-semibold">
-                    Todavía no se puede: tiene @Model.TotalQueFrenan
-                    @(Model.TotalQueFrenan == 1 ? "turno pendiente o confirmado" : "turnos pendientes o confirmados")
-                    desde hoy.
-                </p>
-                <p class="mt-1">Cancelalos o reprogramalos desde cada turno y después volvé acá.</p>
+                 class="aviso aviso-error mt-5">
+                <icono nombre="alerta" />
+                <div>
+                    <p class="font-semibold">
+                        Todavía no se puede: tiene @Model.TotalQueFrenan
+                        @(Model.TotalQueFrenan == 1 ? "turno pendiente o confirmado" : "turnos pendientes o confirmados")
+                        desde hoy.
+                    </p>
+                    <p class="mt-1">Cancelalos o reprogramalos desde cada turno y después volvé acá.</p>
+                </div>
             </div>
 
             <ul class="mt-4 divide-y divide-border text-sm">
@@ -67,7 +66,7 @@
                         </span>
                         <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
                            class="rounded-badge font-semibold text-primary hover:text-primary-hover hover:underline">
-                            Ver turno #@turno.IdTurno
+                            Ver el turno<span class="sr-only"> de @turno.Paciente del @CambioDeEstadoCuentaViewModel.FechaDe(turno)</span>
                         </a>
                     </li>
                 }
@@ -86,7 +85,7 @@
         else
         {
             <form asp-action="Baja" asp-route-id="@Model.IdUsuario" method="post" class="mt-7 flex flex-wrap items-center gap-3">
-                <button type="submit" class="boton boton-peligro">
+                <button type="submit" data-cargando="Dando de baja…" class="boton boton-peligro">
                     Sí, dar de baja
                 </button>
                 <a asp-action="Editar" asp-route-id="@Model.IdUsuario" class="boton boton-secundario">

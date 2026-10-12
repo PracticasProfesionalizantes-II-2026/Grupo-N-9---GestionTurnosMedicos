@@ -19,11 +19,16 @@
         _                       => "size-5",
     };
 
-    // Fondo y texto del círculo sin foto.
-    static string ClaseTono(TonoAvatar tono) => tono switch
+    // Fondo y texto del círculo sin foto. El teal va en tres variantes que
+    // reparte el nombre (AvatarViewModel.Variante), todas con contraste de
+    // texto: teal claro con teal profundo (8,73:1), teal lleno con on-primary
+    // (6,00:1) y tarjeta con borde teal y letras teal (6,00:1).
+    static string ClaseTono(TonoAvatar tono, int variante) => (tono, variante) switch
     {
-        TonoAvatar.Terracota => "bg-accent-soft text-accent-ink",
-        _                    => "bg-primary-soft text-primary",
+        (TonoAvatar.Terracota, _) => "bg-accent-soft text-accent-ink ring-1 ring-contorno-suave",
+        (_, 1)                    => "bg-primary text-on-primary",
+        (_, 2)                    => "bg-card text-primary ring-[1.5px] ring-contorno",
+        _                         => "bg-primary-soft text-primary-deep ring-1 ring-contorno",
     };
 
     // Ancho y alto del <img> en píxeles, para que reserve su lugar antes de
@@ -42,23 +47,19 @@
 {
     <img src="@Model.FotoUrl" alt="" aria-hidden="true" loading="lazy"
          width="@Lado(Model.Tamano)" height="@Lado(Model.Tamano)"
-         class="shrink-0 rounded-full object-cover @ClaseCirculo(Model.Tamano)" />
+         class="shrink-0 rounded-full object-cover ring-1 ring-contorno @ClaseCirculo(Model.Tamano)" />
 }
 else
 {
     <span aria-hidden="true"
-          class="flex shrink-0 items-center justify-center rounded-full font-semibold @ClaseTono(Model.Tono) @ClaseCirculo(Model.Tamano)">
+          class="flex shrink-0 items-center justify-center rounded-full font-semibold @ClaseTono(Model.Tono, Model.Variante) @ClaseCirculo(Model.Tamano)">
         @if (Model.Iniciales is { } iniciales)
         {
             @iniciales
         }
         else
         {
-            <svg class="@ClaseIcono(Model.Tamano)" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="5" />
-                <path d="M20 21a8 8 0 0 0-16 0" />
-            </svg>
+            <icono nombre="persona" class="@ClaseIcono(Model.Tamano)" />
         }
     </span>
 }

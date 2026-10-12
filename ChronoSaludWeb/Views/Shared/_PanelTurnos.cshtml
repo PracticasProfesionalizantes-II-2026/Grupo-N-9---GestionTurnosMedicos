@@ -36,23 +36,50 @@
                     _                        => null
                 };
 
-                @* flex-wrap: en el celular con la letra grande, el estado y
-                   "Cancelar" bajan a otra línea en vez de salirse de la pantalla. *@
-                <li class="fila-animada relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
-                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
-                    <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">@(turno.Hora ?? "—")</span>
+                // El administrativo ve la agenda del día: le alcanza la hora.
+                // Paciente y doctor ven turnos de varios días, y el bloque de
+                // calendario les dice de un vistazo cuál es cuál.
+                var conCalendario = Model.Vista != VistaPanel.Administrador;
 
-                    <span class="min-w-0 flex-1">
+                @* flex-wrap: en el celular con la letra grande, el estado y
+                   "Cancelar" bajan a otra línea en vez de salirse de la pantalla.
+                   La franja de la izquierda lleva el color del estado, que
+                   también dice el chip. *@
+                <li class="fila-animada @FranjaEstado.Clase(turno.Estado) flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
+                    style="--i: @(fila++)">
+                    @if (conCalendario)
+                    {
+                        <partial name="_FechaTile" model="new FechaTileViewModel { Fecha = turno.FechaInicio }" />
+                    }
+                    else
+                    {
+                        <span class="w-12 shrink-0 text-sm font-semibold tabular-nums text-ink">@(turno.Hora ?? "—")</span>
+                    }
+
+                    @* basis-36: el nombre nunca queda más angosto que 9rem; si no
+                       entra al lado, el chip y "Cancelar" pasan al renglón de abajo. *@
+                    <span class="min-w-0 flex-1 basis-36">
                         <a asp-controller="Turnos" asp-action="Detalle" asp-route-id="@turno.IdTurno"
                            class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             @principal
                             <span class="sr-only">— ver el turno @turno.CuandoParaLector</span>
                         </a>
-                        @if (secundario is not null)
+                        @if (conCalendario)
+                        {
+                            <span class="block truncate text-sm text-muted">
+                                <span class="font-semibold tabular-nums text-ink">@(turno.Hora is null ? "Sin hora" : $"{turno.Hora} hs")</span>
+                                @if (secundario is not null)
+                                {
+                                    <span aria-hidden="true"> · </span>
+                                    @secundario
+                                }
+                            </span>
+                        }
+                        else if (secundario is not null)
                         {
                             <span class="block truncate text-sm text-muted">
                                 @secundario
-                                @if (Model.Vista == VistaPanel.Administrador && turno.EspecialidadMostrada is not null)
+                                @if (turno.EspecialidadMostrada is not null)
                                 {
                                     <span aria-hidden="true"> · </span>
                                     <span class="capitalize">@turno.EspecialidadMostrada</span>
@@ -71,7 +98,7 @@
                     {
                         <a asp-controller="Turnos" asp-action="Cancelar" asp-route-id="@turno.IdTurno"
                            asp-route-volver="@Url.Action("Index", "Home")"
-                           class="boton-texto relative z-10 shrink-0 px-2 py-1 text-status-cancelado">
+                           class="boton-texto area-tactil relative z-10 shrink-0 px-2 py-1 text-status-cancelado">
                             Cancelar
                             <span class="sr-only">el turno con @principal @turno.CuandoParaLector</span>
                         </a>

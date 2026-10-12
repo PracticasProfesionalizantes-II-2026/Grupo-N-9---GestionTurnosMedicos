@@ -166,6 +166,33 @@ public class RecetaFilaViewModel
     public string FechaLarga => Fecha.ToString("D", TurnosIndexViewModel.Cultura);
     public string VigenciaLarga => Vigencia.ToString("D", TurnosIndexViewModel.Cultura);
 
+    /// <summary>
+    /// Cuánto le queda, dicho con palabras para el chip del detalle: "Vence
+    /// hoy", "Vence mañana", "Vence en 5 días" o "Vencida".
+    /// </summary>
+    public string TextoVigencia => TextoDeVigencia(Vigencia, FechaArgentina.Hoy());
+
+    /// <summary>Le quedan 7 días o menos: el chip va en ámbar para que se note.</summary>
+    public bool VencePronto => VencePorVencer(Vigencia, FechaArgentina.Hoy());
+
+    public static string TextoDeVigencia(DateTime vigencia, DateTime hoy)
+    {
+        var dias = (vigencia.Date - hoy.Date).Days;
+        return dias switch
+        {
+            < 0 => "Vencida",
+            0   => "Vence hoy",
+            1   => "Vence mañana",
+            _   => $"Vence en {dias} días",
+        };
+    }
+
+    public static bool VencePorVencer(DateTime vigencia, DateTime hoy)
+    {
+        var dias = (vigencia.Date - hoy.Date).Days;
+        return dias is >= 0 and <= 7;
+    }
+
     public bool TieneDetalles => !string.IsNullOrWhiteSpace(Detalles);
 
     public static RecetaFilaViewModel Desde(Receta receta) => new()

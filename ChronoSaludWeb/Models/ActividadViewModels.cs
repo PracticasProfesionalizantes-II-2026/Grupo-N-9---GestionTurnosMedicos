@@ -25,6 +25,15 @@ public class MovimientoFilaViewModel
 
     public string FechaMostrada => FechaArgentina.CortaConHora(Fecha);
 
+    /// <summary>"14:30": en la línea de tiempo el día ya lo dice el título del grupo.</summary>
+    public string Hora => Fecha.ToString("HH:mm");
+
+    /// <summary>El código de la acción que mandó la API ("turno.creado"), para elegir el ícono.</summary>
+    public string Codigo { get; init; } = string.Empty;
+
+    /// <summary>El ícono de la acción en la línea de tiempo (claves de IconosLucide).</summary>
+    public string Icono => ActividadViewModel.IconoDeAccion(Codigo);
+
     /// <summary>Para el atributo datetime de la etiqueta time.</summary>
     public string FechaIso => Fecha.ToString("yyyy-MM-dd'T'HH:mm");
 
@@ -33,6 +42,7 @@ public class MovimientoFilaViewModel
         Fecha = TimeZoneInfo.ConvertTimeFromUtc(
             DateTime.SpecifyKind(movimiento.FechaUtc.ToUniversalTime(), DateTimeKind.Utc), FechaArgentina.Zona),
         Accion = ActividadViewModel.NombreDeAccion(movimiento.Accion),
+        Codigo = movimiento.Accion,
         Resumen = movimiento.Resumen,
         Doctor = doctor,
         Usuario = string.IsNullOrWhiteSpace(movimiento.Usuario) ? null : movimiento.Usuario.Trim(),
@@ -78,6 +88,23 @@ public class ActividadViewModel
     }
 
     public static bool EsAccionConocida(string? codigo) => Acciones.Any(a => a.Codigo == codigo);
+
+    /// <summary>
+    /// El ícono de cada acción en la línea de tiempo: el mismo que usa el
+    /// botón que la hace en el detalle del turno. Una acción que no está en
+    /// la lista lleva el del latido (actividad).
+    /// </summary>
+    public static string IconoDeAccion(string? codigo) => codigo switch
+    {
+        "turno.creado"       => "calendario-mas",
+        "turno.confirmado"   => "check-circulo",
+        "turno.reprogramado" => "calendario-flecha",
+        "turno.completado"   => "completado",
+        "turno.ausente"      => "usuario-x",
+        "turno.cancelado"    => "x-circulo",
+        "horario.cambiado"   => "reloj",
+        _                    => "actividad",
+    };
 
     /// <summary>True en "Mi actividad".</summary>
     public bool EsPropia { get; init; }

@@ -16,12 +16,8 @@
 }
 
 <a asp-controller="Admin" asp-action="Index"
-   class="boton-texto text-muted hover:text-primary">
-    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m12 19-7-7 7-7" />
-        <path d="M19 12H5" />
-    </svg>
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
     Volver a Cuentas
 </a>
 
@@ -43,19 +39,19 @@
     }
 </div>
 
-@* Activas o dadas de baja: dos enlaces que conservan la búsqueda. La
-   pestaña elegida va rellena y con aria-current. *@
-<nav aria-label="Estado de las cuentas" class="mt-6 flex flex-wrap gap-2">
-    <a asp-action="Index" asp-all-route-data="Model.RutaPestana(false)"
-       aria-current="@(Model.VerBajas ? null : "page")"
-       class="boton @(Model.VerBajas ? "boton-secundario" : "boton-primario")">
-        Activas
-    </a>
-    <a asp-action="Index" asp-all-route-data="Model.RutaPestana(true)"
-       aria-current="@(Model.VerBajas ? "page" : null)"
-       class="boton @(Model.VerBajas ? "boton-primario" : "boton-secundario")">
-        Dadas de baja
-    </a>
+@* Activas o dadas de baja: un control segmentado con dos enlaces que
+   conservan la búsqueda. La pestaña elegida va rellena y con aria-current. *@
+<nav aria-label="Estado de las cuentas" class="mt-6">
+    <div class="segmentado">
+        <a asp-action="Index" asp-all-route-data="Model.RutaPestana(false)"
+           aria-current="@(Model.VerBajas ? null : "page")">
+            Activas
+        </a>
+        <a asp-action="Index" asp-all-route-data="Model.RutaPestana(true)"
+           aria-current="@(Model.VerBajas ? "page" : null)">
+            Dadas de baja
+        </a>
+    </div>
 </nav>
 
 @* Buscador por GET: la API resuelve el texto como "contiene" sobre nombre,
@@ -69,7 +65,8 @@
     }
     <div class="w-full flex-1 sm:min-w-64">
         <label for="buscar" class="block text-sm font-medium text-ink">Buscar por nombre, apellido o email</label>
-        <input id="buscar" name="buscar" type="search" value="@Model.Buscar" placeholder="Por ejemplo: Gomez o @@gmail"
+        <input id="buscar" name="buscar" type="search" value="@Model.Buscar" placeholder="Por ejemplo: Gomez o @@gmail…"
+               autocomplete="off" spellcheck="false" autocapitalize="none"
                class="@claseCampo" />
     </div>
 
@@ -129,11 +126,13 @@ else
             @{ var fila = 0; }
             @foreach (var usuario in Model.Usuarios)
             {
-                <li class="fila-animada relative flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
-                    style="animation-delay: @(Math.Min(fila++, 12) * 40)ms">
+                @* flex-wrap: con dos chips y la letra grande, los chips bajan a
+                   otro renglón en vez de apretar el nombre. *@
+                <li class="fila-animada relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-5 py-4 last:border-0 hover:bg-primary-soft/50"
+                    style="--i: @(fila++)">
                     <partial name="_Avatar"
                              model='new AvatarViewModel { Nombre = usuario.NombreCrudo, FotoUrl = usuario.TieneFoto ? Url.Action("Foto", new { id = usuario.IdUsuario }) : null, Tamano = TamanoAvatar.Chico }' />
-                    <span class="min-w-0 flex-1">
+                    <span class="min-w-0 flex-1 basis-40">
                         <a asp-action="Editar" asp-route-id="@usuario.IdUsuario"
                            class="block truncate rounded-badge font-medium text-ink after:absolute after:inset-0 hover:text-primary">
                             @usuario.NombreCompleto

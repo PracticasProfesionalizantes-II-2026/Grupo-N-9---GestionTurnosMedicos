@@ -25,7 +25,13 @@
 <html lang="es" data-theme="@preferencias.Tema" data-scale="@preferencias.Escala">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* viewport-fit=cover deja que la página llegue debajo del notch y de la
+       franja del gesto de inicio del iPhone; la barra inferior se corre con
+       env(safe-area-inset-bottom) para no quedar tapada. *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    @* La barra del navegador del celular toma el color del fondo de la
+       página (canvas) del tema elegido. *@
+    <meta name="theme-color" content="@(preferencias.Tema == "dark" ? "#16130F" : "#EFE6DA")" />
     @{
         var titulo = ViewData["Title"] as string;
     }
@@ -42,7 +48,7 @@
 </head>
 @* Con sesión, en el celular hay una barra fija abajo: el margen inferior evita
    que tape el final de la página (el botón de un formulario, por ejemplo). *@
-<body class="min-h-screen bg-canvas font-sans text-ink antialiased @(menu.HaySesion ? "pb-24 md:pb-0" : null)">
+<body class="min-h-screen bg-canvas font-sans text-ink antialiased @(menu.HaySesion ? "pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0" : null)">
     <a href="#contenido" class="saltar boton boton-primario print:hidden">Saltar al contenido</a>
 
     @* El encabezado no es fijo a propósito: hay pantallas que vuelven ancladas
@@ -53,12 +59,11 @@
            si no entran al lado del logo (pasa con la letra extra grande);
            desde md la fila no se corta, porque el menú ya se achica solo. *@
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3 @(menu.HaySesion ? "md:flex-nowrap" : null)">
-            <a class="flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index">
-                <svg class="size-7 shrink-0" viewBox="0 0 32 32" aria-hidden="true">
-                    <rect width="32" height="32" rx="7" class="fill-primary" />
-                    <path d="M16 8v8l5 3" fill="none" class="stroke-on-primary" stroke-width="3"
-                          stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+            @* El logo (_Logo) es el favicon; la aguja larga da una vuelta al
+               pasar el mouse. La marca no se traduce: translate="no" frena al
+               traductor del navegador. *@
+            <a class="logo flex items-center gap-2 rounded-input text-lg font-bold tracking-tight text-primary" asp-controller="Home" asp-action="Index" translate="no">
+                <partial name="_Logo" />
                 ChronoSalud
             </a>
 
@@ -87,7 +92,9 @@
                         var campana = new CampanaViewModel
                         {
                             NoLeidas = await Notificaciones.NoLeidasParaLaCampanaAsync(),
-                            Activa = string.Equals(controlador, "Notificaciones", StringComparison.OrdinalIgnoreCase)
+                            Activa = string.Equals(controlador, "Notificaciones", StringComparison.OrdinalIgnoreCase),
+                            EnElInicio = string.Equals(controlador, "Home", StringComparison.OrdinalIgnoreCase)
+                                         && string.Equals(accion, "Index", StringComparison.OrdinalIgnoreCase)
                         };
                         <partial name="_Campana" model="campana" />
                     }
@@ -119,28 +126,21 @@
 
     <main id="contenido" class="mx-auto max-w-6xl px-6 py-10">
         @* Los avisos de después de guardar. El de éxito se anuncia sin
-           interrumpir (status); el de error, enseguida (alert). *@
+           interrumpir (status); el de error, enseguida (alert). Entran con
+           un movimiento corto, y con data-cerrable site.js les suma un botón
+           para cerrarlos. *@
         @if (TempData["Exito"] is string mensajeExito)
         {
-            <div role="status" class="mb-8 flex items-start gap-3 rounded-input border border-status-confirmado-line bg-status-confirmado-soft px-4 py-3 text-sm text-status-confirmado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m9 12 2 2 4-4" />
-                </svg>
-                <span>@mensajeExito</span>
+            <div role="status" class="aviso aviso-exito aviso-entrada mb-8" data-cerrable>
+                <icono nombre="check-circulo" />
+                <span class="flex-1">@mensajeExito</span>
             </div>
         }
         @if (TempData["Error"] is string mensajeError)
         {
-            <div role="alert" class="mb-8 flex items-start gap-3 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                    <path d="M12 9v4" />
-                    <path d="M12 17h.01" />
-                </svg>
-                <span>@mensajeError</span>
+            <div role="alert" class="aviso aviso-error aviso-entrada mb-8" data-cerrable>
+                <icono nombre="alerta" />
+                <span class="flex-1">@mensajeError</span>
             </div>
         }
         @RenderBody()
@@ -148,7 +148,7 @@
 
     <footer class="border-t border-border print:hidden">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-sm text-muted">
-            <span>&copy; 2026 ChronoSalud</span>
+            <span>&copy; 2026 <span translate="no">ChronoSalud</span></span>
             @* En todas las páginas: abre la ventanita con las formas de pedir ayuda. *@
             <partial name="_Ayuda" />
             <a class="hover:text-primary" asp-controller="Home" asp-action="Privacy">Privacidad</a>

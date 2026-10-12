@@ -6,7 +6,7 @@
 
 @* Misma tarjeta de acceso que el login: formulario y motivo de marca. *@
 <div class="tarjeta mx-auto max-w-md overflow-hidden md:grid md:max-w-4xl md:grid-cols-2">
-    <div class="h-24 px-6 pt-6 md:order-last md:flex md:h-auto md:items-center md:p-10">
+    <div class="h-16 px-6 pt-5 md:order-last md:flex md:h-auto md:items-center md:border-l md:border-border md:bg-hero md:p-10">
         <partial name="_MotivoMarca" />
     </div>
 
@@ -16,12 +16,15 @@
         @if (Model.Enviado)
         {
             @* Siempre el mismo aviso, exista o no la cuenta. *@
-            <div role="status" class="mt-6 rounded-input border border-status-confirmado-line bg-status-confirmado-soft px-4 py-3 text-sm text-status-confirmado">
-                <p>
-                    Si <span class="font-semibold">@Model.Email</span> es el email de una cuenta de ChronoSalud,
-                    te mandamos un enlace para crear una contraseña nueva.
-                </p>
-                <p class="mt-2">El enlace vale una hora. Si no lo ves, fijate en la carpeta de correo no deseado.</p>
+            <div role="status" class="aviso aviso-exito mt-6">
+                <icono nombre="check-circulo" />
+                <div>
+                    <p>
+                        Si <span class="font-semibold">@Model.Email</span> es el email de una cuenta de ChronoSalud,
+                        te mandamos un enlace para crear una contraseña nueva.
+                    </p>
+                    <p class="mt-2">El enlace vale una hora. Si no lo ves, fijate en la carpeta de correo no deseado.</p>
+                </div>
             </div>
 
             <a asp-action="Login" class="boton boton-primario mt-7 w-full">Volver a ingresar</a>
@@ -34,22 +37,25 @@
 
             @if (erroresGenerales is { Count: > 0 })
             {
-                <div role="alert" class="mt-6 rounded-input border border-status-cancelado-line bg-status-cancelado-soft px-4 py-3 text-sm text-status-cancelado">
-                    @foreach (var error in erroresGenerales)
-                    {
-                        <p>@error.ErrorMessage</p>
-                    }
+                <div role="alert" class="aviso aviso-error mt-6">
+                    <icono nombre="alerta" />
+                    <div>
+                        @foreach (var error in erroresGenerales)
+                        {
+                            <p>@error.ErrorMessage</p>
+                        }
+                    </div>
                 </div>
             }
 
             <form asp-action="Recuperar" method="post" novalidate class="mt-6">
                 <div>
                     <label asp-for="Email" class="block text-sm font-medium text-ink"></label>
-                    <input asp-for="Email" autocomplete="email" autofocus placeholder="tu@@email.com" class="campo mt-1.5" />
+                    <input asp-for="Email" autocomplete="email" spellcheck="false" autocapitalize="none" data-autofoco placeholder="tu@@email.com" class="campo mt-1.5" />
                     <span asp-validation-for="Email" class="mt-1 block text-xs text-status-cancelado"></span>
                 </div>
 
-                <button type="submit" class="boton boton-primario mt-7 w-full">Mandarme el enlace</button>
+                <button type="submit" data-cargando="Enviando…" class="boton boton-primario mt-7 w-full">Mandarme el enlace</button>
             </form>
 
             <p class="mt-6 text-sm text-muted">
