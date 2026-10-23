@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 21
+# Cambios en la API — Mejoras, pasos 2 a 22
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) `feature/agenda-y-estudios` (paso 16) y el paso 21 (correo y recordatorios). Los pasos 14, 15, 17, 19 y 20 no tocaron la API
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) `feature/agenda-y-estudios` (paso 16) el paso 21 (correo y recordatorios) y el paso 22 (reportes). Los pasos 14, 15, 17, 19 y 20 no tocaron la API
 
 Un apartado por cada paso.
 
@@ -759,3 +759,65 @@ Las notificaciones de los turnos dicen el día con palabras y ya no traen comill
 | `Logica/RecordatorioDeTurnos.cs`, `RecordatoriosProgramados.cs` (nuevos) | El recordatorio del día y el servicio que lo dispara |
 | `Logica/TurnoLogica.cs`, `EstudioLogica.cs` | Textos nuevos y aviso por correo |
 | `Repositorios/NotificacionRepository.cs`, `INotificacionRepository.cs` | Nuevo `Existe`, para no repetir recordatorios |
+
+---
+
+## Paso 22 — Reportes de turnos
+
+**No hay migración.** Todo se cuenta sobre `Turnos` y `Doctores`.
+
+### Nuevo `GET /reportes/resumen`
+
+Es lo que usa la pantalla nueva **Reportes** de la Web: todo en una llamada.
+
+| Parámetro | Qué es |
+|---|---|
+| `fecha_desde`, `fecha_hasta` | Obligatorios. Días, los dos incluidos. Hasta 366 días |
+| `doctor_id` | Opcional, solo para el administrador |
+| `especialidad` | Opcional, solo para el administrador. Igual a la del doctor, sin mirar mayúsculas |
+
+Devuelve:
+
+```json
+{
+  "desde": "2026-10-01T00:00:00", "hasta": "2026-10-31T00:00:00",
+  "idDoctor": null, "especialidad": null,
+  "turnos": { "total": 47, "pendientes": 3, "confirmados": 8, "completados": 24, "ausentes": 7, "cancelados": 5, "ausentismo": 22.6 },
+  "pacientesAtendidos": 6,
+  "porEspecialidad": [ { "especialidad": "Clínica", "turnos": { "total": 13, … } } ],
+  "porDoctor": [ { "idDoctor": 1, "doctor": "Laura Gomez", "especialidad": "Clínica", "activo": true, "turnos": { … } } ]
+}
+```
+
+- **`ausentismo`:** el porcentaje de ausentes entre los turnos ya cerrados con el paciente (completados más ausentes), con un decimal. Los pendientes, confirmados y cancelados no cuentan. `null` si no hay ninguno cerrado.
+- **`pacientesAtendidos`:** pacientes distintos con al menos un turno completado.
+- **`porDoctor`:**
+  - incluye a los doctores activos sin turnos (con ceros);
+  - suma a los dados de baja que tuvieron turnos en el período, con `activo: false`, así el desglose suma lo mismo que el total;
+  - va de más turnos a menos.
+- **`porEspecialidad`:** junta las especialidades escritas distinto ("Clínica" y "clínica").
+- **Permisos:**
+  - **Administrador:** toda la clínica, con los filtros.
+  - **Doctor:** solo sus turnos. Su `IdDoctor` sale del token y pisa `doctor_id` y `especialidad`, como en `GET /movimientos`.
+  - **Paciente:** 403.
+- **Errores:**
+  - **400:** faltan las fechas, `fecha_hasta` es anterior a `fecha_desde` o el período pasa de 366 días.
+  - **404:** un `doctor_id` que no existe, o un doctor sin perfil.
+- **Cómo cuenta:** SQL Server agrupa por doctor y estado. No se trae ningún turno.
+
+### A quién le pega
+
+- **La Web:** pantalla nueva **Reportes**, que se abre desde los accesos rápidos del inicio del administrador y del doctor.
+- **Los tres endpoints viejos de `/reportes`:** no cambian.
+- **Orden de despliegue:** la **API antes que la Web**. Con la API vieja, la pantalla Reportes de la Web nueva no puede cargar el reporte y muestra un aviso; el resto anda igual.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Endpoints/ReporteEndpoints.cs` | `GET /reportes/resumen` |
+| `Logica/ReporteLogica.cs`, `IReporteLogica.cs` (nuevos) | Permisos, validación del período, desglose y ausentismo |
+| `Logica/DTOs/ReporteDTOs.cs` (nuevo) | `ReporteResumenDto`, `ConteoTurnosDto`, `ReporteEspecialidadDto` y `ReporteDoctorDto` |
+| `Repositorios/TurnoRepository.cs`, `ITurnoRepository.cs` | `ContarPorDoctorYEstado` y `ContarPacientesAtendidos` con filtro |
+| `Repositorios/FiltroTurnos.cs` | Filtro nuevo, `Especialidad` |
+| `Program.cs` | Registra `IReporteLogica` |

@@ -1,0 +1,324 @@
+@model ReportesViewModel
+@{
+    ViewData["Title"] = Model.Titulo;
+    const string claseCampo = "campo mt-1.5";
+    const string claseEtiqueta = "block text-sm font-medium text-ink";
+
+    var reporte = Model.Reporte;
+
+    // El desglose por especialidad y por doctor es de la administración, y
+    // solo cuando mira a más de un doctor: con uno solo repetiría los totales.
+    var conDesglose = !Model.EsPropia && Model.Doctor is null && reporte is not null;
+
+    // Una fila del desglose, la misma para especialidades y doctores.
+    async Task Desglose(string id, string titulo, string columna, IReadOnlyList<(string Nombre, string? Detalle, bool DeBaja, int? IdDoctor, ConteoTurnos Turnos)> filas)
+    {
+        var maximo = filas.Count == 0 ? 0 : filas.Max(f => f.Turnos.Total);
+        var orden = 0;
+
+        <section aria-labelledby="@id" class="tarjeta mt-6 overflow-hidden">
+            <header class="tarjeta-encabezado px-5 py-3">
+                <h2 id="@id" class="font-semibold">@titulo</h2>
+            </header>
+
+            @* En el celular, una tarjeta por fila: la tabla de seis columnas no entra. *@
+            <ul class="divide-y divide-border md:hidden">
+                @foreach (var fila in filas)
+                {
+                    <li class="fila-animada px-5 py-4" style="--i: @(orden++)">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <span class="min-w-0">
+                                @if (fila.IdDoctor is { } idDoctor && !fila.DeBaja)
+                                {
+                                    <a asp-controller="Doctores" asp-action="Detalle" asp-route-id="@idDoctor"
+                                       class="font-medium wrap-break-word text-ink hover:text-primary">@fila.Nombre</a>
+                                }
+                                else
+                                {
+                                    <span class="font-medium wrap-break-word text-ink">@fila.Nombre</span>
+                                }
+                                @if (fila.DeBaja)
+                                {
+                                    <partial name="_Chip" model='new ChipViewModel { Texto = "Dado de baja" }' />
+                                }
+                                @if (fila.Detalle is not null)
+                                {
+                                    <span class="block text-sm text-muted">@fila.Detalle</span>
+                                }
+                            </span>
+                            <span class="shrink-0 text-sm text-muted">
+                                <span class="font-semibold tabular-nums text-ink">@fila.Turnos.Total</span>
+                                @(fila.Turnos.Total == 1 ? "turno" : "turnos")
+                            </span>
+                        </div>
+                        <span class="barra-reporte mt-2" aria-hidden="true">
+                            <span style="--valor: @(ReportesViewModel.Porcentaje(fila.Turnos.Total, maximo))%; --i: @orden"></span>
+                        </span>
+                        <p class="mt-2 text-sm text-muted">
+                            <span class="tabular-nums">@fila.Turnos.Completados</span> completados ·
+                            <span class="tabular-nums">@fila.Turnos.Ausentes</span> ausentes ·
+                            <span class="tabular-nums">@fila.Turnos.Cancelados</span> cancelados ·
+                            ausentismo <span class="tabular-nums">@ReportesViewModel.TextoDeAusentismo(fila.Turnos.Ausentismo)</span>
+                        </p>
+                    </li>
+                }
+            </ul>
+
+            @* relative: los textos sr-only quedan adentro del scroll de la tabla. *@
+            <div class="relative hidden overflow-x-auto md:block">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b border-border text-xs font-semibold text-muted">
+                            <th scope="col" class="px-5 py-3 font-semibold">@columna</th>
+                            <th scope="col" class="w-1/4 px-5 py-3 font-semibold">Turnos</th>
+                            <th scope="col" class="px-5 py-3 text-right font-semibold">Completados</th>
+                            <th scope="col" class="px-5 py-3 text-right font-semibold">Ausentes</th>
+                            <th scope="col" class="px-5 py-3 text-right font-semibold">Cancelados</th>
+                            <th scope="col" class="px-5 py-3 text-right font-semibold">Ausentismo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ orden = 0; }
+                        @foreach (var fila in filas)
+                        {
+                            <tr class="fila-animada border-b border-border last:border-0 hover:bg-primary-soft/50" style="--i: @(orden++)">
+                                <th scope="row" class="px-5 py-3 text-left font-normal">
+                                    <span class="flex flex-wrap items-center gap-2">
+                                        @if (fila.IdDoctor is { } idDoctor && !fila.DeBaja)
+                                        {
+                                            <a asp-controller="Doctores" asp-action="Detalle" asp-route-id="@idDoctor"
+                                               class="rounded-badge font-medium text-ink hover:text-primary">@fila.Nombre</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="font-medium text-ink">@fila.Nombre</span>
+                                        }
+                                        @if (fila.DeBaja)
+                                        {
+                                            <partial name="_Chip" model='new ChipViewModel { Texto = "Dado de baja" }' />
+                                        }
+                                    </span>
+                                    @if (fila.Detalle is not null)
+                                    {
+                                        <span class="block text-muted">@fila.Detalle</span>
+                                    }
+                                </th>
+                                <td class="px-5 py-3">
+                                    <span class="flex items-center gap-3">
+                                        <span class="w-8 shrink-0 text-right font-semibold tabular-nums text-ink">@fila.Turnos.Total</span>
+                                        <span class="barra-reporte" aria-hidden="true">
+                                            <span style="--valor: @(ReportesViewModel.Porcentaje(fila.Turnos.Total, maximo))%; --i: @orden"></span>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-right tabular-nums">@fila.Turnos.Completados</td>
+                                <td class="px-5 py-3 text-right tabular-nums">@fila.Turnos.Ausentes</td>
+                                <td class="px-5 py-3 text-right tabular-nums">@fila.Turnos.Cancelados</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right tabular-nums">@ReportesViewModel.TextoDeAusentismo(fila.Turnos.Ausentismo)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    // Una tarjeta de número, como las del inicio pero con texto (el ausentismo
+    // lleva coma y "%").
+    async Task Metrica(int orden, string icono, string titulo, string valor, string? nota = null)
+    {
+        var claseCirculo = orden % 2 == 0 ? "circulo-icono" : "bg-accent-soft text-accent-ink";
+        <div class="entrada tarjeta p-5" style="--i: @orden">
+            <div class="flex items-center gap-2.5 text-sm text-muted">
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full @claseCirculo">
+                    <icono nombre="@icono" class="size-[1.125rem]" />
+                </span>
+                @titulo
+            </div>
+            <p class="mt-3 text-3xl font-bold tabular-nums text-primary-hover">@valor</p>
+            @if (nota is not null)
+            {
+                <p class="mt-1 text-xs text-muted">@nota</p>
+            }
+        </div>
+    }
+}
+
+<a asp-controller="Home" asp-action="Index"
+   class="boton-texto area-tactil text-muted hover:text-primary">
+    <icono nombre="volver" class="h-4 w-4" />
+    Volver al inicio
+</a>
+
+<div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">@Model.Titulo</h1>
+        <p class="mt-1 max-w-2xl text-sm text-muted">
+            @if (Model.EsPropia)
+            {
+                <text>Cómo vienen tus turnos: cuántos se atendieron, cuántos se cancelaron y cuántos pacientes no vinieron.</text>
+            }
+            else
+            {
+                <text>Cómo vienen los turnos de la clínica, por estado, por especialidad y por doctor.</text>
+            }
+        </p>
+    </div>
+    @if (reporte is not null)
+    {
+        @* Un enlace y no un formulario: descargar no cambia nada. *@
+        <a asp-action="Csv" asp-all-route-data="Model.RutaActual()" class="boton boton-secundario" download>
+            <icono nombre="descargar" class="size-4" />
+            Descargar CSV
+            <span class="sr-only">del reporte, para abrir en Excel</span>
+        </a>
+    }
+</div>
+
+<nav aria-label="Período" class="mt-6">
+    <div class="segmentado">
+        @foreach (var (clave, titulo) in PeriodoDeReporte.Opciones)
+        {
+            <a asp-action="Index" asp-all-route-data="Model.RutaDe(clave)"
+               aria-current="@(Model.Periodo.Clave == clave ? "page" : null)">@titulo</a>
+        }
+    </div>
+</nav>
+
+@* Filtros por GET: el reporte se puede recargar o compartir. Al elegir
+   fechas a mano el período pasa a ser esas fechas. *@
+<form method="get" asp-action="Index" class="mt-4 flex flex-wrap items-end gap-4 tarjeta p-5">
+    <div class="w-full sm:w-auto">
+        <label for="desde" class="@claseEtiqueta">Desde</label>
+        <input id="desde" name="desde" type="date" value="@Model.Periodo.Desde.ToString("yyyy-MM-dd")"
+               class="@claseCampo tabular-nums" aria-invalid="@(Model.ProblemaDelPeriodo is null ? null : "true")"
+               aria-describedby="@(Model.ProblemaDelPeriodo is null ? null : "problema-periodo")" />
+    </div>
+
+    <div class="w-full sm:w-auto">
+        <label for="hasta" class="@claseEtiqueta">Hasta</label>
+        <input id="hasta" name="hasta" type="date" value="@Model.Periodo.Hasta.ToString("yyyy-MM-dd")"
+               class="@claseCampo tabular-nums" aria-invalid="@(Model.ProblemaDelPeriodo is null ? null : "true")"
+               aria-describedby="@(Model.ProblemaDelPeriodo is null ? null : "problema-periodo")" />
+    </div>
+
+    @if (!Model.EsPropia)
+    {
+        <div class="w-full sm:w-56">
+            <label for="especialidad" class="@claseEtiqueta">Especialidad</label>
+            <select id="especialidad" name="especialidad" asp-items="Model.Especialidades" class="@claseCampo">
+                <option value="">Todas</option>
+            </select>
+        </div>
+
+        <div class="w-full sm:w-56">
+            <label for="doctor" class="@claseEtiqueta">Doctor</label>
+            <select id="doctor" name="doctor" asp-items="Model.Doctores" class="@claseCampo">
+                <option value="">Todos</option>
+            </select>
+        </div>
+    }
+
+    <div class="flex items-center gap-2">
+        <button type="submit" class="boton boton-primario" data-cargando="Cargando…">Ver reporte</button>
+        @if (Model.HayFiltro || Model.Periodo.Clave == PeriodoDeReporte.Elegido)
+        {
+            <a asp-action="Index" class="boton boton-secundario">Limpiar</a>
+        }
+    </div>
+
+    @if (Model.ProblemaDelPeriodo is not null)
+    {
+        <p id="problema-periodo" class="w-full text-sm text-status-cancelado">@Model.ProblemaDelPeriodo</p>
+    }
+</form>
+
+@if (Model.Aviso is not null)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "info", Tono = TonoVacio.Aviso, Nivel = 2, Titulo = "No podemos mostrarte tus reportes", Ayuda = Model.Aviso }' />
+    </div>
+}
+else if (Model.Error is not null)
+{
+    <div class="tarjeta mt-8">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "alerta", Tono = TonoVacio.Error, Nivel = 2, Titulo = "No se pudo cargar el reporte", Ayuda = Model.Error, Accion = new EnlaceViewModel { Controlador = "Reportes", Accion = "Index", Ruta = Model.RutaActual(), Descripcion = "Reintentar" } }' />
+    </div>
+}
+else if (reporte is not null)
+{
+    <h2 class="mt-8 text-lg font-semibold text-ink">
+        @Model.TextoDelPeriodo
+        @if (Model.DeQuien is { } deQuien)
+        {
+            <span class="font-normal text-muted">· @deQuien</span>
+        }
+    </h2>
+
+    @if (!Model.HayTurnos)
+    {
+        <div class="tarjeta mt-4">
+            <partial name="_EstadoVacio"
+                     model='new EstadoVacioViewModel { Icono = "grafico", Nivel = 3, Titulo = "No hubo turnos en este período", Ayuda = "Probá con otro período o sacando los filtros." }' />
+        </div>
+    }
+    else
+    {
+        var t = reporte.Turnos;
+
+        @* Dos columnas mientras cada tarjeta tenga al menos 10rem; si no, una,
+           como la grilla del inicio. *@
+        <div class="mt-4 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4">
+            @{
+                await Metrica(0, "calendario", "Turnos", $"{t.Total}");
+                await Metrica(1, "personas", "Pacientes atendidos", $"{reporte.PacientesAtendidos}");
+                await Metrica(2, "usuario-x", "Ausentismo", ReportesViewModel.TextoDeAusentismo(t.Ausentismo),
+                    nota: "De los turnos cerrados, cuántos pacientes no vinieron.");
+                await Metrica(3, "calendario-x", "Cancelados", $"{t.Cancelados}");
+            }
+        </div>
+
+        <section aria-labelledby="por-estado" class="tarjeta mt-6 overflow-hidden">
+            <header class="tarjeta-encabezado px-5 py-3">
+                <h2 id="por-estado" class="font-semibold">Por estado</h2>
+            </header>
+            <ul class="space-y-4 px-5 py-5">
+                @{ var indice = 0; }
+                @foreach (var estado in Model.Estados)
+                {
+                    <li>
+                        <div class="flex items-baseline justify-between gap-3 text-sm">
+                            <span class="font-medium text-ink">@estado.Etiqueta</span>
+                            <span class="text-muted">
+                                <span class="font-semibold tabular-nums text-ink">@estado.Cantidad</span>
+                                <span class="tabular-nums">· @estado.Porcentaje&nbsp;%</span>
+                            </span>
+                        </div>
+                        <span class="barra-reporte barra-@(estado.Tono) mt-1.5" aria-hidden="true">
+                            <span style="--valor: @(estado.Porcentaje)%; --i: @(indice++)"></span>
+                        </span>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        @if (conDesglose)
+        {
+            if (Model.Especialidad is null && reporte.PorEspecialidad.Count > 1)
+            {
+                await Desglose("por-especialidad", "Por especialidad", "Especialidad",
+                    reporte.PorEspecialidad.Select(e => (e.Especialidad, (string?)null, false, (int?)null, e.Turnos)).ToList());
+            }
+
+            await Desglose("por-doctor", "Por doctor", "Doctor",
+                reporte.PorDoctor.Select(d => (d.Doctor, (string?)d.Especialidad, !d.Activo, (int?)d.IdDoctor, d.Turnos)).ToList());
+        }
+
+        <p class="mt-6 text-sm text-muted">
+            Se cuentan los turnos por el día en que son, con los dos días del período incluidos.
+            El ausentismo es la parte de los turnos ya cerrados (completados y ausentes) en la que el paciente no vino.
+        </p>
+    }
+}

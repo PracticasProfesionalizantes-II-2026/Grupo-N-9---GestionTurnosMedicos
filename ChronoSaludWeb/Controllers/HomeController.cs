@@ -337,6 +337,13 @@ public class HomeController : Controller
                 Controlador = "Actividad",
                 Accion = "Mia"
             });
+            accesos.Add(new AccesoRapidoViewModel
+            {
+                Titulo = "Mis reportes",
+                Icono = "grafico",
+                Controlador = "Reportes",
+                Accion = "Index"
+            });
         }
 
         return new DashboardViewModel
@@ -505,6 +512,14 @@ public class HomeController : Controller
                     Titulo = "Actividad",
                     Icono = "actividad",
                     Controlador = "Actividad",
+                    Accion = "Index"
+                },
+                new AccesoRapidoViewModel
+                {
+                    // Turnos por estado, especialidad y doctor, con el ausentismo.
+                    Titulo = "Reportes",
+                    Icono = "grafico",
+                    Controlador = "Reportes",
                     Accion = "Index"
                 }
             },

@@ -841,3 +841,37 @@ con la API y la Web reales: 42 chequeos.
   - que cada paciente elija si quiere los correos;
   - un recordatorio el día anterior, además del del día;
   - avisar también al doctor.
+
+## 2026-10-23 — mejoras, paso 22: reportes
+**Hecho:**
+- **API:** `GET /reportes/resumen` trae todo en una llamada:
+  - los turnos por estado;
+  - los pacientes atendidos;
+  - el ausentismo: ausentes sobre completados más ausentes;
+  - el desglose por especialidad y por doctor.
+
+  SQL Server agrupa por doctor y estado, así que no se trae ningún turno. El administrador filtra por doctor y especialidad; el doctor ve solo lo suyo, porque la API lo saca del token.
+- **Web, pantalla Reportes** (`ReportesController`). Se abre desde un acceso rápido nuevo en el inicio: "Reportes" para el administrador y "Mis reportes" para el doctor.
+  - **Períodos:** "Esta semana", "Semana pasada", "Este mes" y "Mes pasado" en un control segmentado, o fechas elegidas a mano. La semana va de lunes a domingo, y por defecto se muestra "Este mes".
+  - **Números arriba:** turnos, pacientes atendidos, ausentismo y cancelados.
+  - **Barras por estado** con el color del chip de cada estado.
+  - **Tablas por especialidad y por doctor** (solo el administrador). En el celular pasan a tarjetas.
+  - **Descargar CSV:** lo mismo que se ve, separado por punto y coma, con coma decimal y en UTF-8 con BOM, para que Excel en castellano lo abra bien. Un nombre que empieza con `=`, `+`, `-` o `@` lleva un apóstrofo adelante para que Excel no lo tome como fórmula.
+  - **Un período mal elegido** (al revés o de más de un año) se marca en el formulario y no se llama a la API.
+  - **Piezas nuevas:** la barra de reporte (`docs/diseno.md`) y los íconos `grafico` y `descargar`.
+- **Probado:**
+  - 56 pruebas nuevas (478 en total): permisos, ausentismo, desglose, doctores dados de baja, períodos, textos, barras, rutas y CSV, con su escape.
+  - En Chromium contra la Web y la API reales, con SQL Server en Docker, los datos de `tools/Seed` y 34 turnos pasados de octubre:
+    - administrador y doctor, en claro y oscuro, en computadora y en celular con letra extra grande;
+    - sin scroll horizontal y sin errores de JavaScript;
+    - la descarga del CSV;
+    - el paciente recibe "sin permiso".
+
+**Ojo:**
+- Sin migración y sin nada para Azure.
+- La API conviene publicarla antes que la Web.
+- Hay que recompilar `app.build.css` con la CLI de Tailwind (ya está recompilado en este paso).
+- **Quedan para más adelante:**
+  - turnos día por día;
+  - versión para imprimir;
+  - comparar con el período anterior.

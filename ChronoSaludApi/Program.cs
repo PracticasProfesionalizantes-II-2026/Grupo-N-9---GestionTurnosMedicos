@@ -110,6 +110,7 @@ builder.Services.AddScoped<INotificacionLogica,    NotificacionLogica>();
 builder.Services.AddScoped<IHorarioLaboralLogica,  HorarioLaboralLogica>();
 builder.Services.AddScoped<IUsuarioFotoLogica,     UsuarioFotoLogica>();
 builder.Services.AddScoped<IMovimientoLogica,      MovimientoLogica>();
+builder.Services.AddScoped<IReporteLogica,         ReporteLogica>();
 builder.Services.AddScoped<IRegistroMovimientos,   RegistroMovimientos>();
 
 // La hora de Argentina. Uno solo para toda la aplicación: no guarda nada.
