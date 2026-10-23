@@ -11,6 +11,7 @@ public class EstudioLogica : IEstudioLogica
     private readonly IDoctorRepository _doctorRepo;
     private readonly ITurnoRepository _turnoRepo;
     private readonly INotificacionRepository _notifRepo;
+    private readonly AvisosPorCorreo? _avisos;
     private readonly IReloj _reloj;
     private readonly ILogger<EstudioLogica> _logger;
 
@@ -21,7 +22,8 @@ public class EstudioLogica : IEstudioLogica
         ITurnoRepository turnoRepo,
         INotificacionRepository notifRepo,
         IReloj reloj,
-        ILogger<EstudioLogica> logger)
+        ILogger<EstudioLogica> logger,
+        AvisosPorCorreo? avisos = null)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
@@ -30,6 +32,7 @@ public class EstudioLogica : IEstudioLogica
         _notifRepo = notifRepo;
         _reloj = reloj;
         _logger = logger;
+        _avisos = avisos;
     }
 
     public async Task<(IEnumerable<EstudioDto> estudios, string? error, bool prohibido)> ObtenerDePaciente(
@@ -129,20 +132,26 @@ public class EstudioLogica : IEstudioLogica
 
         await _repo.Actualizar(estudio);
 
-        // Un fallo al insertar la notificación nunca puede hacer fracasar ni
-        // parecer que fracasó la carga del resultado, que ya se guardó.
+        // Un fallo al insertar la notificación o al encolar el correo nunca
+        // puede hacer fracasar ni parecer que fracasó la carga del resultado,
+        // que ya se guardó.
         try
         {
             var paciente = await _pacienteRepo.ObtenerPorId(estudio.IdPaciente);
             if (paciente?.Usuario != null)
             {
+                var mensaje = MensajeDeResultado(estudio);
                 await _notifRepo.Agregar(new Notificacion
                 {
                     IdUsuario = paciente.Usuario.Id,
                     Tipo      = "estudio",
-                    Mensaje   = MensajeDeResultado(estudio),
+                    Mensaje   = mensaje,
                     Fecha     = _reloj.Ahora()
                 });
+
+                // El mismo aviso, también por correo.
+                if (_avisos != null)
+                    await _avisos.Avisar(paciente.Usuario, "Ya está el resultado de tu estudio", mensaje, "/Estudios");
             }
         }
         catch (Exception ex)

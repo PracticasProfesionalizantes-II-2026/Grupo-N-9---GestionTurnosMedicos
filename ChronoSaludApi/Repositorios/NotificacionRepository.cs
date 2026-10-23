@@ -50,6 +50,11 @@ public class NotificacionRepository : INotificacionRepository
     public async Task<int> ContarNoLeidas(int usuarioId)
         => await _db.Notificaciones.CountAsync(n => n.IdUsuario == usuarioId && !n.Leida);
 
+    // Un EXISTS en la base: no viaja ninguna fila.
+    public async Task<bool> Existe(int usuarioId, string tipo, string mensaje, DateTime desde)
+        => await _db.Notificaciones.AnyAsync(n =>
+            n.IdUsuario == usuarioId && n.Tipo == tipo && n.Mensaje == mensaje && n.Fecha >= desde);
+
     // Un solo UPDATE en la base, sin traer las filas. Devuelve cuántas marcó.
     public async Task<int> MarcarTodasLeidas(int usuarioId)
         => await _db.Notificaciones

@@ -161,6 +161,81 @@ que lo que se cargue desde el frontend aparece ahí al refrescar (`F5` sobre la 
 
 Si en algún momento levantaron el proyecto con `-LocalDb`, esos datos están en otra
 instancia y para verlos hay que conectarse a `(localdb)\MSSQLLocalDB`.
+
+## Correo y recordatorios
+
+La API manda tres tipos de correo:
+
+- el enlace de "olvidé mi contraseña";
+- los avisos de los turnos y los estudios, con el mismo texto que la campana;
+- un recordatorio el día del turno.
+
+Los correos se ponen en una cola y salen en segundo plano, así el pedido no espera al
+servidor de correo. Si un envío falla, se reintenta dos veces: a los 10 segundos y al minuto.
+
+Por dónde sale el correo:
+
+| Situación | Qué pasa con el correo |
+|---|---|
+| Hay `Correo:Smtp:Host` | Sale por ese servidor SMTP |
+| Sin servidor, en desarrollo | Se escribe en la consola de la API (como hasta el paso 20) |
+| Sin servidor, en Azure | No sale ni se escribe: solo queda un aviso en el log de que falta configurar el correo. Con `Correo__MostrarEnLog=true` vuelve a escribirse en el log |
+
+### En local
+
+No hace falta nada: los correos aparecen en la consola de la API. Para verlos como los ve el
+paciente, se puede levantar [Mailpit](https://mailpit.axllent.org/) en Docker y apuntar la API a él:
+
+```
+docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+dotnet user-secrets set "Correo:Smtp:Host" "localhost" --project ChronoSaludApi
+dotnet user-secrets set "Correo:Smtp:Puerto" "1025" --project ChronoSaludApi
+dotnet user-secrets set "Correo:Smtp:Seguridad" "None" --project ChronoSaludApi
+dotnet user-secrets set "Correo:Remitente" "turnos@chronosalud.test" --project ChronoSaludApi
+```
+
+Los correos se ven en http://localhost:8025. Para volver a la consola:
+`dotnet user-secrets remove "Correo:Smtp:Host" --project ChronoSaludApi`.
+
+### En Azure (App Service de la API)
+
+| Ajuste | Ejemplo |
+|---|---|
+| `Correo__Smtp__Host` | `smtp-relay.brevo.com` |
+| `Correo__Smtp__Puerto` | `587` |
+| `Correo__Smtp__Usuario` | el usuario que da el proveedor |
+| `Correo__Smtp__Contrasena` | la clave SMTP que da el proveedor |
+| `Correo__Remitente` | `turnos@<dominio>`, una dirección verificada en el proveedor |
+| `Recuperacion__UrlWeb` | la URL pública de la Web: los enlaces de los correos van ahí |
+| `Recuperacion__Clave` | una clave larga propia, para firmar los enlaces de recuperación |
+
+Algunos proveedores:
+
+- **Brevo:** `smtp-relay.brevo.com`, puerto 587. Tiene un plan gratis y pide verificar el remitente.
+- **Gmail:** `smtp.gmail.com`, puerto 587. Hay que usar una *contraseña de aplicación*, no la contraseña de la cuenta.
+
+`Correo__Smtp__Seguridad` va `StartTls` por defecto (puerto 587). Para el puerto 465 se usa
+`SslOnConnect`.
+
+La contraseña del SMTP va **solo** en el App Service o en los user-secrets, nunca en
+`appsettings.json`.
+
+### Recordatorios
+
+- **Cuándo se mandan:** el día del turno, desde las 7:00 (hora de Argentina), a los turnos pendientes o confirmados que todavía no empezaron.
+- **Cada cuánto se revisa:** cada 15 minutos. Así, un turno sacado a media mañana para la tarde también recibe el suyo.
+- **No se repiten:** cada recordatorio queda en la campana del paciente, y eso marca que ya se mandó.
+
+| Ajuste | Por defecto | Qué hace |
+|---|---|---|
+| `Recordatorios__Activos` | `true` | Prende o apaga los recordatorios |
+| `Recordatorios__Hora` | `07:00` | Desde qué hora se mandan |
+| `Recordatorios__MinutosEntreRevisiones` | `15` | Cada cuánto se revisa |
+
+**Para que anden en Azure**, el App Service de la API tiene que tener **Always On** activado
+(*Configuración → Configuración general*). Si no, la API se duerme cuando nadie la usa y no
+manda nada. Always On no existe en los planes Free y Shared: hace falta un plan Basic o superior.
+
 ## Estilos
 
 El CSS se compila de `wwwroot/css/app.css` a `wwwroot/css/app.build.css` con el CLI

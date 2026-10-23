@@ -48,4 +48,11 @@ public class NotificacionRepositoryFalso : INotificacionRepository
     }
 
     public Task Actualizar(Notificacion notificacion) => Task.CompletedTask;
+
+    public Task<bool> Existe(int usuarioId, string tipo, string mensaje, DateTime desde)
+    {
+        var existe = Notificaciones.Any(n =>
+            n.IdUsuario == usuarioId && n.Tipo == tipo && n.Mensaje == mensaje && n.Fecha >= desde);
+        return Task.FromResult(existe);
+    }
 }

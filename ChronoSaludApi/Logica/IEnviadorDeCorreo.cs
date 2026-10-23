@@ -1,10 +1,11 @@
 namespace ChronoSaludApi.Logica;
 
 /// <summary>
-/// Manda un email. Hoy la única implementación es <see cref="CorreoEnConsola"/>,
-/// que lo escribe en el log; para mandarlo de verdad (SMTP, SendGrid, Azure
-/// Communication Services…) alcanza con otra clase que implemente esto y
-/// cambiar una línea en Program.cs.
+/// Manda un email. La lógica solo ve esto. La implementación de la aplicación
+/// es <see cref="ColaDeCorreos"/>: deja el correo en una cola y vuelve, y
+/// <see cref="EnvioDeCorreos"/> lo manda en segundo plano con el transporte
+/// que diga la configuración (SMTP, el log en desarrollo, o ninguno). Las
+/// pruebas usan uno falso que guarda lo enviado.
 /// </summary>
 public interface IEnviadorDeCorreo
 {

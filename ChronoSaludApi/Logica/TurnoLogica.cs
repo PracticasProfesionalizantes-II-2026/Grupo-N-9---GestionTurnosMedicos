@@ -14,6 +14,7 @@ public class TurnoLogica : ITurnoLogica
     private readonly IHorarioLaboralLogica _horarioLogica;
     private readonly IRegistroMovimientos _movimientos;
     private readonly IReloj _reloj;
+    private readonly AvisosPorCorreo? _avisos;
 
     public TurnoLogica(
         ITurnoRepository repo,
@@ -23,7 +24,8 @@ public class TurnoLogica : ITurnoLogica
         ILogger<TurnoLogica> logger,
         IHorarioLaboralLogica horarioLogica,
         IRegistroMovimientos movimientos,
-        IReloj reloj)
+        IReloj reloj,
+        AvisosPorCorreo? avisos = null)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
@@ -33,11 +35,13 @@ public class TurnoLogica : ITurnoLogica
         _horarioLogica = horarioLogica;
         _movimientos = movimientos;
         _reloj = reloj;
+        _avisos = avisos;
     }
 
-    // Un fallo al insertar la notificación nunca puede hacer fracasar ni
-    // parecer que fracasó la operación principal que ya se guardó.
-    private async Task NotificarPaciente(int idPaciente, string mensaje)
+    // El aviso va a la campana y, si hay correo, también por email. Un fallo
+    // en cualquiera de los dos nunca puede hacer fracasar ni parecer que
+    // fracasó la operación principal que ya se guardó.
+    private async Task NotificarPaciente(int idPaciente, string asunto, string mensaje)
     {
         try
         {
@@ -51,6 +55,9 @@ public class TurnoLogica : ITurnoLogica
                 Mensaje   = mensaje,
                 Fecha     = _reloj.Ahora()
             });
+
+            if (_avisos != null)
+                await _avisos.Avisar(paciente.Usuario, asunto, mensaje, "/Turnos");
         }
         catch (Exception ex)
         {
@@ -203,8 +210,8 @@ public class TurnoLogica : ITurnoLogica
         await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCreado, "turno", turno.Id, turno.IdDoctor,
             $"Turno #{turno.Id} del {Cuando(turno)}: creado.");
 
-        await NotificarPaciente(turno.IdPaciente,
-            $"Se creó tu turno para el {turno.FechaInicio:dd/MM/yyyy} a las {dto.HoraInicio}.");
+        await NotificarPaciente(turno.IdPaciente, "Se creó tu turno",
+            TextosDeTurno.Creado(turno.FechaInicio, turno.HoraInicio, _reloj.Ahora()));
 
         return (turno.Id, null);
     }
@@ -294,15 +301,14 @@ public class TurnoLogica : ITurnoLogica
         // Al paciente se le avisa que su turno cambió de día u hora.
         if (cambiaHorario)
         {
-            await NotificarPaciente(turno.IdPaciente,
-                $"Tu turno del {fechaAnterior:dd/MM/yyyy} a las {horaAnterior:hh\\:mm} se pasó al " +
-                $"{turno.FechaInicio:dd/MM/yyyy} a las {turno.HoraInicio:hh\\:mm}.");
+            await NotificarPaciente(turno.IdPaciente, "Tu turno cambió de día u hora",
+                TextosDeTurno.Reprogramado(fechaAnterior, horaAnterior, turno.FechaInicio, turno.HoraInicio, _reloj.Ahora()));
         }
 
         if (!string.IsNullOrEmpty(dto.Estado) && dto.Estado != estadoAnterior)
         {
-            await NotificarPaciente(turno.IdPaciente,
-                $"El estado de tu turno del {turno.FechaInicio:dd/MM/yyyy} cambió a \"{turno.Estado}\".");
+            await NotificarPaciente(turno.IdPaciente, TextosDeTurno.AsuntoDeEstado(turno.Estado),
+                TextosDeTurno.EstadoCambiado(turno.FechaInicio, turno.HoraInicio, turno.Estado, _reloj.Ahora()));
         }
 
         return (true, null, false);
@@ -334,8 +340,8 @@ public class TurnoLogica : ITurnoLogica
         await _movimientos.Registrar(solicitante, AccionesMovimiento.TurnoCancelado, "turno", turno.Id, turno.IdDoctor,
             $"Turno #{turno.Id} del {Cuando(turno)}: {EstadoParaResumen(estadoPrevio)} a cancelado.");
 
-        await NotificarPaciente(turno.IdPaciente,
-            $"Tu turno del {turno.FechaInicio:dd/MM/yyyy} fue cancelado.");
+        await NotificarPaciente(turno.IdPaciente, "Se canceló tu turno",
+            TextosDeTurno.Cancelado(turno.FechaInicio, turno.HoraInicio, _reloj.Ahora()));
 
         return (true, null);
     }

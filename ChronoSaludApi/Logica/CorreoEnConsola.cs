@@ -2,13 +2,14 @@ namespace ChronoSaludApi.Logica;
 
 /// <summary>
 /// "Manda" el email escribiéndolo en el log de la API (la consola en
-/// desarrollo; el Log stream en Azure). Sirve para probar "Olvidé mi
-/// contraseña" sin un servidor de correo: el enlace se copia de ahí.
+/// desarrollo). Sirve para probar "Olvidé mi contraseña" y los recordatorios
+/// sin un servidor de correo: el enlace se copia de ahí.
 ///
-/// OJO: el enlace permite cambiar la contraseña, así que el log pasa a tener
-/// datos sensibles. Es una solución de mientras, hasta conectar un proveedor.
+/// Se usa solo en desarrollo, o fuera de desarrollo si se pide con
+/// Correo:MostrarEnLog: el enlace permite cambiar la contraseña, así que el
+/// log pasa a tener datos sensibles.
 /// </summary>
-public class CorreoEnConsola : IEnviadorDeCorreo
+public class CorreoEnConsola : ITransporteDeCorreo
 {
     private readonly ILogger<CorreoEnConsola> _log;
 
@@ -17,10 +18,10 @@ public class CorreoEnConsola : IEnviadorDeCorreo
         _log = log;
     }
 
-    public Task Enviar(string para, string asunto, string texto)
+    public Task Mandar(CorreoSaliente correo, CancellationToken cancelacion)
     {
         _log.LogWarning("Email (no se manda, solo se muestra acá)\nPara: {Para}\nAsunto: {Asunto}\n{Texto}",
-            para, asunto, texto);
+            correo.Para, correo.Asunto, correo.Texto);
         return Task.CompletedTask;
     }
 }
