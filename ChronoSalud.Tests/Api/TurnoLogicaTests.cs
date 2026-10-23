@@ -352,7 +352,8 @@ public class TurnoLogicaTests
         Assert.Equal("confirmado", turno.Estado);
         Assert.Contains(AccionesMovimiento.TurnoReprogramado, _movimientos.Acciones);
         var aviso = _notificaciones.Notificaciones.Single().Mensaje;
-        Assert.Contains($"{nuevoDia:dd/MM/yyyy} a las 11:00", aviso);
+        // El día va con palabras ("lunes 26 de octubre"), no como "26/10/2026".
+        Assert.Contains($"se pasó al {TextosDeTurno.Dia(nuevoDia, _reloj.Ahora())} a las 11:00", aviso);
     }
 
     /// <summary>Un PUT que solo cambia el estado.</summary>

@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 16
+# Cambios en la API — Mejoras, pasos 2 a 21
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) y `feature/agenda-y-estudios` (paso 16). Los pasos 14 y 15 no tocaron la API
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) `feature/agenda-y-estudios` (paso 16) y el paso 21 (correo y recordatorios). Los pasos 14, 15, 17, 19 y 20 no tocaron la API
 
 Un apartado por cada paso.
 
@@ -682,3 +682,80 @@ Son campos nuevos al final: nadie que ya use la API se rompe.
 | `Endpoints/EstudioEndpoints.cs` | `GET /estudios/{id}`. `POST` pasa el usuario del token |
 | `Logica/EstudioLogica.cs`, `IEstudioLogica.cs` | `Crear` revisa el paciente, el doctor y el turno vinculado. La notificación nombra el estudio y lleva fecha |
 | `Repositorios/EstudioRepository.cs`, `IEstudioRepository.cs` | La lista trae el turno con su doctor. Nuevo `ObtenerConDoctor`, solo para leer |
+
+---
+
+## Paso 21 — Correo real y recordatorios del día
+
+**No hay migración.** Los recordatorios se anotan en la tabla `Notificaciones`, que ya existía.
+
+### El correo sale de verdad
+
+- Antes, `CorreoEnConsola` escribía cada correo en el log. Ahora los correos van a una cola y un servicio en segundo plano los manda por SMTP (MailKit), con dos reintentos.
+- Cada correo va en texto y en HTML, con la marca de ChronoSalud. El HTML se arma a partir del texto.
+- El servidor se configura en la sección nueva `Correo`. En el repo va vacía. Los ajustes de Azure están en el README, en "Correo y recordatorios".
+- **Sin servidor configurado:**
+  - **En desarrollo:** el correo se sigue escribiendo en la consola.
+  - **Fuera de desarrollo:** **ya no se escribe en el log**, porque el log de Azure guardaba enlaces que sirven para cambiar contraseñas. Queda solo un aviso, sin el contenido y con la dirección tapada (`a***@gmail.com`). Con `Correo__MostrarEnLog=true` se vuelve a escribir como antes.
+- `POST /usuarios/recuperar` responde igual que antes, sin esperar al servidor de correo.
+
+### Los avisos también van por correo
+
+Cada aviso que llega a la campana también se manda por email: turno creado, reprogramado, con cambio de estado o cancelado, y resultado de un estudio.
+
+- El texto es el mismo, con un saludo y un enlace a la Web (sale de `Recuperacion:UrlWeb`).
+- No se manda a cuentas dadas de baja ni a cuentas sin email.
+- Si el correo falla, el turno o el estudio se guardan igual, como pasa con la campana.
+
+### Los textos de las notificaciones cambiaron
+
+Las notificaciones de los turnos dicen el día con palabras y ya no traen comillas rectas.
+
+| Aviso | Antes | Ahora |
+|---|---|---|
+| Creado | *Se creó tu turno para el 13/10/2026 a las 10:00.* | *Se creó tu turno para el martes 13 de octubre a las 10:00.* |
+| Reprogramado | *Tu turno del 13/10/2026 a las 10:00 se pasó al 14/10/2026 a las 11:00.* | *Tu turno del martes 13 de octubre a las 10:00 se pasó al miércoles 14 de octubre a las 11:00.* |
+| Confirmado | *El estado de tu turno del 13/10/2026 cambió a "confirmado".* | *Se confirmó tu turno del martes 13 de octubre a las 10:00.* |
+| Completado / ausente | *… cambió a "completado".* | *Tu turno del … quedó como atendido.* / *… quedó registrado como ausente.* |
+| Cancelado | *Tu turno del 13/10/2026 fue cancelado.* | *Se canceló tu turno del martes 13 de octubre a las 10:00.* |
+
+- El año aparece solo si el turno es de otro año.
+- Las notificaciones viejas quedan como estaban.
+
+### Recordatorio el día del turno
+
+- **Qué hace:** un servicio en segundo plano (`RecordatoriosProgramados`) busca, desde las 7:00 y cada 15 minutos, los turnos de hoy pendientes o confirmados que todavía no empezaron. A cada paciente le manda un correo *"Hoy tenés turno"*.
+- **En la campana:** se guarda una notificación de tipo nuevo, `"recordatorio"`: *"Hoy a las 10:00 tenés turno con Laura Gomez (Clínica), en el consultorio 101."*
+- **No se repite:** antes de mandar, el servicio busca una notificación igual de ese mismo día. Si el turno se reprograma para otra hora del mismo día, el texto cambia y sale un recordatorio nuevo.
+- **Configuración:** sección `Recordatorios`, con `Activos`, `Hora` y `MinutosEntreRevisiones`.
+- **En Azure:** necesita **Always On** en el App Service de la API.
+
+### A quién le pega
+
+- **La Web:** las notificaciones de tipo `recordatorio` se muestran con el ícono de reloj y cuentan como de turno. Si la Web vieja recibe una, la muestra con el ícono genérico, sin romperse.
+- **Quien use `GET /notificaciones`:** puede llegar `tipo: "recordatorio"`, y los mensajes nuevos tienen el formato de la tabla.
+- **Azure:**
+  - cargar los ajustes `Correo__*` en el App Service de la API;
+  - cargar `Recuperacion__UrlWeb`;
+  - activar Always On.
+
+  Sin eso, la API anda igual que antes, pero no manda correos.
+- **Orden de despliegue:** da igual. La Web vieja anda con la API nueva, y la API nueva no necesita la Web nueva.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `ChronoSaludApi.csproj` | MailKit 4.18.1. `System.Security.Cryptography.Pkcs` fijado en 10.0.13, porque la versión que trae MailKit tiene vulnerabilidades conocidas |
+| `Program.cs` | Registra la cola, el envío en segundo plano, el transporte según la configuración, `AvisosPorCorreo`, el recordatorio y su servicio |
+| `appsettings.json` | Secciones `Correo` (vacía) y `Recordatorios` |
+| `Logica/OpcionesDeCorreo.cs` (nuevo) | Configuración del correo y del SMTP |
+| `Logica/ITransporteDeCorreo.cs` (nuevo) | El correo a mandar, la interfaz del transporte, la elección del transporte y cómo se tapa la dirección |
+| `Logica/CorreoPorSmtp.cs`, `CorreoSinConfigurar.cs` (nuevos), `CorreoEnConsola.cs` | Los tres transportes |
+| `Logica/PlantillaDeCorreo.cs` (nuevo) | El HTML del correo a partir del texto |
+| `Logica/ColaDeCorreos.cs`, `EnvioDeCorreos.cs` (nuevos) | La cola (es el `IEnviadorDeCorreo`) y el envío con reintentos |
+| `Logica/AvisosPorCorreo.cs` (nuevo) | El aviso de la campana, por correo |
+| `Logica/TextosDeTurno.cs` (nuevo) | Los textos de los avisos de turnos |
+| `Logica/RecordatorioDeTurnos.cs`, `RecordatoriosProgramados.cs` (nuevos) | El recordatorio del día y el servicio que lo dispara |
+| `Logica/TurnoLogica.cs`, `EstudioLogica.cs` | Textos nuevos y aviso por correo |
+| `Repositorios/NotificacionRepository.cs`, `INotificacionRepository.cs` | Nuevo `Existe`, para no repetir recordatorios |

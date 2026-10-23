@@ -65,12 +65,13 @@ public class NotificacionFilaViewModel
     public bool Leida { get; init; }
 
     /// <summary>
-    /// Los tipos de la API son "turno", "estudio", "receta" y "general"; hoy
-    /// se crean solo los de turno y estudio.
+    /// Los tipos de la API son "turno", "recordatorio", "estudio", "receta" y
+    /// "general"; hoy se crean los de turno, recordatorio y estudio.
     /// </summary>
     public string Icono => Tipo switch
     {
         "turno" => "calendario",
+        "recordatorio" => "reloj",
         "estudio" => "estudio",
         "receta" => "pastilla",
         _ => "info"
@@ -79,8 +80,8 @@ public class NotificacionFilaViewModel
     /// <summary>"9 oct 2026, 10:30".</summary>
     public string FechaTexto => FechaArgentina.CortaConHora(Fecha);
 
-    /// <summary>Las de turnos llevan el enlace "Ver mis turnos".</summary>
-    public bool EsDeTurno => Tipo == "turno";
+    /// <summary>Las de turnos y los recordatorios del día llevan el enlace "Ver mis turnos".</summary>
+    public bool EsDeTurno => Tipo is "turno" or "recordatorio";
 
     /// <summary>Las de estudios llevan el enlace "Ver mis estudios".</summary>
     public bool EsDeEstudio => Tipo == "estudio";

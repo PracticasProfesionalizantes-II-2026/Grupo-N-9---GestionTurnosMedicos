@@ -802,3 +802,42 @@ con la API y la Web reales: 42 chequeos.
 - **Quedan para más adelante:**
   - el menú de la cuenta sigue mostrando las iniciales y no la foto (la sesión no guarda la foto y pedirla en cada pantalla es una llamada más a la API);
   - los mensajes de las notificaciones vienen de la API con comillas rectas ("cancelado") y fechas "13/10/2026".
+
+## 2026-10-23 — mejoras, paso 21: correo real y recordatorios
+**Hecho:**
+- **El correo sale de verdad (API):**
+  - `IEnviadorDeCorreo` ahora es una cola (`ColaDeCorreos`). Un servicio en segundo plano (`EnvioDeCorreos`) la vacía con dos reintentos, a los 10 s y al minuto. "Olvidé mi contraseña" responde igual de rápido que antes.
+  - El transporte sale de la configuración (`EleccionDeTransporte`):
+    - con `Correo:Smtp:Host`, sale por SMTP (`CorreoPorSmtp`, con MailKit);
+    - sin servidor y en desarrollo, va a la consola, como siempre;
+    - sin servidor y fuera de desarrollo, no sale ni se escribe en el log (`CorreoSinConfigurar`). Así el log de Azure ya no guarda enlaces que sirven para cambiar contraseñas.
+  - Cada correo va en texto y en HTML (`PlantillaDeCorreo`): encabezado teal con la marca, párrafos, enlaces y pie. El HTML se arma a partir del texto, así que cada correo se escribe una sola vez.
+  - En el log, las direcciones van tapadas (`a***@gmail.com`).
+- **Los avisos también por correo:** el turno creado, reprogramado, confirmado, atendido, ausente o cancelado, y el resultado de un estudio. Es el mismo texto de la campana, con "Hola, {nombre}:" y un enlace a Mis turnos o a Mis estudios (`AvisosPorCorreo`). No se manda a cuentas dadas de baja.
+- **Textos de las notificaciones:** salen de `TextosDeTurno`, con el día en palabras ("martes 13 de octubre", con el año solo si es otro) y la hora en todos. Ya no traen "13/10/2026" ni comillas rectas: cierra uno de los pendientes de los pasos 19 y 20.
+- **Recordatorio el día del turno:**
+  - `RecordatoriosProgramados` revisa desde las 7:00 y cada 15 minutos. `RecordatorioDeTurnos` toma los turnos de hoy pendientes o confirmados que todavía no empezaron.
+  - A cada paciente le deja en la campana *"Hoy a las 10:00 tenés turno con Laura Gomez (Clínica), en el consultorio 101."* (tipo nuevo `recordatorio`, con ícono de reloj en la Web) y le manda el correo "Hoy tenés turno", que suma traer el DNI y cómo cancelar.
+  - No se repite: la notificación del día marca que ya se mandó. Si el turno cambia de hora, sale uno nuevo.
+- **Probado:**
+  - 43 pruebas nuevas (422 en total): elección del transporte, dirección tapada, armado del mensaje, plantilla (escape y enlaces), cola y reintentos, textos, aviso por correo, y los casos del recordatorio (repetido, reprogramado, cuenta de baja, cancelado, ya pasado, otro día, dos turnos del mismo paciente).
+  - De punta a punta, con SQL Server y [Mailpit](https://mailpit.axllent.org/) en Docker y los datos de `tools/Seed`:
+    - llegaron los 30 correos esperados: turnos creados, confirmados, cancelados y recordatorios;
+    - los recordatorios no se repitieron en la revisión siguiente;
+    - "olvidé mi contraseña" respondió en menos de medio segundo, el enlace del correo funcionó y se pudo entrar con la contraseña nueva;
+    - la campana muestra el recordatorio con el ícono de reloj.
+
+**Ojo:**
+- Sin migración.
+- **Para Azure (App Service de la API):**
+  - cargar `Correo__Smtp__Host`, `Correo__Smtp__Puerto`, `Correo__Smtp__Usuario`, `Correo__Smtp__Contrasena` y `Correo__Remitente` del proveedor elegido (los ejemplos están en el README);
+  - cargar `Recuperacion__UrlWeb`;
+  - activar **Always On**, porque sin eso los recordatorios no corren. No existe en los planes Free y Shared.
+
+  Sin el SMTP la API anda igual, pero no manda correos.
+- Dependencia nueva: MailKit. `System.Security.Cryptography.Pkcs` queda fijado en 10.0.13 por dos avisos de seguridad de la versión que trae MailKit.
+- Las notificaciones viejas quedan con el texto de antes.
+- **Quedan para más adelante:**
+  - que cada paciente elija si quiere los correos;
+  - un recordatorio el día anterior, además del del día;
+  - avisar también al doctor.

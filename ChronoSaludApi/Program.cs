@@ -69,9 +69,35 @@ builder.Services.AddScoped<IMovimientoRepository,     MovimientoRepository>();
 builder.Services.AddScoped<IUsuarioLogica,         UsuarioLogica>();
 builder.Services.AddScoped<IRecuperarContrasenaLogica, RecuperarContrasenaLogica>();
 
-// Por ahora los emails no se mandan: se escriben en el log (ver CorreoEnConsola).
-// Para mandarlos de verdad, reemplazar CorreoEnConsola por otra implementación.
-builder.Services.AddSingleton<IEnviadorDeCorreo, CorreoEnConsola>();
+// Correo. La lógica deja los emails en una cola (ColaDeCorreos) y vuelve;
+// EnvioDeCorreos los manda en segundo plano con el transporte que diga la
+// configuración: SMTP si hay Correo:Smtp:Host, el log en desarrollo, y fuera de
+// desarrollo sin servidor, ninguno (solo un aviso). Ver README, "Correo".
+builder.Services.Configure<OpcionesDeCorreo>(builder.Configuration.GetSection("Correo"));
+builder.Services.AddSingleton<ColaDeCorreos>();
+builder.Services.AddSingleton<IEnviadorDeCorreo>(sp => sp.GetRequiredService<ColaDeCorreos>());
+builder.Services.AddSingleton<ITransporteDeCorreo>(sp =>
+{
+    var opciones = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OpcionesDeCorreo>>().Value;
+    var esDesarrollo = sp.GetRequiredService<IHostEnvironment>().IsDevelopment();
+    return EleccionDeTransporte.Para(opciones, esDesarrollo) switch
+    {
+        TipoDeTransporte.Smtp     => ActivatorUtilities.CreateInstance<CorreoPorSmtp>(sp),
+        TipoDeTransporte.Consola  => ActivatorUtilities.CreateInstance<CorreoEnConsola>(sp),
+        _                         => ActivatorUtilities.CreateInstance<CorreoSinConfigurar>(sp),
+    };
+});
+builder.Services.AddHostedService<EnvioDeCorreos>();
+
+// El mismo aviso de la campana, también por correo (turnos, estudios y
+// recordatorios). Es un singleton: solo usa la cola y la configuración.
+builder.Services.AddSingleton<AvisosPorCorreo>();
+
+// Recordatorio por correo y en la campana el día del turno. Corre dentro de
+// la API cada tantos minutos desde la hora configurada (Recordatorios:Hora).
+builder.Services.Configure<OpcionesDeRecordatorios>(builder.Configuration.GetSection("Recordatorios"));
+builder.Services.AddScoped<IRecordatorioDeTurnos, RecordatorioDeTurnos>();
+builder.Services.AddHostedService<RecordatoriosProgramados>();
 builder.Services.AddScoped<IPacienteLogica,        PacienteLogica>();
 builder.Services.AddScoped<IDoctorLogica,          DoctorLogica>();
 builder.Services.AddScoped<ITurnoLogica,           TurnoLogica>();
