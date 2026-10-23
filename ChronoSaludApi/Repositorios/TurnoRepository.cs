@@ -113,6 +113,28 @@ public class TurnoRepository : ITurnoRepository
             .CountAsync();
 
     /// <summary>
+    /// Cuántos pacientes distintos tuvieron al menos un turno completado, con
+    /// todos los filtros (doctor, especialidad y fechas). Lo cuenta SQL Server.
+    /// </summary>
+    public async Task<int> ContarPacientesAtendidos(FiltroTurnos filtro)
+        => await Filtrar(filtro, usarEstados: false)
+            .Where(t => t.Estado == "completado")
+            .Select(t => t.IdPaciente)
+            .Distinct()
+            .CountAsync();
+
+    /// <summary>
+    /// Cuántos turnos tiene cada doctor en cada estado: una fila por par
+    /// doctor y estado que tenga al menos un turno. SQL Server agrupa y
+    /// cuenta, así que no se trae ningún turno.
+    /// </summary>
+    public async Task<List<ConteoDeTurnos>> ContarPorDoctorYEstado(FiltroTurnos filtro)
+        => await Filtrar(filtro, usarEstados: false)
+            .GroupBy(t => new { t.IdDoctor, t.Estado })
+            .Select(grupo => new ConteoDeTurnos(grupo.Key.IdDoctor, grupo.Key.Estado, grupo.Count()))
+            .ToListAsync();
+
+    /// <summary>
     /// Por doctor, cuántos turnos no cancelados tiene en el período. La clave
     /// del diccionario es el IdDoctor. Un doctor sin turnos no aparece.
     /// </summary>
@@ -149,6 +171,14 @@ public class TurnoRepository : ITurnoRepository
         if (filtro.DoctorId.HasValue)   query = query.Where(t => t.IdDoctor == filtro.DoctorId);
         if (filtro.Desde.HasValue)      query = query.Where(t => t.FechaInicio >= filtro.Desde);
         if (filtro.Hasta.HasValue)      query = query.Where(t => t.FechaInicio <= filtro.Hasta);
+
+        // La intercalación de la base no distingue mayúsculas: "clínica" y
+        // "Clínica" son la misma especialidad.
+        if (!string.IsNullOrWhiteSpace(filtro.Especialidad))
+        {
+            var especialidad = filtro.Especialidad.Trim();
+            query = query.Where(t => t.Doctor!.Especialidad == especialidad);
+        }
 
         if (usarEstados && filtro.Estados.Count > 0)
         {

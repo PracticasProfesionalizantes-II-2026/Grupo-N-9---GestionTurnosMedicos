@@ -76,6 +76,27 @@ public class TurnoRepositoryFalso : ITurnoRepository
         return Task.FromResult(pacientes);
     }
 
+    public Task<int> ContarPacientesAtendidos(FiltroTurnos filtro)
+    {
+        var pacientes = Filtrar(filtro, usarEstados: false)
+            .Where(t => t.Estado == "completado")
+            .Select(t => t.IdPaciente)
+            .Distinct()
+            .Count();
+
+        return Task.FromResult(pacientes);
+    }
+
+    public Task<List<ConteoDeTurnos>> ContarPorDoctorYEstado(FiltroTurnos filtro)
+    {
+        var filas = Filtrar(filtro, usarEstados: false)
+            .GroupBy(t => (t.IdDoctor, t.Estado))
+            .Select(grupo => new ConteoDeTurnos(grupo.Key.IdDoctor, grupo.Key.Estado, grupo.Count()))
+            .ToList();
+
+        return Task.FromResult(filas);
+    }
+
     public Task<Dictionary<int, int>> ContarOcupadosPorDoctor(int? doctorId, DateTime desde, DateTime hasta)
     {
         var resultado = new Dictionary<int, int>();
@@ -102,6 +123,8 @@ public class TurnoRepositoryFalso : ITurnoRepository
             if (filtro.DoctorId.HasValue && turno.IdDoctor != filtro.DoctorId.Value) continue;
             if (filtro.Desde.HasValue && turno.FechaInicio < filtro.Desde.Value) continue;
             if (filtro.Hasta.HasValue && turno.FechaInicio > filtro.Hasta.Value) continue;
+            if (!string.IsNullOrWhiteSpace(filtro.Especialidad)
+                && !string.Equals(turno.Doctor?.Especialidad?.Trim(), filtro.Especialidad.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
             if (usarEstados && filtro.Estados.Count > 0 && !filtro.Estados.Contains(turno.Estado)) continue;
 
             resultado.Add(turno);

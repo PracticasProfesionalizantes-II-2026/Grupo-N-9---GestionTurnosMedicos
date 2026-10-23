@@ -910,6 +910,42 @@
   }
 }
 
+/* Reportes (paso 22). Las barras son decorativas: el número y el
+   porcentaje van siempre escritos al lado, así que llevan aria-hidden. El
+   largo viaja en style="--valor: 42%" y el color sale del tono del estado,
+   el mismo de su chip. */
+@layer components {
+  .barra-reporte {
+    @apply block h-2 w-full overflow-hidden rounded-full bg-primary-soft;
+  }
+
+  .barra-reporte > span {
+    @apply block h-full rounded-full bg-(--barra,var(--color-primary));
+    width: var(--valor, 0%);
+  }
+
+  .barra-exito { --barra: var(--color-status-confirmado); }
+  .barra-aviso { --barra: var(--color-status-pendiente); }
+  .barra-info { --barra: var(--color-status-completado); }
+  .barra-peligro { --barra: var(--color-status-cancelado); }
+  .barra-neutro { --barra: var(--color-muted); }
+
+  /* Crecen desde la izquierda al cargar. scale no mueve el layout. */
+  @media (prefers-reduced-motion: no-preference) {
+    .barra-reporte > span {
+      transform-origin: left;
+      animation: crecer-barra 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: calc(min(var(--i, 0), 12) * 40ms);
+    }
+  }
+}
+
+@keyframes crecer-barra {
+  from {
+    scale: 0 1;
+  }
+}
+
 /* Fundido corto entre páginas, sin JavaScript: el navegador cruza la página
    que se va con la que llega. Las dos tienen que pedirlo, así que una vista
    puede quedar afuera declarando navigation: none en su sección Head (lo

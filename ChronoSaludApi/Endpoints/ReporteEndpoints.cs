@@ -1,3 +1,4 @@
+using ChronoSaludApi.Logica;
 using ChronoSaludApi.Repositorios;
 
 namespace ChronoSaludApi.Endpoints;
@@ -9,6 +10,31 @@ public static class ReporteEndpoints
         var grupo = app.MapGroup("/reportes")
             .WithTags("Reportes")
             .RequireAuthorization(p => p.RequireRole("administrador", "doctor"));
+
+        // GET /reportes/resumen
+        // Lo que usa la pantalla Reportes de la Web: todo junto, en una llamada.
+        grupo.MapGet("/resumen", async (
+            HttpContext ctx,
+            IReporteLogica logica,
+            DateTime? fecha_desde,
+            DateTime? fecha_hasta,
+            int? doctor_id,
+            string? especialidad) =>
+        {
+            var solicitante = Solicitante.Desde(ctx.User);
+            if (solicitante == null)
+                return Results.Unauthorized();
+
+            var (reporte, error, noEncontrado, prohibido) = await logica.Resumen(
+                fecha_desde, fecha_hasta, doctor_id, especialidad, solicitante);
+
+            if (prohibido) return Results.Forbid();
+            if (noEncontrado) return Results.NotFound(new { error });
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(reporte);
+        })
+        .WithSummary("Turnos por estado, especialidad y doctor, con el ausentismo (administrador: toda la clínica; doctor: los suyos)");
 
         // GET /reportes/turnos
         grupo.MapGet("/turnos", async (

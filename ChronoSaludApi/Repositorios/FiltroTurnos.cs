@@ -16,6 +16,9 @@ public class FiltroTurnos
     public DateTime? Desde { get; set; }
     public DateTime? Hasta { get; set; }
 
+    /// <summary>Si tiene algo, solo los turnos de doctores de esa especialidad (igual, sin mirar mayúsculas).</summary>
+    public string? Especialidad { get; set; }
+
     /// <summary>
     /// Los estados de un turno: los que cuenta el listado. Son los mismos que
     /// EstadosTurno.Todos (una prueba revisa que no se separen).
