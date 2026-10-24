@@ -15,7 +15,7 @@ public class NotificacionLogica : INotificacionLogica
         // De a 20 por página, como siempre.
         var (total, notificaciones) = await _repo.ObtenerDeUsuario(usuarioId, leida, tipo, Math.Max(pagina, 1), 20);
         var resultado = notificaciones
-            .Select(n => new NotificacionDto(n.Id, n.Tipo, n.Mensaje, n.Fecha, n.Leida));
+            .Select(n => new NotificacionDto(n.Id, n.Tipo, n.Mensaje, n.Fecha, n.Leida, n.Enlace));
         return (total, resultado);
     }
 

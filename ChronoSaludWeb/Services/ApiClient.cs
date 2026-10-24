@@ -118,15 +118,16 @@ public class ApiClient
 
     /// <summary>
     /// PUT de un archivo como multipart/form-data, en el campo indicado. El
-    /// nombre de archivo es fijo: la API lo descarta.
+    /// nombre de archivo es "foto" si no se pasa otro: para la foto la API lo
+    /// descarta; para el PDF de un estudio, lo guarda para la descarga.
     /// </summary>
-    public async Task PutArchivoAsync(string ruta, string campo, byte[] contenido, string tipoContenido)
+    public async Task PutArchivoAsync(string ruta, string campo, byte[] contenido, string tipoContenido, string nombre = "foto")
     {
         using var pedido = new HttpRequestMessage(HttpMethod.Put, ruta);
 
         var parte = new ByteArrayContent(contenido);
         parte.Headers.ContentType = new MediaTypeHeaderValue(tipoContenido);
-        pedido.Content = new MultipartFormDataContent { { parte, campo, "foto" } };
+        pedido.Content = new MultipartFormDataContent { { parte, campo, nombre } };
 
         using var respuesta = await EnviarAsync(pedido, anonimo: false);
         if (respuesta.IsSuccessStatusCode) return;

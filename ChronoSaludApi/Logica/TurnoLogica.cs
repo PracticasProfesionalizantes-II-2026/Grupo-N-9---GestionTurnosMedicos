@@ -15,6 +15,7 @@ public class TurnoLogica : ITurnoLogica
     private readonly IRegistroMovimientos _movimientos;
     private readonly IReloj _reloj;
     private readonly AvisosPorCorreo? _avisos;
+    private readonly AvisosAlPersonal? _personal;
 
     public TurnoLogica(
         ITurnoRepository repo,
@@ -25,7 +26,8 @@ public class TurnoLogica : ITurnoLogica
         IHorarioLaboralLogica horarioLogica,
         IRegistroMovimientos movimientos,
         IReloj reloj,
-        AvisosPorCorreo? avisos = null)
+        AvisosPorCorreo? avisos = null,
+        AvisosAlPersonal? personal = null)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
@@ -36,6 +38,7 @@ public class TurnoLogica : ITurnoLogica
         _movimientos = movimientos;
         _reloj = reloj;
         _avisos = avisos;
+        _personal = personal;
     }
 
     // El aviso va a la campana y, si hay correo, también por email. Un fallo
@@ -213,6 +216,10 @@ public class TurnoLogica : ITurnoLogica
         await NotificarPaciente(turno.IdPaciente, "Se creó tu turno",
             TextosDeTurno.Creado(turno.FechaInicio, turno.HoraInicio, _reloj.Ahora()));
 
+        // Lo pidió el paciente: queda pendiente y la administración lo confirma.
+        if (solicitante.EsPaciente && _personal != null)
+            await _personal.TurnoPedido(turno);
+
         return (turno.Id, null);
     }
 
@@ -311,6 +318,9 @@ public class TurnoLogica : ITurnoLogica
                 TextosDeTurno.EstadoCambiado(turno.FechaInicio, turno.HoraInicio, turno.Estado, _reloj.Ahora()));
         }
 
+        if (turno.Estado == EstadosTurno.Cancelado && estadoAnterior != EstadosTurno.Cancelado && _personal != null)
+            await _personal.TurnoCancelado(turno, solicitante);
+
         return (true, null, false);
     }
 
@@ -342,6 +352,9 @@ public class TurnoLogica : ITurnoLogica
 
         await NotificarPaciente(turno.IdPaciente, "Se canceló tu turno",
             TextosDeTurno.Cancelado(turno.FechaInicio, turno.HoraInicio, _reloj.Ahora()));
+
+        if (_personal != null)
+            await _personal.TurnoCancelado(turno, solicitante);
 
         return (true, null);
     }

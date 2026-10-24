@@ -30,6 +30,9 @@ public class UsuarioRepository : IUsuarioRepository
     public async Task<int> ContarAdministradoresActivos()
         => await _db.Usuarios.CountAsync(u => u.Rol == "administrador" && u.Activo);
 
+    public async Task<List<int>> ObtenerIdsDeAdministradoresActivos()
+        => await _db.Usuarios.Where(u => u.Rol == "administrador" && u.Activo).Select(u => u.Id).ToListAsync();
+
     // Se usa en cada pedido con token (Program.cs): es una consulta chica, sin
     // traer la fila entera.
     public async Task<bool> EstaActivo(int id)

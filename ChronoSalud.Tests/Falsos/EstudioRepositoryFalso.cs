@@ -28,4 +28,18 @@ public class EstudioRepositoryFalso : IEstudioRepository
     }
 
     public Task Actualizar(Estudio estudio) => Task.CompletedTask;
+
+    public Task<int> MarcarVistos(int idPaciente)
+    {
+        var vistos = Estudios.Where(e => e.IdPaciente == idPaciente && e.Estado == "validado").ToList();
+        vistos.ForEach(e => e.Estado = "entregado");
+        return Task.FromResult(vistos.Count);
+    }
+
+    public Task MarcarVisto(int idEstudio)
+    {
+        foreach (var estudio in Estudios.Where(e => e.Id == idEstudio && e.Estado == "validado"))
+            estudio.Estado = "entregado";
+        return Task.CompletedTask;
+    }
 }

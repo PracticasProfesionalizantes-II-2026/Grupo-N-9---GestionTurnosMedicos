@@ -12,7 +12,10 @@ public record EstudioDto(
     // Paso 16: qué estudio es y quién lo pidió (el doctor del turno
     // vinculado; null si el estudio no tiene turno).
     string Descripcion = "",
-    ProfesionalDto? Doctor = null
+    ProfesionalDto? Doctor = null,
+    // Paso 23: si el resultado tiene un PDF subido a la app y con qué nombre.
+    bool TienePdf = false,
+    string? NombrePdf = null
 );
 
 public record EstudioCreateDto(

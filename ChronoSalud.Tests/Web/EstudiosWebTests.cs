@@ -38,16 +38,19 @@ public class EstudiosWebTests
         Assert.Equal("Laura Méndez", fila.PedidoPor!.NombreCompleto);
     }
 
+    // Paso 23: validado es "cargado y sin ver"; entregado, "ya lo vio el paciente".
     [Theory]
-    [InlineData("validado")]
-    [InlineData("entregado")]
-    public void Validado_o_entregado_es_resultado_disponible(string estado)
+    [InlineData("validado", false, "Sin ver por el paciente", TonoChip.Info)]
+    [InlineData("entregado", false, "Visto por el paciente", TonoChip.Exito)]
+    [InlineData("validado", true, "Nuevo resultado", TonoChip.Exito)]
+    [InlineData("entregado", true, "Resultado disponible", TonoChip.Neutro)]
+    public void Con_resultado_el_estado_se_dice_segun_quien_mira(string estado, bool paraPaciente, string texto, TonoChip tono)
     {
-        var fila = EstudioFilaViewModel.Desde(UnEstudio(estado));
+        var fila = EstudioFilaViewModel.Desde(UnEstudio(estado), paraPaciente);
 
         Assert.True(fila.TieneResultado);
-        Assert.Equal("Resultado disponible", fila.EstadoTexto);
-        Assert.Equal(TonoChip.Exito, fila.Tono);
+        Assert.Equal(texto, fila.EstadoTexto);
+        Assert.Equal(tono, fila.Tono);
         Assert.Equal("12 oct 2026", fila.FechaResultadoTexto);
     }
 
