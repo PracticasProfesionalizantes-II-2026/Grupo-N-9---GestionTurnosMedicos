@@ -125,6 +125,31 @@ namespace ChronoSaludApi.Migrations
                     b.ToTable("Estudios");
                 });
 
+            modelBuilder.Entity("ChronoSaludApi.Entidades.EstudioArchivo", b =>
+                {
+                    b.Property<int>("IdEstudio")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Contenido")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("SubidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Tamano")
+                        .HasColumnType("int");
+
+                    b.HasKey("IdEstudio");
+
+                    b.ToTable("EstudioArchivos");
+                });
+
             modelBuilder.Entity("ChronoSaludApi.Entidades.HistorialClinico", b =>
                 {
                     b.Property<int>("Id")
@@ -293,6 +318,10 @@ namespace ChronoSaludApi.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Enlace")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
@@ -647,6 +676,15 @@ namespace ChronoSaludApi.Migrations
                     b.Navigation("Paciente");
 
                     b.Navigation("Turno");
+                });
+
+            modelBuilder.Entity("ChronoSaludApi.Entidades.EstudioArchivo", b =>
+                {
+                    b.HasOne("ChronoSaludApi.Entidades.Estudio", null)
+                        .WithOne()
+                        .HasForeignKey("ChronoSaludApi.Entidades.EstudioArchivo", "IdEstudio")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ChronoSaludApi.Entidades.HistorialClinico", b =>

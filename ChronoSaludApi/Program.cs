@@ -64,6 +64,7 @@ builder.Services.AddScoped<INotificacionRepository,   NotificacionRepository>();
 builder.Services.AddScoped<IHorarioLaboralRepository, HorarioLaboralRepository>();
 builder.Services.AddScoped<IUsuarioFotoRepository,    UsuarioFotoRepository>();
 builder.Services.AddScoped<IMovimientoRepository,     MovimientoRepository>();
+builder.Services.AddScoped<IEstudioArchivoRepository, EstudioArchivoRepository>();
 
 // ── 5. Lógica de negocio (Scoped) ─────────────────────────────────────────
 builder.Services.AddScoped<IUsuarioLogica,         UsuarioLogica>();
@@ -97,6 +98,9 @@ builder.Services.AddSingleton<AvisosPorCorreo>();
 // la API cada tantos minutos desde la hora configurada (Recordatorios:Hora).
 builder.Services.Configure<OpcionesDeRecordatorios>(builder.Configuration.GetSection("Recordatorios"));
 builder.Services.AddScoped<IRecordatorioDeTurnos, RecordatorioDeTurnos>();
+
+// Los avisos de la campana para el personal (paso 23).
+builder.Services.AddScoped<AvisosAlPersonal>();
 builder.Services.AddHostedService<RecordatoriosProgramados>();
 builder.Services.AddScoped<IPacienteLogica,        PacienteLogica>();
 builder.Services.AddScoped<IDoctorLogica,          DoctorLogica>();

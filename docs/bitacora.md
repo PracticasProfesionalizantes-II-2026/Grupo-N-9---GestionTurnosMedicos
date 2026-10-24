@@ -875,3 +875,46 @@ con la API y la Web reales: 42 chequeos.
   - turnos día por día;
   - versión para imprimir;
   - comparar con el período anterior.
+
+## 2026-10-24 — mejoras, paso 23: estudios completos y avisos al personal
+**Hecho:**
+- **PDF del resultado:**
+  - al cargar o corregir un resultado se puede subir el informe en PDF, de hasta 5 MB;
+  - queda en la base, en la tabla nueva `EstudioArchivos`, como las fotos de perfil;
+  - se revisa que sea un PDF de verdad por los primeros bytes, no por la extensión, en la Web (para dar el mensaje junto al campo) y otra vez en la API;
+  - el paciente y el personal lo bajan con «Descargar el PDF del resultado». El enlace al laboratorio sigue como opción;
+  - si ya tiene uno, se puede reemplazar o quitar.
+- **Estados del estudio:**
+  - `validado`: resultado cargado y sin ver;
+  - `entregado`: el paciente ya lo vio. Se marca solo cuando abre "Mis estudios" o baja el PDF (`PATCH /estudios/vistos`).
+
+  | | El personal ve | El paciente ve |
+  |---|---|---|
+  | `validado` | «Sin ver por el paciente» | «Nuevo resultado», con un aviso arriba |
+  | `entregado` | «Visto por el paciente» | «Resultado disponible» |
+
+- **Filtros en Estudios:**
+  - por tipo;
+  - por estado: «Esperando resultado» y «Con resultado» para todos, y «Sin ver» y «Visto» para el personal.
+- **Avisos al personal** (`AvisosAlPersonal`). Van solo a la campana, que ahora ven los tres roles:
+  - a la administración, cuando un paciente pide un turno para confirmar;
+  - al doctor, cuando le cancelan un turno, salvo que lo cancele él;
+  - al doctor, cuando llega el resultado de un estudio que pidió, salvo que lo cargue él.
+
+  Cada aviso lleva a su pantalla con «Ver el turno» o «Ver los estudios»: es la columna nueva `Notificaciones.Enlace`, y la Web solo usa rutas de este mismo sitio.
+- **Probado:**
+  - 69 pruebas nuevas (547 en total): el PDF (firma, tamaño, nombre limpio, reemplazar, quitar), permisos, vistos, los tres avisos y cuándo no van, que un fallo al avisar no rompa la operación, filtros, chips, enlace seguro y campana para los tres roles.
+  - **De punta a punta** en Chromium, contra la API y la Web reales, con SQL Server en Docker y los datos de `tools/Seed`. La tabla y la columna nuevas se crearon a mano en la base de prueba, porque la migración la genera Francis.
+    - La doctora pide un estudio y la administración carga el resultado con PDF. Un archivo que no es PDF y uno de 6 MB muestran su mensaje.
+    - La doctora recibe el aviso, con el número en la campana, y el enlace la lleva a los estudios de la paciente.
+    - La paciente ve «Nuevo resultado», baja el PDF y al volver ya no es nuevo. El personal ve «Visto por el paciente».
+    - La paciente pide un turno: la administración recibe el aviso y el enlace abre el detalle del turno. La paciente lo cancela y la doctora recibe el aviso.
+    - Claro y oscuro, en celular con letra extra grande: sin scroll horizontal ni errores de JavaScript.
+
+**Ojo:**
+- **Hay migración** y la genera Francis: `dotnet ef migrations add AgregarArchivoDeEstudio --project ChronoSaludApi`. En Azure hay que correr el script antes de publicar la API. Hasta entonces, la API avisa en el log que falta la migración.
+- **Orden:** base, API y Web.
+- Hay que recompilar `app.build.css` con la CLI de Tailwind (ya está recompilado en este paso).
+- **Quedan para más adelante:**
+  - avisos al personal también por correo;
+  - una lista de "estudios pendientes de resultado" de todos los pacientes, para la administración.

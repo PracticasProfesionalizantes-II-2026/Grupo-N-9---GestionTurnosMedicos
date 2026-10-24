@@ -11,4 +11,13 @@ public interface IEstudioRepository
     Task<Estudio?> ObtenerConDoctor(int id);
     Task Agregar(Estudio estudio);
     Task Actualizar(Estudio estudio);
+
+    /// <summary>
+    /// Pasa a "entregado" los estudios "validado" del paciente: ya vio el
+    /// resultado. Devuelve cuántos cambió.
+    /// </summary>
+    Task<int> MarcarVistos(int idPaciente);
+
+    /// <summary>Lo mismo para uno solo, si está "validado" (al bajar el PDF).</summary>
+    Task MarcarVisto(int idEstudio);
 }

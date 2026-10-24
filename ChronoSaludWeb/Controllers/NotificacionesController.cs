@@ -5,14 +5,14 @@ using ChronoSaludWeb.Services;
 namespace ChronoSaludWeb.Controllers;
 
 /// <summary>
-/// Las notificaciones del paciente: la lista, marcar una como leída y marcar
-/// todas. Abrir la pantalla no marca nada solo: cada una se marca a mano.
+/// Las notificaciones de quien entró: la lista, marcar una como leída y
+/// marcar todas. Abrir la pantalla no marca nada solo: cada una se marca a mano.
 /// </summary>
 public class NotificacionesController : ControladorBase
 {
-    private const string TituloSinPermiso = "Las notificaciones son para pacientes";
+    private const string TituloSinPermiso = "No podés ver notificaciones con tu rol";
     private const string MotivoSinPermiso =
-        "Acá llegan los avisos de los turnos y de los estudios de cada paciente.";
+        "Las notificaciones son para pacientes, doctores y la administración.";
 
     // El valor de ?ver= de la pestaña "Sin leer".
     private const string VerSinLeer = "sin-leer";
@@ -63,12 +63,13 @@ public class NotificacionesController : ControladorBase
                 Total = resultado.Total,
                 NoLeidas = noLeidas,
                 Pagina = pagina,
-                SoloNoLeidas = soloNoLeidas
+                SoloNoLeidas = soloNoLeidas,
+                Rol = _auth.SesionActual?.Rol
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
         {
-            return View(new NotificacionesIndexViewModel { SoloNoLeidas = soloNoLeidas, Error = error.Message });
+            return View(new NotificacionesIndexViewModel { SoloNoLeidas = soloNoLeidas, Error = error.Message, Rol = _auth.SesionActual?.Rol });
         }
     }
 

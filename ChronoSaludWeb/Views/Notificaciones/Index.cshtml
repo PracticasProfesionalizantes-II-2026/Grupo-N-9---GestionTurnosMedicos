@@ -6,7 +6,7 @@
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold tracking-tight text-ink">Notificaciones</h1>
-        <p class="mt-1 text-sm text-muted">Los avisos de tus turnos y de tus estudios, de los más nuevos a los más viejos.</p>
+        <p class="mt-1 max-w-2xl text-sm text-muted">@Model.Subtitulo</p>
     </div>
     @* Solo aparece si hay algo para marcar. *@
     @if (!Model.HuboError && Model.NoLeidas > 0)
@@ -58,7 +58,7 @@ else if (Model.Notificaciones.Count == 0)
         else
         {
             <partial name="_EstadoVacio"
-                     model='new EstadoVacioViewModel { Icono = "campana", Nivel = 2, Titulo = "Todavía no tenés notificaciones", Ayuda = "Cuando se confirme, se cambie o se cancele un turno tuyo, o cuando esté el resultado de un estudio, te avisamos acá." }' />
+                     model='new EstadoVacioViewModel { Icono = "campana", Nivel = 2, Titulo = "Todavía no tenés notificaciones", Ayuda = Model.AyudaVacio }' />
         }
     </div>
 }
@@ -100,14 +100,21 @@ else
                                             <partial name="_Chip" model='new ChipViewModel { Texto = "Nueva", Tono = TonoChip.Aviso }' />
                                         }
                                     </p>
-                                    @if (notificacion.EsDeTurno || notificacion.EsDeEstudio || !notificacion.Leida)
+                                    @if (notificacion.Enlace is not null || notificacion.EsDeTurno || notificacion.EsDeEstudio || !notificacion.Leida)
                                     {
                                         <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                                            @if (notificacion.EsDeTurno)
+                                            @if (notificacion.Enlace is not null)
+                                            {
+                                                @* Url.Content arma la ruta dentro del sitio, también si la Web vive en una subcarpeta. *@
+                                                <a href="@Url.Content("~" + notificacion.Enlace)" class="boton-texto area-tactil">
+                                                    @notificacion.TextoDelEnlace<span class="sr-only">: @notificacion.Mensaje</span>
+                                                </a>
+                                            }
+                                            else if (notificacion.EsDeTurno)
                                             {
                                                 <a asp-controller="Turnos" asp-action="Index" class="boton-texto area-tactil">Ver mis turnos</a>
                                             }
-                                            @if (notificacion.EsDeEstudio)
+                                            else if (notificacion.EsDeEstudio)
                                             {
                                                 <a asp-controller="Estudios" asp-action="Index" class="boton-texto area-tactil">Ver mis estudios</a>
                                             }

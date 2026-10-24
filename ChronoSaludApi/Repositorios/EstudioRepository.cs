@@ -45,4 +45,15 @@ public class EstudioRepository : IEstudioRepository
         _db.Estudios.Update(estudio);
         await _db.SaveChangesAsync();
     }
+
+    // Un UPDATE en la base, sin traer los estudios.
+    public async Task<int> MarcarVistos(int idPaciente)
+        => await _db.Estudios
+            .Where(e => e.IdPaciente == idPaciente && e.Estado == "validado")
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.Estado, "entregado"));
+
+    public async Task MarcarVisto(int idEstudio)
+        => await _db.Estudios
+            .Where(e => e.Id == idEstudio && e.Estado == "validado")
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.Estado, "entregado"));
 }

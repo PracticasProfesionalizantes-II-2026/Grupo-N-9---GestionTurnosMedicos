@@ -18,6 +18,10 @@ public class Notificacion
 
     public bool Leida { get; set; } = false;
 
+    // La pantalla de la Web a la que lleva el aviso ("/Turnos/Detalle/12").
+    // Null en las de antes del paso 23: la Web elige el enlace por el tipo.
+    public string? Enlace { get; set; }
+
     // Navegación
     public Usuario? Usuario { get; set; }
 }

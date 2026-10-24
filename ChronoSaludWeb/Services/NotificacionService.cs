@@ -2,9 +2,10 @@ namespace ChronoSaludWeb.Services;
 
 /// <summary>
 /// Una notificación. Espeja NotificacionDto de la API. La fecha ya viene en
-/// hora de Argentina.
+/// hora de Argentina. Enlace es la pantalla a la que lleva (paso 23); null
+/// en las de antes, que eligen el enlace por el tipo.
 /// </summary>
-public record NotificacionLista(int Id, string Tipo, string Mensaje, DateTime Fecha, bool Leida);
+public record NotificacionLista(int Id, string Tipo, string Mensaje, DateTime Fecha, bool Leida, string? Enlace = null);
 
 /// <summary>
 /// Respuesta de GET /usuarios/{id}/notificaciones: { total, notificaciones }.

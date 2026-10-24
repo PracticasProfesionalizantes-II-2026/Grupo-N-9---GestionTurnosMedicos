@@ -33,8 +33,10 @@ public class EstudiosController : ControladorBase
         PacienteService pacientes,
         TurnoService turnos,
         AuthService auth,
-        PerfilService perfil)
+        PerfilService perfil,
+        ILogger<EstudiosController> log)
     {
+        _log = log;
         _estudios = estudios;
         _pacientes = pacientes;
         _turnos = turnos;
@@ -42,12 +44,22 @@ public class EstudiosController : ControladorBase
         _perfil = perfil;
     }
 
-    public async Task<IActionResult> Index(int? paciente, string? buscar)
+    // Algo más que los 5 MB del PDF, para que uno apenas pasado llegue a la
+    // validación y reciba su mensaje junto al campo.
+    private const long TamanoMaximoPedido = 8 * 1024 * 1024;
+
+    private readonly ILogger<EstudiosController> _log;
+
+    public async Task<IActionResult> Index(int? paciente, string? buscar, string? tipo, string? estado)
     {
         if (!_auth.HaySesion)
             return AlLogin(Url.Action(nameof(Index), new { paciente }));
 
         var esPaciente = _auth.SesionActual?.Rol == "paciente";
+
+        // Lo que llega por la URL y no es una opción queda en "todos".
+        var filtroTipo = EstudioFilaViewModel.Tipos.Any(t => t.Valor == tipo) ? tipo : null;
+        var filtroEstado = FiltroDeEstudios.Validar(estado, esPaciente);
 
         try
         {
@@ -68,10 +80,13 @@ public class EstudiosController : ControladorBase
                 return View(new EstudiosIndexViewModel { ElegirPaciente = elegir });
 
             var estudios = await _estudios.ObtenerDePacienteAsync(idPaciente.Value);
+            var filas = estudios.Select(e => EstudioFilaViewModel.Desde(e, paraPaciente: esPaciente)).ToList();
 
-            var filas = new List<EstudioFilaViewModel>();
-            foreach (var estudio in estudios)
-                filas.Add(EstudioFilaViewModel.Desde(estudio));
+            // El paciente está viendo sus resultados: los nuevos pasan a
+            // vistos. En esta visita se siguen mostrando como «Nuevo
+            // resultado», porque el chip sale de lo que se leyó antes.
+            if (esPaciente && filas.Any(f => f.SinVer))
+                await MarcarVistosAsync();
 
             return View(new EstudiosIndexViewModel
             {
@@ -80,7 +95,10 @@ public class EstudiosController : ControladorBase
                 ElegirPaciente = elegir,
                 PuedeCargarResultados = _auth.PuedeCargarResultados,
                 EsPaciente = esPaciente,
-                Estudios = filas
+                Tipo = filtroTipo,
+                FiltroEstado = filtroEstado,
+                TotalSinFiltrar = filas.Count,
+                Estudios = filas.Where(f => f.Coincide(filtroTipo, filtroEstado)).ToList()
             });
         }
         catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
@@ -190,6 +208,8 @@ public class EstudiosController : ControladorBase
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(TamanoMaximoPedido)]
+    [RequestFormLimits(MultipartBodyLengthLimit = TamanoMaximoPedido)]
     public async Task<IActionResult> Resultado(EstudioResultadoViewModel modelo)
     {
         if (!_auth.HaySesion)
@@ -202,6 +222,26 @@ public class EstudiosController : ControladorBase
         var enlace = string.IsNullOrWhiteSpace(modelo.ArchivoUrl) ? null : modelo.ArchivoUrl.Trim();
         if (enlace is not null && !EstudioResultadoViewModel.EsEnlaceValido(enlace))
             ModelState.AddModelError(nameof(modelo.ArchivoUrl), "Pegá la dirección completa del archivo, empezando con https://.");
+
+        // El PDF también es opcional. Se revisa acá para dar el mensaje junto
+        // al campo; la API lo vuelve a revisar.
+        byte[]? pdf = null;
+        if (modelo.Pdf is { Length: > 0 } archivo)
+        {
+            if (archivo.Length > EstudioResultadoViewModel.TamanoMaximoPdf)
+            {
+                ModelState.AddModelError(nameof(modelo.Pdf), "El PDF puede pesar hasta 5 MB.");
+            }
+            else
+            {
+                using var memoria = new MemoryStream();
+                await archivo.CopyToAsync(memoria);
+                pdf = memoria.ToArray();
+
+                if (EstudioResultadoViewModel.ProblemaDelPdf(pdf) is { } problema)
+                    ModelState.AddModelError(nameof(modelo.Pdf), problema);
+            }
+        }
 
         try
         {
@@ -216,6 +256,13 @@ public class EstudiosController : ControladorBase
                 return View(modelo);
             }
 
+            // Primero el PDF: si la API lo rechaza, no se guardó nada y el
+            // paciente no recibe el aviso de un resultado a medias.
+            if (pdf is not null)
+                await _estudios.SubirPdfAsync(modelo.IdEstudio, pdf, modelo.Pdf!.FileName);
+            else if (modelo.QuitarPdf && estudio.TienePdf)
+                await _estudios.QuitarPdfAsync(modelo.IdEstudio);
+
             await _estudios.CargarResultadoAsync(modelo.IdEstudio, new EstudioResultado(modelo.Resultado!.Trim(), enlace));
 
             TempData["Exito"] = "Resultado guardado. Le avisamos al paciente que ya lo puede ver.";
@@ -225,6 +272,44 @@ public class EstudiosController : ControladorBase
         {
             ModelState.AddModelError(string.Empty, error.Message);
             return View(modelo);
+        }
+    }
+
+    /// <summary>
+    /// El PDF del resultado, para bajarlo. Lo ven el paciente (los suyos) y el
+    /// personal. Si lo baja el paciente, la API lo marca como visto. Solo se
+    /// pide si el estudio tiene PDF: sin PDF, la API redirigiría al enlace
+    /// del laboratorio, y eso lo abre el navegador, no la Web.
+    /// </summary>
+    public async Task<IActionResult> Archivo(int id)
+    {
+        if (!_auth.HaySesion)
+            return AlLogin(Url.Action(nameof(Index)));
+
+        var estudio = await _estudios.ObtenerPorIdAsync(id);
+        if (estudio is not { TienePdf: true })
+            return NoEncontrado(id, "Ese resultado no tiene PDF", "estudio");
+
+        var archivo = await _estudios.DescargarPdfAsync(id);
+        if (archivo is null || archivo.TipoContenido != "application/pdf")
+            return NoEncontrado(id, "Ese resultado no tiene PDF", "estudio");
+
+        return File(archivo.Contenido, "application/pdf", estudio.NombrePdf ?? $"resultado-estudio-{id}.pdf");
+    }
+
+    /// <summary>
+    /// Que no se pueda marcar como visto no es motivo para no mostrar la
+    /// lista: queda como nuevo hasta la próxima vez.
+    /// </summary>
+    private async Task MarcarVistosAsync()
+    {
+        try
+        {
+            await _estudios.MarcarVistosAsync();
+        }
+        catch (ApiException error) when (error.Status != StatusCodes.Status401Unauthorized)
+        {
+            _log.LogWarning("No se pudieron marcar como vistos los resultados: {Error}", error.Message);
         }
     }
 

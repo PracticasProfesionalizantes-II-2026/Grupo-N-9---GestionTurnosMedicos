@@ -10,6 +10,9 @@ public interface IUsuarioRepository
     Task<Usuario?> ObtenerPorEmail(string email);
     Task<bool> HayAdministradorActivo();
     Task<int> ContarAdministradoresActivos();
+
+    /// <summary>Los ids de usuario de los administradores activos: a quiénes avisarles de un turno pedido.</summary>
+    Task<List<int>> ObtenerIdsDeAdministradoresActivos();
     Task<bool> EstaActivo(int id);
     Task Agregar(Usuario usuario);
     Task Actualizar(Usuario usuario);

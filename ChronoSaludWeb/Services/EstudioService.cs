@@ -4,7 +4,8 @@ namespace ChronoSaludWeb.Services;
 
 /// <summary>
 /// Un estudio médico. Espeja EstudioDto de la API. Doctor es quien lo pidió
-/// (el del turno vinculado); null si el estudio no tiene turno.
+/// (el del turno vinculado); null si el estudio no tiene turno. TienePdf y
+/// NombrePdf dicen si el resultado tiene un PDF subido a la app (paso 23).
 /// </summary>
 public record Estudio(
     int IdEstudio,
@@ -16,7 +17,9 @@ public record Estudio(
     string? ArchivoUrl,
     DateTime? FechaResultado,
     string Descripcion,
-    Profesional? Doctor);
+    Profesional? Doctor,
+    bool TienePdf = false,
+    string? NombrePdf = null);
 
 /// <summary>Respuesta de GET /pacientes/{id}/estudios: { estudios }.</summary>
 public record EstudiosDePaciente(IReadOnlyList<Estudio> Estudios);
@@ -30,9 +33,13 @@ public record EstudioCreado(
 
 /// <summary>
 /// Lo que se manda en PUT /estudios/{id}/resultados. La fecha la pone la API
-/// (ahora); el estado siempre es "entregado": el paciente ya lo puede ver.
+/// (ahora). El estado es "validado": el resultado está cargado y el paciente
+/// todavía no lo vio. Pasa a "entregado" solo, cuando lo ve (paso 23).
 /// </summary>
-public record EstudioResultado(string Resultado, string? ArchivoUrl, string Estado = "entregado");
+public record EstudioResultado(string Resultado, string? ArchivoUrl, string Estado = "validado");
+
+/// <summary>Respuesta de PATCH /estudios/vistos.</summary>
+public record EstudiosVistos(int Marcados);
 
 public class EstudioService
 {
@@ -73,4 +80,32 @@ public class EstudioService
     /// <summary>PUT /estudios/{id}/resultados. La API le avisa al paciente.</summary>
     public Task CargarResultadoAsync(int id, EstudioResultado resultado)
         => _api.PutAsync($"/estudios/{id}/resultados", resultado);
+
+    /// <summary>PUT /estudios/{id}/archivo: sube o reemplaza el PDF del resultado.</summary>
+    public Task SubirPdfAsync(int id, byte[] contenido, string nombre)
+        => _api.PutArchivoAsync($"/estudios/{id}/archivo", "archivo", contenido, "application/pdf", nombre);
+
+    /// <summary>DELETE /estudios/{id}/archivo.</summary>
+    public Task QuitarPdfAsync(int id)
+        => _api.DeleteAsync($"/estudios/{id}/archivo");
+
+    /// <summary>
+    /// GET /estudios/{id}/archivo: el PDF guardado. Null si no tiene, o si no
+    /// es de quien pregunta. Si lo baja el paciente, la API lo marca como visto.
+    /// </summary>
+    public async Task<ArchivoApi?> DescargarPdfAsync(int id)
+    {
+        try
+        {
+            return await _api.GetArchivoAsync($"/estudios/{id}/archivo");
+        }
+        catch (ApiException error) when (error.Status == StatusCodes.Status403Forbidden)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>PATCH /estudios/vistos: el paciente ya vio sus resultados.</summary>
+    public async Task<int> MarcarVistosAsync()
+        => (await _api.PatchAsync<EstudiosVistos>("/estudios/vistos", null))?.Marcados ?? 0;
 }

@@ -2,6 +2,9 @@
 @{
     var titulo = Model.EsPaciente ? "Mis estudios" : "Estudios";
     ViewData["Title"] = titulo;
+    const string claseCampo = "campo mt-1.5";
+    const string claseEtiqueta = "block text-sm font-medium text-ink";
+    var hayLista = Model.IdPaciente is not null && !Model.HuboError && Model.Aviso is null && Model.TotalSinFiltrar > 0;
 }
 
 <div class="flex flex-wrap items-end justify-between gap-4">
@@ -30,12 +33,59 @@
     }
 </div>
 
+@if (Model.Nuevos > 0)
+{
+    <div role="status" class="aviso aviso-exito mt-6">
+        <icono nombre="check-circulo" />
+        <span>@(Model.Nuevos == 1 ? "Tenés un resultado nuevo." : $"Tenés {Model.Nuevos} resultados nuevos.") Está marcado como «Nuevo resultado».</span>
+    </div>
+}
+
 @if (Model.ElegirPaciente is not null)
 {
     @* Doctor y administrador: el buscador de pacientes, o el elegido con «Cambiar paciente». *@
     <div class="mt-6 tarjeta p-5">
         <partial name="_ElegirPaciente" model="Model.ElegirPaciente" />
     </div>
+}
+
+@if (hayLista)
+{
+    @* Filtros por GET, sobre la lista de este paciente. Cambiar de paciente
+       los vuelve a "todos". *@
+    <form method="get" asp-action="Index" class="mt-6 flex flex-wrap items-end gap-4 tarjeta p-5">
+        @if (Model.IdPaciente is not null && !Model.EsPaciente)
+        {
+            <input type="hidden" name="paciente" value="@Model.IdPaciente" />
+        }
+        <div class="w-full sm:w-56">
+            <label for="tipo" class="@claseEtiqueta">Tipo</label>
+            <select id="tipo" name="tipo" class="@claseCampo">
+                <option value="">Todos</option>
+                @foreach (var opcion in EstudioFilaViewModel.Tipos)
+                {
+                    <option value="@opcion.Valor" selected="@(Model.Tipo == opcion.Valor)">@opcion.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="w-full sm:w-64">
+            <label for="estado" class="@claseEtiqueta">Estado</label>
+            <select id="estado" name="estado" class="@claseCampo">
+                <option value="">Todos</option>
+                @foreach (var (valor, nombre) in FiltroDeEstudios.Opciones(Model.EsPaciente))
+                {
+                    <option value="@valor" selected="@(Model.FiltroEstado == valor)">@nombre</option>
+                }
+            </select>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="submit" class="boton boton-primario">Filtrar</button>
+            @if (Model.HayFiltro)
+            {
+                <a asp-action="Index" asp-route-paciente="@(Model.EsPaciente ? null : Model.IdPaciente)" class="boton boton-secundario">Limpiar</a>
+            }
+        </div>
+    </form>
 }
 
 @if (Model.Aviso is not null)
@@ -55,6 +105,13 @@ else if (Model.HuboError)
 else if (Model.SinPacienteElegido)
 {
     @* Todavía no se eligió paciente: el buscador de arriba es el que lo pide. *@
+}
+else if (Model.NingunoCoincide)
+{
+    <div class="tarjeta mt-6">
+        <partial name="_EstadoVacio"
+                 model='new EstadoVacioViewModel { Icono = "estudio", Nivel = 2, Titulo = "Ningún estudio coincide con los filtros", Ayuda = "Probá con otro tipo u otro estado.", Accion = new EnlaceViewModel { Controlador = "Estudios", Accion = "Index", Ruta = Model.EsPaciente || Model.IdPaciente is null ? null : new Dictionary<string, string> { ["paciente"] = $"{Model.IdPaciente}" }, Descripcion = "Limpiar filtros" } }' />
+    </div>
 }
 else if (Model.Estudios.Count == 0)
 {
@@ -106,6 +163,15 @@ else
                         @if (!string.IsNullOrWhiteSpace(estudio.Resultado))
                         {
                             <p class="mt-1 whitespace-pre-line wrap-break-word text-sm text-ink">@estudio.Resultado</p>
+                        }
+                        @if (estudio.TienePdf)
+                        {
+                            <a asp-action="Archivo" asp-route-id="@estudio.IdEstudio"
+                               class="boton-texto area-tactil mt-2">
+                                <icono nombre="descargar" class="size-4" />
+                                Descargar el PDF del resultado
+                                <span class="sr-only">de @estudio.Titulo</span>
+                            </a>
                         }
                         @if (estudio.ArchivoSeguro is not null)
                         {

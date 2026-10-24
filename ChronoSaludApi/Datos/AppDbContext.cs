@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
     public DbSet<HorarioLaboral> HorariosLaborales => Set<HorarioLaboral>();
     public DbSet<UsuarioFoto> UsuarioFotos => Set<UsuarioFoto>();
+    public DbSet<EstudioArchivo> EstudioArchivos => Set<EstudioArchivo>();
     public DbSet<Movimiento> Movimientos => Set<Movimiento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -197,6 +198,12 @@ public class AppDbContext : DbContext
             .WithMany(u => u.Notificaciones)
             .HasForeignKey(n => n.IdUsuario);
 
+        // A qué pantalla de la Web lleva el aviso (paso 23). Opcional: las
+        // viejas no lo tienen.
+        modelBuilder.Entity<Notificacion>()
+            .Property(n => n.Enlace)
+            .HasMaxLength(200);
+
         // HorarioLaboral -> Doctor (un horario por día de la semana)
         modelBuilder.Entity<HorarioLaboral>(e =>
         {
@@ -226,6 +233,21 @@ public class AppDbContext : DbContext
             e.HasOne<Usuario>()
                 .WithOne()
                 .HasForeignKey<UsuarioFoto>(f => f.IdUsuario)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // EstudioArchivo -> Estudio (1 a 1, la clave es el propio IdEstudio).
+        // Sin navegación en Estudio, para que el PDF no se cargue con él. Si
+        // se borra el estudio, se va su PDF.
+        modelBuilder.Entity<EstudioArchivo>(e =>
+        {
+            e.HasKey(a => a.IdEstudio);
+            e.Property(a => a.IdEstudio).ValueGeneratedNever();
+            e.Property(a => a.Nombre).HasMaxLength(200);
+
+            e.HasOne<Estudio>()
+                .WithOne()
+                .HasForeignKey<EstudioArchivo>(a => a.IdEstudio)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

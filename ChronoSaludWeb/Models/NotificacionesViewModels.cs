@@ -86,13 +86,38 @@ public class NotificacionFilaViewModel
     /// <summary>Las de estudios llevan el enlace "Ver mis estudios".</summary>
     public bool EsDeEstudio => Tipo == "estudio";
 
+    /// <summary>
+    /// La pantalla a la que lleva, si la API mandó una y es una ruta de este
+    /// mismo sitio (paso 23). Null si no hay: queda el enlace por el tipo.
+    /// </summary>
+    public string? Enlace { get; init; }
+
+    /// <summary>"Ver el turno" o "Ver los estudios", según adónde lleva el enlace.</summary>
+    public string TextoDelEnlace =>
+        Enlace is not null && Enlace.StartsWith("/Estudios", StringComparison.OrdinalIgnoreCase) ? "Ver los estudios"
+        : Enlace is not null && Enlace.StartsWith("/Turnos", StringComparison.OrdinalIgnoreCase) ? "Ver el turno"
+        : "Ver el detalle";
+
+    /// <summary>
+    /// True solo para una ruta relativa de este sitio ("/Turnos/Detalle/12"):
+    /// empieza con una sola barra, sin "//" ni "/\" (que el navegador toma
+    /// como otro sitio) y sin espacios ni caracteres de control.
+    /// </summary>
+    public static bool EsEnlaceSeguro(string? enlace) =>
+        !string.IsNullOrEmpty(enlace)
+        && enlace.Length <= 200
+        && enlace[0] == '/'
+        && (enlace.Length == 1 || (enlace[1] != '/' && enlace[1] != '\\'))
+        && enlace.All(c => !char.IsWhiteSpace(c) && !char.IsControl(c));
+
     public static NotificacionFilaViewModel Desde(NotificacionLista notificacion) => new()
     {
         Id = notificacion.Id,
         Tipo = notificacion.Tipo,
         Mensaje = notificacion.Mensaje,
         Fecha = notificacion.Fecha,
-        Leida = notificacion.Leida
+        Leida = notificacion.Leida,
+        Enlace = EsEnlaceSeguro(notificacion.Enlace) ? notificacion.Enlace : null
     };
 }
 
@@ -115,6 +140,23 @@ public class NotificacionesIndexViewModel
     public string? Error { get; init; }
 
     public bool HuboError => Error is not null;
+
+    /// <summary>El rol de quien mira: cambia qué avisos le llegan.</summary>
+    public string? Rol { get; init; }
+
+    public string Subtitulo => Rol switch
+    {
+        "doctor" => "Las cancelaciones de tu agenda y los resultados de los estudios que pediste, de los más nuevos a los más viejos.",
+        "administrador" => "Los turnos que pidieron los pacientes y falta confirmar, de los más nuevos a los más viejos.",
+        _ => "Los avisos de tus turnos y de tus estudios, de los más nuevos a los más viejos."
+    };
+
+    public string AyudaVacio => Rol switch
+    {
+        "doctor" => "Cuando un paciente o la administración cancelen un turno tuyo, o llegue el resultado de un estudio que pediste, te avisamos acá.",
+        "administrador" => "Cuando un paciente pida un turno, te avisamos acá para que lo confirmes.",
+        _ => "Cuando se confirme, se cambie o se cancele un turno tuyo, o cuando esté el resultado de un estudio, te avisamos acá."
+    };
 
     /// <summary>
     /// La ruta de una pestaña. "Todas" no lleva nada, así la URL queda limpia.

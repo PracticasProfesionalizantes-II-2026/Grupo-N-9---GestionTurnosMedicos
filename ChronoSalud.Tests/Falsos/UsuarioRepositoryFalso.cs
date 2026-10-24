@@ -58,6 +58,12 @@ public class UsuarioRepositoryFalso : IUsuarioRepository
         return Task.FromResult(cuantos);
     }
 
+    public Task<List<int>> ObtenerIdsDeAdministradoresActivos()
+    {
+        var ids = Usuarios.Where(u => u.Rol == "administrador" && u.Activo).Select(u => u.Id).ToList();
+        return Task.FromResult(ids);
+    }
+
     public Task<bool> EstaActivo(int id)
     {
         var activo = Usuarios.Any(u => u.Id == id && u.Activo);

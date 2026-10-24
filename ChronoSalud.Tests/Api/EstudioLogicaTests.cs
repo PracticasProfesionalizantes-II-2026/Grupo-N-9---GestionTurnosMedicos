@@ -25,12 +25,13 @@ public class EstudioLogicaTests
     private readonly DoctorRepositoryFalso _doctores = new DoctorRepositoryFalso();
     private readonly TurnoRepositoryFalso _turnos = new TurnoRepositoryFalso();
     private readonly NotificacionRepositoryFalso _notificaciones = new NotificacionRepositoryFalso();
+    private readonly EstudioArchivoRepositoryFalso _archivos = new EstudioArchivoRepositoryFalso();
     private readonly RelojFijo _reloj = new RelojFijo { Momento = new DateTime(2026, 10, 9, 11, 30, 0) };
     private readonly EstudioLogica _logica;
 
     public EstudioLogicaTests()
     {
-        _logica = new EstudioLogica(_estudios, _pacientes, _doctores, _turnos, _notificaciones, _reloj,
+        _logica = new EstudioLogica(_estudios, _pacientes, _doctores, _turnos, _notificaciones, _archivos, _reloj,
             NullLogger<EstudioLogica>.Instance);
 
         var doctora = new Doctor

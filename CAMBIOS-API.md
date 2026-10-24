@@ -1,6 +1,6 @@
-# Cambios en la API — Mejoras, pasos 2 a 22
+# Cambios en la API — Mejoras, pasos 2 a 23
 
-**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) `feature/agenda-y-estudios` (paso 16) el paso 21 (correo y recordatorios) y el paso 22 (reportes). Los pasos 14, 15, 17, 19 y 20 no tocaron la API
+**Fecha:** 2026-10-08 · **Ramas:** `fix/pacientes-y-turnos` (paso 2), `fix/turnos-y-listados` (paso 3), `fix/listados-paginados` (pasos 3b y 4), `feature/reglas-de-turnos` (pasos 5 y 6) `feature/reprogramar-turnos` (paso 7), `feature/cuentas` (pasos 8 y 9) `feature/recetas-e-historia` (pasos 10 y 11) `feature/pacientes-notificaciones-accesibilidad` (pasos 12 y 13) `feature/agenda-y-estudios` (paso 16) el paso 21 (correo y recordatorios) el paso 22 (reportes) y el paso 23 (estudios completos y avisos al personal). Los pasos 14, 15, 17, 19 y 20 no tocaron la API
 
 Un apartado por cada paso.
 
@@ -821,3 +821,94 @@ Devuelve:
 | `Repositorios/TurnoRepository.cs`, `ITurnoRepository.cs` | `ContarPorDoctorYEstado` y `ContarPacientesAtendidos` con filtro |
 | `Repositorios/FiltroTurnos.cs` | Filtro nuevo, `Especialidad` |
 | `Program.cs` | Registra `IReporteLogica` |
+
+---
+
+## Paso 23 — PDF de los estudios, estados y avisos al personal
+
+**Hay migración.** No viene en el patch: se genera al aplicarlo.
+
+```
+dotnet ef migrations add AgregarArchivoDeEstudio --project ChronoSaludApi
+```
+
+Crea dos cosas:
+
+- **La tabla `EstudioArchivos`:**
+  - `IdEstudio` es la clave y apunta a `Estudios`. Al borrar el estudio, se borra el PDF;
+  - `Contenido` (`varbinary(max)`), `Nombre` (hasta 200), `Tamano` y `SubidoEn`.
+- **La columna `Notificaciones.Enlace`:** `nvarchar(200)`, admite nulo.
+
+No toca datos. Orden en Azure: correr el script de la migración, publicar la API y después la Web. La API nueva lee la columna y la tabla, así que con la base vieja falla.
+
+### El PDF del resultado
+
+| Endpoint | Quién | Qué hace |
+|---|---|---|
+| `PUT /estudios/{id}/archivo` | Doctor y administrador | Multipart con el campo `archivo`. Hasta 5 MB y tiene que empezar con la firma `%PDF-`: el tipo que mande el cliente no se usa. Reemplaza al que hubiera. 400 si no sirve, 404 si el estudio no existe |
+| `DELETE /estudios/{id}/archivo` | Doctor y administrador | Quita el PDF. 204 |
+| `GET /estudios/{id}/archivo` | El personal, y el paciente los suyos | **Cambió:** si hay PDF, lo devuelve (`application/pdf`, con su nombre). Si no, redirige al enlace del laboratorio, como antes. Sin ninguno de los dos, 404 |
+
+- **El nombre del archivo** se guarda sin carpetas ni caracteres raros, con `.pdf` al final. Si no viene, se usa `resultado-estudio-{id}.pdf`.
+- **`EstudioDto`** suma dos campos al final:
+  - `tienePdf`: si el resultado tiene un PDF subido;
+  - `nombrePdf`: el nombre del PDF.
+
+  El contenido no viaja en la lista: se pide aparte.
+
+### Los estados del estudio
+
+| Estado | Qué quiere decir |
+|---|---|
+| `pendiente` | Sin resultado |
+| `validado` | Resultado cargado; el paciente todavía no lo vio |
+| `entregado` | El paciente ya lo vio |
+
+- **`PUT /estudios/{id}/resultados`** sigue aceptando `validado` y `entregado`. La Web pasa a mandar `validado`.
+- **Nuevo `PATCH /estudios/vistos`** (solo paciente): pasa a `entregado` todos los suyos que estén `validado` y devuelve `{ "marcados": n }`. La Web lo llama al mostrarle "Mis estudios".
+- **Al bajar el PDF:** si lo hace el paciente con `GET /estudios/{id}/archivo`, ese estudio también pasa a `entregado`.
+
+### Avisos al personal
+
+Hasta ahora solo el paciente recibía notificaciones. Ahora también le llegan al personal, solo a la campana, sin correo:
+
+| Cuándo | A quién | Ejemplo |
+|---|---|---|
+| Un paciente pide un turno | Cada administrador activo | *"Ana Duarte pidió un turno con Laura Gomez para el lunes 13 de octubre a las 10:00. Falta confirmarlo."* |
+| Se cancela un turno (`DELETE /turnos/{id}` o `PUT` con estado `cancelado`) y no lo hizo el propio doctor | El doctor del turno | *"Ana Duarte canceló su turno del …"* o *"La administración canceló el turno de Ana Duarte del …"* |
+| Se carga el resultado de un estudio con turno, y no lo cargó el doctor que lo pidió | Ese doctor | *"Llegó el resultado del estudio «Hemograma completo» de Ana Duarte."* |
+
+- **`NotificacionDto`** suma `enlace` al final: la pantalla de la Web a la que lleva el aviso (`/Turnos/Detalle/12`, `/Estudios?paciente=3`). Las de antes, y las del paciente, lo traen en `null`.
+- **Si falla un aviso**, la operación igual se guarda, como pasa con los del paciente.
+
+### A quién le pega
+
+- **La Web:**
+  - la campana pasa a verse también para el doctor y la administración;
+  - en Estudios: filtros por tipo y estado, el PDF y los estados nuevos.
+- **Quien use la API:**
+  - `GET /estudios/{id}/archivo` puede devolver el PDF en lugar de redirigir;
+  - al doctor y al administrador les aparecen notificaciones en `GET /usuarios/{id}/notificaciones`;
+  - el resto, igual o con campos de más.
+- **Orden de despliegue:**
+  1. el script de la base;
+  2. la API;
+  3. la Web.
+
+  La Web nueva necesita la API nueva para el PDF y para marcar como visto.
+
+### Archivos tocados (API)
+
+| Archivo | Cambio |
+|---|---|
+| `Entidades/EstudioArchivo.cs` (nuevo), `Datos/AppDbContext.cs` | La tabla del PDF y su relación 1 a 1 con `Estudio`. `Notificacion.Enlace` |
+| `Entidades/Notificacion.cs`, `Logica/DTOs/NotificacionDTOs.cs`, `Logica/NotificacionLogica.cs` | `Enlace` |
+| `Repositorios/EstudioArchivoRepository.cs`, `IEstudioArchivoRepository.cs` (nuevos) | Guardar, obtener, borrar y los nombres de los PDF de una lista |
+| `Repositorios/EstudioRepository.cs`, `IEstudioRepository.cs` | `MarcarVistos` y `MarcarVisto` |
+| `Repositorios/UsuarioRepository.cs`, `IUsuarioRepository.cs` | `ObtenerIdsDeAdministradoresActivos` |
+| `Logica/EstudioLogica.cs`, `IEstudioLogica.cs` | El PDF, marcar como visto, el aviso al doctor. `CargarResultado` recibe quién lo carga |
+| `Logica/DTOs/EstudioDTOs.cs` | `TienePdf` y `NombrePdf` |
+| `Logica/AvisosAlPersonal.cs` (nuevo) | Los tres avisos al personal |
+| `Logica/TurnoLogica.cs` | Avisa a la administración y al doctor |
+| `Endpoints/EstudioEndpoints.cs` | Los endpoints del PDF y `PATCH /estudios/vistos` |
+| `Program.cs` | Registra el repositorio y `AvisosAlPersonal` |
