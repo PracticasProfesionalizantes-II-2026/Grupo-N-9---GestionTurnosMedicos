@@ -83,7 +83,7 @@ public class CorreoYRecordatoriosTests
         Assert.Equal("ChronoSalud", remitente.Name);
         Assert.Equal("ana@correo.com", Assert.IsType<MailboxAddress>(Assert.Single(mensaje.To)).Address);
         Assert.Equal("Hoy tenés turno", mensaje.Subject);
-        Assert.Equal("Hola, Ana:\n\nA las 10:00.", mensaje.TextBody);
+        Assert.Equal("Hola, Ana:\n\nA las 10:00.", mensaje.TextBody.ReplaceLineEndings("\n"));
         Assert.Contains("A las 10:00.", mensaje.HtmlBody);
     }
 
